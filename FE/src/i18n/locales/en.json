@@ -1,0 +1,81 @@
+{
+  "login": {
+    "title": "Login",
+    "username": "Username",
+    "password": "Password",
+    "remember": "Remember me",
+    "forgotPassword": "Forgot password?",
+    "manager": "Manager",
+    "sales": "Sales"
+  },
+  "menu": {
+    "overview": "Overview",
+    "products": "Products",
+    "orders": "Orders",
+    "customers": "Customers",
+    "staff": "Staff",
+    "tax": "Tax & Finance",
+    "sales": "Sales",
+
+    "productList": "Product List",
+    "priceSetup": "Price Setup",
+    "supplier": "Supplier",
+    "importGoods": "Import Goods",
+
+    "invoice": "Invoice",
+    "returns": "Returns",
+
+    "groups": {
+      "products": "Products",
+      "import": "Import"
+    }
+  },
+  "home": {
+    "salesResultToday": "Today's Sales Results",
+    "revenue": "Revenue",
+    "orders": "Orders",
+    "compareYesterday": "Compared to Yesterday",
+    "compareLastMonth": "Compared to Last Month",
+    "netRevenue": "Net Revenue",
+    "chartTitle": "Revenue by Hour"
+  },
+  "filters": {
+    "all": "All",
+    "inStock": "In Stock",
+    "outOfStock": "Out of Stock",
+    "allTime": "All Time",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "last7days": "Last 7 Days",
+    "thisMonth": "This Month",
+    "lastMonth": "Last Month",
+    "next7days": "Next 7 Days",
+    "next30days": "Next 30 Days"
+  },
+  "products": {
+    "title": "Products",
+    "group": "Group",
+    "groupPlaceholder": "Select group",
+    "stock": "Stock",
+    "expectedOut": "Expected Out",
+    "createdAt": "Created At",
+    "supplier": "Supplier",
+    "supplierPlaceholder": "Select supplier",
+    "listTitle": "Product List",
+    "code": "Code",
+    "name": "Name",
+    "price": "Price",
+    "cost": "Cost",
+    "ordered": "Ordered"
+  },
+  "actions": {
+    "apply": "Apply",
+    "create": "Create",
+    "createNew": "Create New",
+    "import": "Import File",
+    "export": "Export File"
+  },
+  "theme": {
+    "color": "Theme"
+  }
+}

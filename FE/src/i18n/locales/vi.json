@@ -1,0 +1,81 @@
+{
+  "login": {
+    "title": "Đăng nhập hệ thống",
+    "username": "Tên đăng nhập",
+    "password": "Mật khẩu",
+    "remember": "Ghi nhớ đăng nhập",
+    "forgotPassword": "Quên mật khẩu?",
+    "manager": "Quản lý",
+    "sales": "Bán hàng"
+  },
+  "menu": {
+    "overview": "Tổng quan",
+    "products": "Hàng hoá",
+    "orders": "Đơn hàng",
+    "customers": "Khách hàng",
+    "staff": "Nhân viên",
+    "tax": "Thuế & tài chính",
+    "sales": "Bán hàng",
+
+    "productList": "Danh sách hàng hoá",
+    "priceSetup": "Thiết lập giá",
+    "supplier": "Nhà cung cấp",
+    "importGoods": "Nhập hàng",
+
+    "invoice": "Hoá đơn",
+    "returns": "Trả hàng",
+
+    "groups": {
+      "products": "Hàng hoá",
+      "import": "Nhập hàng"
+    }
+  },
+  "home": {
+    "salesResultToday": "Kết quả bán hàng hôm nay",
+    "revenue": "Doanh thu",
+    "orders": "Đơn hàng",
+    "compareYesterday": "So với hôm qua",
+    "compareLastMonth": "So với tháng trước",
+    "netRevenue": "Doanh thu thuần",
+    "chartTitle": "Doanh thu theo giờ"
+  },
+  "filters": {
+    "all": "Tất cả",
+    "inStock": "Còn hàng",
+    "outOfStock": "Hết hàng",
+    "allTime": "Toàn thời gian",
+    "today": "Hôm nay",
+    "yesterday": "Hôm qua",
+    "last7days": "7 ngày qua",
+    "thisMonth": "Tháng này",
+    "lastMonth": "Tháng trước",
+    "next7days": "7 ngày tới",
+    "next30days": "30 ngày tới"
+  },
+  "products": {
+    "title": "Hàng hóa",
+    "group": "Nhóm hàng",
+    "groupPlaceholder": "Chọn nhóm hàng",
+    "stock": "Tồn kho",
+    "expectedOut": "Dự kiến hết hàng",
+    "createdAt": "Thời gian tạo",
+    "supplier": "Nhà cung cấp",
+    "supplierPlaceholder": "Chọn nhà cung cấp",
+    "listTitle": "Danh sách hàng hóa",
+    "code": "Mã hàng",
+    "name": "Tên hàng",
+    "price": "Giá bán",
+    "cost": "Giá vốn",
+    "ordered": "Khách đặt"
+  },
+  "actions": {
+    "apply": "Áp dụng",
+    "create": "Tạo mới",
+    "createNew": "Tạo mới",
+    "import": "Import file",
+    "export": "Xuất file"
+  },
+  "theme": {
+    "color": "Chủ đề"
+  }
+}
