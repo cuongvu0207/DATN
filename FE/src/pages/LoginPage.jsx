@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import InputField from "../components/InputField";
 import AuthLayout from "../layouts/AuthLayout";
-import LanguageSwitcher from "../components/navigation/LanguageSwitcher"; // ✅ thêm vào
+import LanguageSwitcher from "../components/navigation/LanguageSwitcher"; //  thêm vào
 import "bootstrap/dist/css/bootstrap.min.css";
 
 export default function LoginPage() {
@@ -72,8 +72,10 @@ export default function LoginPage() {
           <button
             className="btn btn-secondary w-50"
             style={{
-              borderBottomLeftRadius: "16px",
-              marginRight: "-1px",
+              borderTopLeftRadius: "0",          // không bo trên
+              borderTopRightRadius: "0",         // không bo trên
+              borderBottomLeftRadius: "16px",    // chỉ bo ngoài trái
+              borderBottomRightRadius: "0",      // không bo trong
               paddingTop: "16px",
               paddingBottom: "16px",
             }}
@@ -84,8 +86,10 @@ export default function LoginPage() {
           <button
             className="btn btn-success w-50"
             style={{
-              borderBottomRightRadius: "16px",
-              marginLeft: "-1px",
+              borderTopLeftRadius: "0",           // không bo trên
+              borderTopRightRadius: "0",          // không bo trên
+              borderBottomLeftRadius: "0",        // không bo trong
+              borderBottomRightRadius: "16px",    // chỉ bo ngoài phải
               paddingTop: "16px",
               paddingBottom: "16px",
               backgroundColor: "#20c997",

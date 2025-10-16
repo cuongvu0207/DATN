@@ -25,6 +25,7 @@ export default function Navbar() {
 
       dropdown.addEventListener("mouseenter", openMenu);
       dropdown.addEventListener("mouseleave", closeMenu);
+      
     });
   }, []);
 
@@ -64,12 +65,12 @@ export default function Navbar() {
                 <a className={buttonClass("/products")} href="#">
                   {t("menu.products")}
                 </a>
-                <ul className="dropdown-menu">
+                <ul className="dropdown-menu ">
                   <li>
-                    <h6 className="dropdown-header">{t("menu.groups.products")}</h6>
+                    <h6 className="dropdown-header fw-bold text-black">{t("menu.groups.products")}</h6>
                   </li>
                   <li>
-                    <Link className="dropdown-item" to="/products/list">
+                    <Link className="dropdown-item dropdown-${theme}-subtle" to="/products/list">
                       {t("menu.productList")}
                     </Link>
                   </li>
@@ -82,7 +83,7 @@ export default function Navbar() {
                     <hr className="dropdown-divider" />
                   </li>
                   <li>
-                    <h6 className="dropdown-header">{t("menu.groups.import")}</h6>
+                    <h6 className="dropdown-header fw-bold text-black">{t("menu.groups.import")}</h6>
                   </li>
                   <li>
                     <a className="dropdown-item" href="#">
