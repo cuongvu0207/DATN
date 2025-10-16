@@ -1,12 +1,14 @@
 {
   "login": {
-    "title": "Đăng nhập hệ thống",
+    "title": "VPOS",
     "username": "Tên đăng nhập",
     "password": "Mật khẩu",
     "remember": "Ghi nhớ đăng nhập",
     "forgotPassword": "Quên mật khẩu?",
     "manager": "Quản lý",
-    "sales": "Bán hàng"
+    "sales": "Bán hàng",
+    "error": "Sai tài khoản hoặc mật khẩu!",
+    "loading": "Đang xử lý..."
   },
   "menu": {
     "overview": "Tổng quan",
@@ -66,7 +68,17 @@
     "name": "Tên hàng",
     "price": "Giá bán",
     "cost": "Giá vốn",
-    "ordered": "Khách đặt"
+    "ordered": "Khách đặt",
+    "searchPlaceholder": "Theo mã, tên hàng",
+    "create": "Tạo mới",
+    "import": "Import file",
+    "export": "Xuất file",
+    "productId": "Mã hàng",
+    "productName": "Tên hàng",
+    "sellingPrice": "Giá bán",
+    "costOfCapital": "Giá vốn",
+    "quantityInStock": "Tồn kho",
+    "expectedOutOfStock": "Dự kiến hết hàng"
   },
   "actions": {
     "apply": "Áp dụng",
@@ -77,6 +89,9 @@
   },
   "theme": {
     "color": "Chủ đề"
+  },
+  "account": {
+  "profile": "Thông tin tài khoản",
+  "logout": "Đăng xuất"
   }
-  
 }

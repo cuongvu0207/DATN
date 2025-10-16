@@ -1,12 +1,14 @@
 {
   "login": {
-    "title": "Login",
+    "title": "VPOS",
     "username": "Username",
     "password": "Password",
     "remember": "Remember me",
     "forgotPassword": "Forgot password?",
     "manager": "Manager",
-    "sales": "Sales"
+    "sales": "Sell",
+    "loading": "Loading...",
+    "error": "Invalid username or password!"
   },
   "menu": {
     "overview": "Overview",
@@ -66,7 +68,17 @@
     "name": "Name",
     "price": "Price",
     "cost": "Cost",
-    "ordered": "Ordered"
+    "ordered": "Ordered",
+    "searchPlaceholder": "Search by code, name",
+    "create": "Create new",
+    "import": "Import file",
+    "export": "Export file",
+    "productId": "Product ID",
+    "productName": "Product Name",
+    "sellingPrice": "Selling Price",
+    "costOfCapital": "Cost of Capital",
+    "quantityInStock": "In Stock",
+    "expectedOutOfStock": "Expected Out of Stock"
   },
   "actions": {
     "apply": "Apply",
@@ -77,5 +89,10 @@
   },
   "theme": {
     "color": "Theme"
+  },
+  "account": {
+  "profile": "Account Info",
+  "logout": "Logout"
   }
+  
 }

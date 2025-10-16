@@ -12,7 +12,7 @@ export default function MainLayout({ children, theme, setTheme }) {
       <Navbar theme={theme} />
 
       {/* Nội dung */}
-      <div className="container mt-4">{children}</div>
+      <div className="container-fluid ">{children}</div>
     </>
   );
 }
