@@ -10,6 +10,12 @@
     "error": "Sai tài khoản hoặc mật khẩu!",
     "loading": "Đang xử lý..."
   },
+  "common": {
+    "delete" : "Xoá",
+    "edit" : "Chỉnh sửa",
+    "cancel" : "Huỷ",
+    "save" : "Lưu"
+  },
   "menu": {
     "overview": "Tổng quan",
     "products": "Hàng hoá",
@@ -57,6 +63,8 @@
   "products": {
     "title": "Hàng hóa",
     "group": "Nhóm hàng",
+    "category" : "Danh mục ",
+    "brand" : "Thương hiệu",
     "groupPlaceholder": "Chọn nhóm hàng",
     "stock": "Tồn kho",
     "expectedOut": "Dự kiến hết hàng",
@@ -71,14 +79,15 @@
     "ordered": "Khách đặt",
     "searchPlaceholder": "Theo mã, tên hàng",
     "create": "Tạo mới",
-    "import": "Import file",
+    "import": "Nhập từ file",
     "export": "Xuất file",
     "productId": "Mã hàng",
     "productName": "Tên hàng",
     "sellingPrice": "Giá bán",
     "costOfCapital": "Giá vốn",
     "quantityInStock": "Tồn kho",
-    "expectedOutOfStock": "Dự kiến hết hàng"
+    "expectedOutOfStock": "Dự kiến hết hàng",
+    "editProduct" : "Sửa sản phẩm"
   },
   "actions": {
     "apply": "Áp dụng",

@@ -10,6 +10,12 @@
     "loading": "Loading...",
     "error": "Invalid username or password!"
   },
+  "common": {
+    "delete" : "Delete",
+    "edit" : "Edit",
+    "cancel" : "Cancel",
+    "save" : "Save"
+  },
   "menu": {
     "overview": "Overview",
     "products": "Products",
@@ -78,7 +84,8 @@
     "sellingPrice": "Selling Price",
     "costOfCapital": "Cost of Capital",
     "quantityInStock": "In Stock",
-    "expectedOutOfStock": "Expected Out of Stock"
+    "expectedOutOfStock": "Expected Out of Stock",
+    "editProduct" : "Edit Product"
   },
   "actions": {
     "apply": "Apply",

@@ -6,8 +6,8 @@ export default function HomePage({ theme, setTheme }) {
     <MainLayout theme={theme} setTheme={setTheme}>
       <div className={`p-4 border rounded bg-${theme} bg-opacity-25`}>
         <h2 className={`text-${theme}`}>Tổng quan</h2>
-        <p>Nội dung trang tổng quan theo màu theme.</p>
-        <button className={`btn btn-${theme}`}>Nút theo theme</button>
+        <p>Nội dung trang tổng quan </p>
+        <button className={`btn btn-${theme}`}>Nội dung</button>
       </div>
     </MainLayout>
   );

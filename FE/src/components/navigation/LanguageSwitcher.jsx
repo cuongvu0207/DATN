@@ -10,35 +10,62 @@ export default function LanguageSwitcher() {
     localStorage.setItem("appLang", lng); // lưu ngôn ngữ vào localStorage
   };
 
+  const flagSrc = i18n.language === "vi" ? "/vn.png" : "/us.png";
+
   return (
     <div className="dropdown">
       <button
-        className={`btn btn-light d-flex align-items-center text-black dropdown-toggle`}
+        className="btn btn-light d-flex align-items-center text-black dropdown-toggle"
         type="button"
         id="languageDropdown"
         data-bs-toggle="dropdown"
         aria-expanded="false"
       >
+        <img
+          src={flagSrc}
+          alt="flag"
+          width="24"
+          height="16"
+          className="me-2"
+          style={{ borderRadius: 0 }} // ✅ bỏ bo góc quốc kỳ
+        />
         {currentLang}
       </button>
+
       <ul
-        className="dropdown-menu dropdown-menu-end"
+        className="dropdown-menu dropdown-menu-end shadow-sm"
         aria-labelledby="languageDropdown"
       >
         <li>
           <button
-            className="dropdown-item"
+            className="dropdown-item d-flex align-items-center"
             onClick={() => changeLanguage("vi")}
           >
-            🇻🇳 Tiếng Việt
+            <img
+              src="/vn.png"
+              alt="Vietnam flag"
+              width="24"
+              height="16"
+              className="me-2"
+              style={{ borderRadius: 0 }} 
+            />
+            Tiếng Việt
           </button>
         </li>
         <li>
           <button
-            className="dropdown-item"
+            className="dropdown-item d-flex align-items-center"
             onClick={() => changeLanguage("en")}
           >
-            🇬🇧 English
+            <img
+              src="/us.png"
+              alt="US flag"
+              width="24"
+              height="16"
+              className="me-2"
+              style={{ borderRadius: 0 }} 
+            />
+            English
           </button>
         </li>
       </ul>

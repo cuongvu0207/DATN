@@ -11,8 +11,13 @@ export default function MainLayout({ children, theme, setTheme }) {
       {/* Navbar */}
       <Navbar theme={theme} />
 
-      {/* Nội dung */}
-      <div className="container-fluid ">{children}</div>
+      {/* Nội dung chính */}
+      <div className="container-fluid">
+        <div className="row justify-content-center">
+          {/* Chiếm 10/12 chiều ngang (cách đều mỗi bên 1/12) */}
+          <div className="col-10">{children}</div>
+        </div>
+      </div>
     </>
   );
 }
