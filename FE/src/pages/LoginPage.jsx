@@ -16,14 +16,14 @@ export default function LoginPage() {
 
   const [loadingManager, setLoadingManager] = useState(false);
   const [loadingSales, setLoadingSales] = useState(false);
-  const [errorKey, setErrorKey] = useState(""); // ✅ chỉ lưu key
+  const [errorKey, setErrorKey] = useState(""); //  chỉ lưu key
 
   const handleLogin = async (redirectPath, setLoading) => {
     setLoading(true);
     setErrorKey("");
 
     try {
-      const res = await fetch("http://localhost:8081/api/auth/login", {
+      const res = await fetch("https://aerobiotically-supereffective-marcus.ngrok-free.dev/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
@@ -128,7 +128,7 @@ export default function LoginPage() {
               paddingTop: "16px",
               paddingBottom: "16px",
             }}
-            onClick={() => handleLogin("/home", setLoadingManager)}
+            onClick={() => handleLogin("/", setLoadingManager)}
           >
             {loadingManager ? t("login.loading") : t("login.manager")}
           </button>

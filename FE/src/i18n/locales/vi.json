@@ -87,7 +87,8 @@
     "costOfCapital": "Giá vốn",
     "quantityInStock": "Tồn kho",
     "expectedOutOfStock": "Dự kiến hết hàng",
-    "editProduct" : "Sửa sản phẩm"
+    "editProduct" : "Sửa sản phẩm",
+    "printBarcode" : "In mã vạch"
   },
   "actions": {
     "apply": "Áp dụng",

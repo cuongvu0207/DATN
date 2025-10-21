@@ -5,6 +5,7 @@ import HomePage from "./pages/HomePage";
 import SalesPage from "./pages/SalesPage";
 import LoginPage from "./pages/LoginPage";
 import ProductListPage from "./pages/ProductListPage";
+import AccountPage from "./pages/AccountPage";
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/" element={<HomePage />} />
           <Route path="/sales" element={<SalesPage />} />
+          <Route path="/account" element={<AccountPage />} />
           <Route path="/products/list" element={<ProductListPage />} />
         </Routes>
       </Router>

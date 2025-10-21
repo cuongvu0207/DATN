@@ -65,6 +65,7 @@
     "group": "Group",
     "groupPlaceholder": "Select group",
     "stock": "Stock",
+    "brand" : "Brand",
     "expectedOut": "Expected Out",
     "createdAt": "Created At",
     "supplier": "Supplier",
