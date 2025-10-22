@@ -88,7 +88,11 @@
     "quantityInStock": "Tồn kho",
     "expectedOutOfStock": "Dự kiến hết hàng",
     "editProduct" : "Sửa sản phẩm",
-    "printBarcode" : "In mã vạch"
+    "printBarcode" : "In mã vạch",
+    "rows" : "Hàng",
+    "showAll" : "Tất cả",
+    "show" : "Hiển thị",
+    "barcode" : "Mã vạch"
   },
   "actions": {
     "apply": "Áp dụng",

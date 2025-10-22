@@ -15,16 +15,17 @@ export default function ProductListPage() {
   const products = Array.from({ length: 35 }, (_, i) => ({
     id: `SP00${i + 1}`,
     name: `Sản phẩm ${i + 1}`,
-    brand: `Thương hiệu ${i + 1}`,
+    brand: `Thương hiệu ${i % 3 === 0 ? "A" : i % 3 === 1 ? "B" : "C"}`,
     price: 10000 + i * 1000,
     cost: 8000 + i * 900,
     stock: 50 - i,
-    createdAt: "12",
+    createdAt: i % 2 === 0 ? "22/10/2025" : "21/10/2025",
     image: "https://via.placeholder.com/80x80.png?text=IMG",
-    category: "Danh mục A",
-    supplier: "Nhà cung cấp A",
+    category: i % 2 === 0 ? "Danh mục A" : "Danh mục B",
+    supplier: i % 2 === 0 ? "Nhà cung cấp A" : "Nhà cung cấp B",
   }));
 
+  // --- STATE ---
   const [query, setQuery] = useState("");
   const [rowsPerPage, setRowsPerPage] = useState(15);
   const [currentPage, setCurrentPage] = useState(1);
@@ -32,20 +33,62 @@ export default function ProductListPage() {
   const [editingProduct, setEditingProduct] = useState(null);
   const [addingProduct, setAddingProduct] = useState(false);
   const [showFilter, setShowFilter] = useState(false);
-  const [selectedProducts, setSelectedProducts] = useState([]); // ✅ Danh sách sản phẩm được chọn
+  const [selectedProducts, setSelectedProducts] = useState([]);
 
-  const filtered = products.filter(
-    (p) =>
+  // --- Bộ lọc ---
+  const [filters, setFilters] = useState({
+    category: "",
+    brand: "",
+    supplier: "",
+    createdAt: "",
+    stock: "all",
+  });
+
+  const handleFilterChange = (field, value) => {
+    setFilters((prev) => ({ ...prev, [field]: value }));
+    setCurrentPage(1);
+  };
+
+  // --- Lọc dữ liệu ---
+  const filtered = products.filter((p) => {
+    const matchesQuery =
       p.id.toLowerCase().includes(query.toLowerCase()) ||
-      p.name.toLowerCase().includes(query.toLowerCase())
-  );
+      p.name.toLowerCase().includes(query.toLowerCase());
 
+    const matchesCategory = !filters.category || p.category === filters.category;
+    const matchesBrand = !filters.brand || p.brand === filters.brand;
+    const matchesSupplier = !filters.supplier || p.supplier === filters.supplier;
+
+    const matchesStock =
+      filters.stock === "all"
+        ? true
+        : filters.stock === "in"
+        ? p.stock > 0
+        : p.stock === 0;
+
+    const matchesDate =
+      !filters.createdAt ||
+      p.createdAt ===
+        new Date(filters.createdAt).toLocaleDateString("vi-VN");
+
+    return (
+      matchesQuery &&
+      matchesCategory &&
+      matchesBrand &&
+      matchesSupplier &&
+      matchesStock &&
+      matchesDate
+    );
+  });
+
+  // --- PHÂN TRANG ---
   const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
   const currentRows = filtered.slice(
     (currentPage - 1) * rowsPerPage,
     currentPage * rowsPerPage
   );
 
+  // --- CHỨC NĂNG BẢNG ---
   const changeRows = (n) => {
     setRowsPerPage(n);
     setCurrentPage(1);
@@ -71,7 +114,7 @@ export default function ProductListPage() {
     alert(t("products.addCategoryMsg") || "Thêm danh mục mới (đang phát triển).");
   };
 
-  // ✅ Chọn tất cả
+  // --- CHỌN SẢN PHẨM ---
   const handleSelectAll = (e) => {
     if (e.target.checked) {
       const allIds = currentRows.map((p) => p.id);
@@ -83,14 +126,15 @@ export default function ProductListPage() {
     }
   };
 
-  // ✅ Chọn từng sản phẩm
   const handleSelectOne = (id) => {
     setSelectedProducts((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   };
 
-  // ✅ In mã vạch chỉ cho sản phẩm được chọn
+  const allChecked = currentRows.every((p) => selectedProducts.includes(p.id));
+
+  // --- IN MÃ VẠCH ---
   const handlePrintBarcode = () => {
     const selectedList = products.filter((p) => selectedProducts.includes(p.id));
     if (!selectedList.length)
@@ -137,12 +181,11 @@ export default function ProductListPage() {
     win.document.close();
   };
 
-  const allChecked = currentRows.every((p) => selectedProducts.includes(p.id));
-
+  // --- GIAO DIỆN ---
   return (
     <MainLayout>
       <div className="container-fluid py-3">
-        {/* ---------------- HEADER ---------------- */}
+        {/* ================= HEADER ================= */}
         <div className="row align-items-center gy-2 mb-2">
           {/* Tiêu đề */}
           <div className="col-12 col-md-3 col-lg-2 d-flex align-items-center">
@@ -171,7 +214,6 @@ export default function ProductListPage() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="form-control border-0 shadow-none"
-                style={{ height: "100%" }}
                 placeholder={t("products.searchPlaceholder") || "Theo mã, tên hàng"}
               />
             </div>
@@ -179,7 +221,6 @@ export default function ProductListPage() {
 
           {/* Nhóm nút chức năng */}
           <div className="col-12 col-md-4 col-lg-5 d-flex justify-content-end gap-2 flex-wrap">
-            {/* Nút lọc mobile */}
             <button
               className={`btn btn-outline-${theme} d-flex align-items-center justify-content-center rounded-3 d-lg-none`}
               style={{ width: 40, height: 40 }}
@@ -188,10 +229,8 @@ export default function ProductListPage() {
               <i className="bi bi-funnel"></i>
             </button>
 
-            {/* Tạo mới */}
             <button
               className={`btn btn-${theme} text-white fw-semibold d-flex align-items-center rounded-3 px-3`}
-              style={{ height: 40 }}
               onClick={() => setAddingProduct(true)}
             >
               <i className="bi bi-plus-lg"></i>
@@ -200,21 +239,15 @@ export default function ProductListPage() {
               </span>
             </button>
 
-            {/* Nhập file */}
-            <button
-              className={`btn btn-outline-${theme} d-flex align-items-center fw-semibold rounded-3 px-3`}
-              style={{ height: 40 }}
-            >
+            <button className={`btn btn-outline-${theme} d-flex align-items-center fw-semibold rounded-3 px-3`}>
               <i className="bi bi-upload"></i>
               <span className="ms-1 d-none d-md-inline">
                 {t("products.import") || "Nhập file"}
               </span>
             </button>
 
-            {/* Xuất file */}
             <button
               className={`btn btn-outline-${theme} d-flex align-items-center fw-semibold rounded-3 px-3`}
-              style={{ height: 40 }}
               onClick={() => exportProductsToExcel(filtered, t)}
             >
               <i className="bi bi-download"></i>
@@ -223,10 +256,8 @@ export default function ProductListPage() {
               </span>
             </button>
 
-            {/* In mã vạch */}
             <button
               className={`btn btn-outline-${theme} d-flex align-items-center fw-semibold rounded-3 px-3 position-relative`}
-              style={{ height: 40 }}
               onClick={handlePrintBarcode}
             >
               <i className="bi bi-upc"></i>
@@ -234,10 +265,7 @@ export default function ProductListPage() {
                 {t("products.printBarcode") || "In mã vạch"}
               </span>
               {selectedProducts.length > 0 && (
-                <span
-                  className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
-                  style={{ fontSize: "0.7rem" }}
-                >
+                <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
                   {selectedProducts.length}
                 </span>
               )}
@@ -245,86 +273,141 @@ export default function ProductListPage() {
           </div>
         </div>
 
-        {/* ---------------- BODY ---------------- */}
+        {/* ================= BODY ================= */}
         <div className="row g-3 mt-1">
-          {/* Sidebar bộ lọc giữ nguyên đầy đủ */}
+          {/* ==== Sidebar bộ lọc ==== */}
           <aside className="col-lg-2 d-none d-lg-block">
             <div className="card shadow-sm border-0 h-100">
               <div className="card-body">
                 <h6 className="fw-bold mb-4">
                   {t("products.filterTitle") || "Bộ lọc"}
                 </h6>
+
+                {/* Danh mục */}
                 <div className="mb-4">
                   <div className="d-flex align-items-center justify-content-between mb-2">
                     <label className="form-label mb-0">
                       {t("products.category") || "Danh mục"}
                     </label>
                     <button
-                      className={`btn btn-outline-${theme} btn-sm p-0 d-flex align-items-center justify-content-center rounded-circle`}
+                      className={`btn btn-outline-${theme} btn-sm p-0 rounded-circle`}
                       style={{ width: 22, height: 22 }}
                       onClick={handleAddCategory}
                     >
                       <i className="bi bi-plus-lg" style={{ fontSize: "11px" }}></i>
                     </button>
                   </div>
-                  <select className="form-select form-select-sm shadow-sm">
-                    <option>
-                      {t("products.chooseCategory") || "Chọn danh mục"}
-                    </option>
+                  <select
+                    className="form-select form-select-sm shadow-sm"
+                    value={filters.category}
+                    onChange={(e) => handleFilterChange("category", e.target.value)}
+                  >
+                    <option value="">Chọn danh mục</option>
+                    <option value="Danh mục A">Danh mục A</option>
+                    <option value="Danh mục B">Danh mục B</option>
                   </select>
                 </div>
 
-                {[t("products.createdAt"), t("products.supplier"), t("products.brand"), t("products.stock")].map(
-                  (label, idx) => (
-                    <div className="mb-4" key={idx}>
-                      <label className="form-label fw-medium mb-2">
-                        {label}
-                      </label>
-                      <select className="form-select form-select-sm shadow-sm">
-                        <option>{t("products.all") || "Tất cả"}</option>
-                      </select>
-                    </div>
-                  )
-                )}
+                {/* Thương hiệu */}
+                <div className="mb-4">
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <label className="form-label mb-0">Thương hiệu</label>
+                    <button
+                      className={`btn btn-outline-${theme} btn-sm p-0 rounded-circle`}
+                      style={{ width: 22, height: 22 }}
+                      onClick={() => alert("Thêm thương hiệu mới")}
+                    >
+                      <i className="bi bi-plus-lg" style={{ fontSize: "11px" }}></i>
+                    </button>
+                  </div>
+                  <select
+                    className="form-select form-select-sm shadow-sm"
+                    value={filters.brand}
+                    onChange={(e) => handleFilterChange("brand", e.target.value)}
+                  >
+                    <option value="">Chọn thương hiệu</option>
+                    <option value="Thương hiệu A">Thương hiệu A</option>
+                    <option value="Thương hiệu B">Thương hiệu B</option>
+                    <option value="Thương hiệu C">Thương hiệu C</option>
+                  </select>
+                </div>
+
+                {/* Nhà cung cấp */}
+                <div className="mb-4">
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <label className="form-label mb-0">Nhà cung cấp</label>
+                    <button
+                      className={`btn btn-outline-${theme} btn-sm p-0 rounded-circle`}
+                      style={{ width: 22, height: 22 }}
+                      onClick={() => alert("Thêm nhà cung cấp mới")}
+                    >
+                      <i className="bi bi-plus-lg" style={{ fontSize: "11px" }}></i>
+                    </button>
+                  </div>
+                  <select
+                    className="form-select form-select-sm shadow-sm"
+                    value={filters.supplier}
+                    onChange={(e) => handleFilterChange("supplier", e.target.value)}
+                  >
+                    <option value="">Chọn nhà cung cấp</option>
+                    <option value="Nhà cung cấp A">Nhà cung cấp A</option>
+                    <option value="Nhà cung cấp B">Nhà cung cấp B</option>
+                  </select>
+                </div>
+
+                {/* Ngày tạo */}
+                <div className="mb-4">
+                  <label className="form-label fw-medium mb-2">Ngày tạo</label>
+                  <input
+                    type="date"
+                    className={`form-control form-control-sm border-${theme} shadow-sm`}
+                    value={filters.createdAt}
+                    onChange={(e) => handleFilterChange("createdAt", e.target.value)}
+                  />
+                  <div className="form-text">Định dạng: dd/mm/yyyy</div>
+                </div>
+
+                {/* Tồn kho */}
+                <div className="mb-4">
+                  <label className="form-label fw-medium mb-2">Tồn kho</label>
+                  <select
+                    className="form-select form-select-sm shadow-sm"
+                    value={filters.stock}
+                    onChange={(e) => handleFilterChange("stock", e.target.value)}
+                  >
+                    <option value="all">Tất cả</option>
+                    <option value="in">Còn hàng</option>
+                    <option value="out">Hết hàng</option>
+                  </select>
+                </div>
               </div>
             </div>
           </aside>
 
-          {/* Main content */}
+          {/* ==== Main Content ==== */}
           <main className="col-lg-10 col-12">
             {addingProduct && (
-              <div
-                className={`border border-${theme} border-opacity-25 rounded-3 mb-3 p-3 shadow-sm bg-body-tertiary`}
-              >
-                <AddProductCard
-                  onCancel={() => setAddingProduct(false)}
-                  onSave={handleAddNew}
-                />
+              <div className={`border border-${theme} rounded-3 mb-3 p-3 shadow-sm bg-body-tertiary`}>
+                <AddProductCard onCancel={() => setAddingProduct(false)} onSave={handleAddNew} />
               </div>
             )}
 
-            {/* Bảng sản phẩm */}
-            <div
-              className={`table-responsive rounded-2 border border-${theme} border-opacity-25 shadow-sm overflow-hidden`}
-            >
+            {/* ==== Bảng sản phẩm ==== */}
+            <div className={`table-responsive rounded-2 border border-${theme} shadow-sm`}>
               <table className="table table-hover align-middle mb-0">
                 <thead className={`table-${theme}`}>
                   <tr>
                     <th style={{ width: 40 }}>
-                      <input
-                        type="checkbox"
-                        checked={allChecked}
-                        onChange={handleSelectAll}
-                      />
+                      <input type="checkbox" checked={allChecked} onChange={handleSelectAll} />
                     </th>
-                    <th>{t("products.productId") || "Mã SP"}</th>
+                    <th>Mã SP</th>
                     <th></th>
-                    <th>{t("products.productName") || "Tên sản phẩm"}</th>
-                    <th>{t("products.brand") || "Thương hiệu"}</th>
-                    <th>{t("products.sellingPrice") || "Giá bán"}</th>
-                    <th>{t("products.costOfCapital") || "Giá vốn"}</th>
-                    <th>{t("products.quantityInStock") || "Tồn kho"}</th>
-                    <th>{t("products.createdAt") || "Ngày tạo"}</th>
+                    <th>Tên sản phẩm</th>
+                    <th>Thương hiệu</th>
+                    <th>Giá bán</th>
+                    <th>Giá vốn</th>
+                    <th>Tồn kho</th>
+                    <th>Ngày tạo</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -334,9 +417,7 @@ export default function ProductListPage() {
                         <tr
                           style={{ cursor: "pointer" }}
                           onClick={() =>
-                            setSelectedProductId((prev) =>
-                              prev === p.id ? null : p.id
-                            )
+                            setSelectedProductId((prev) => (prev === p.id ? null : p.id))
                           }
                         >
                           <td onClick={(e) => e.stopPropagation()}>
@@ -348,12 +429,7 @@ export default function ProductListPage() {
                           </td>
                           <td>{p.id}</td>
                           <td>
-                            <img
-                              src={p.image}
-                              alt=""
-                              className="rounded"
-                              style={{ width: 50, height: 50 }}
-                            />
+                            <img src={p.image} alt="" className="rounded" style={{ width: 50, height: 50 }} />
                           </td>
                           <td>{p.name}</td>
                           <td>{p.brand}</td>
@@ -362,7 +438,6 @@ export default function ProductListPage() {
                           <td>{p.stock}</td>
                           <td>{p.createdAt}</td>
                         </tr>
-
                         {selectedProductId === p.id && (
                           <tr className="bg-body-tertiary">
                             <td colSpan={9} className="p-0 border-0">
@@ -387,7 +462,7 @@ export default function ProductListPage() {
                   ) : (
                     <tr>
                       <td colSpan={9} className="text-center text-muted">
-                        {t("products.noData")}
+                        {t("products.noData") || "Không có dữ liệu"}
                       </td>
                     </tr>
                   )}
@@ -395,44 +470,46 @@ export default function ProductListPage() {
               </table>
             </div>
 
-            {/* Phân trang */}
+            {/* ==== PHÂN TRANG ==== */}
             <div className="d-flex justify-content-between align-items-center mt-3">
               <div className="d-flex align-items-center gap-2">
-                <span>{t("products.show") || "Hiển thị"}</span>
+                <span>Hiển thị</span>
                 <select
                   className="form-select form-select-sm"
-                  style={{ width: 110 }}
-                  value={rowsPerPage}
-                  onChange={(e) => changeRows(Number(e.target.value))}
+                  style={{ width: 130 }}
+                  value={rowsPerPage >= filtered.length ? "all" : rowsPerPage}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "all") {
+                      setRowsPerPage(filtered.length);
+                    } else {
+                      setRowsPerPage(Number(val));
+                    }
+                    setCurrentPage(1);
+                  }}
                 >
                   {[15, 20, 30, 50, 100].map((n) => (
                     <option key={n} value={n}>
                       {n} hàng
                     </option>
                   ))}
+                  <option value="all">Tất cả</option>
                 </select>
               </div>
+
               <div className="btn-group">
                 <button
                   className={`btn btn-outline-${theme}`}
                   disabled={currentPage === 1}
-                  onClick={() =>
-                    setCurrentPage((p) => Math.max(1, p - 1))
-                  }
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 >
                   &lt;
                 </button>
-                <span
-                  className={`btn btn-${theme} text-white fw-bold`}
-                >
-                  {currentPage}
-                </span>
+                <span className={`btn btn-${theme} text-white fw-bold`}>{currentPage}</span>
                 <button
                   className={`btn btn-outline-${theme}`}
                   disabled={currentPage === totalPages}
-                  onClick={() =>
-                    setCurrentPage((p) => Math.min(totalPages, p + 1))
-                  }
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 >
                   &gt;
                 </button>
@@ -440,59 +517,6 @@ export default function ProductListPage() {
             </div>
           </main>
         </div>
-
-        {/* ✅ Offcanvas filter cho mobile */}
-        {showFilter && (
-          <div
-            className="position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-lg-none"
-            style={{ zIndex: 1050 }}
-            onClick={() => setShowFilter(false)}
-          >
-            <div
-              className="bg-white shadow p-3 position-absolute top-0 start-0 h-100"
-              style={{ width: "80%", maxWidth: 350 }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="d-flex justify-content-between align-items-center mb-3">
-                <h5 className="fw-bold mb-0">
-                  {t("products.filterTitle") || "Bộ lọc"}
-                </h5>
-                <button
-                  className="btn btn-close"
-                  onClick={() => setShowFilter(false)}
-                ></button>
-              </div>
-              <hr />
-              <div
-                className="overflow-auto"
-                style={{ maxHeight: "85vh" }}
-              >
-                <div className="mb-4">
-                  <label className="form-label mb-1">
-                    {t("products.category") || "Danh mục"}
-                  </label>
-                  <select className="form-select form-select-sm">
-                    <option>
-                      {t("products.chooseCategory") || "Chọn danh mục"}
-                    </option>
-                  </select>
-                </div>
-                {[t("products.createdAt"), t("products.supplier"), t("products.brand"), t("products.stock")].map(
-                  (label, idx) => (
-                    <div className="mb-4" key={idx}>
-                      <label className="form-label fw-medium mb-1">
-                        {label}
-                      </label>
-                      <select className="form-select form-select-sm">
-                        <option>{t("products.all") || "Tất cả"}</option>
-                      </select>
-                    </div>
-                  )
-                )}
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </MainLayout>
   );
