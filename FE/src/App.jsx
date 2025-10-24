@@ -8,6 +8,7 @@ import ProductListPage from "./pages/ProductListPage";
 import AccountPage from "./pages/AccountPage";
 import ImportPage from "./pages/ImportPage";
 import ImportDetailPage from "./pages/ImportDetailPage";
+import SetPricePage from "./pages/SetPricePage";
 export default function App() {
   return (
     <ThemeProvider>  
@@ -20,7 +21,7 @@ export default function App() {
           <Route path="/products/list" element={<ProductListPage />} />
           <Route path="/products/import" element={<ImportPage />} />
           <Route path="/products/importdetail" element={<ImportDetailPage />} />
-
+          <Route path="/products/prices" element={<SetPricePage />} />
         </Routes>
       </Router>
     </ThemeProvider>

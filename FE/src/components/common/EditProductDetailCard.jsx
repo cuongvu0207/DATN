@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import Select from "react-select";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../context/ThemeContext";
 
@@ -9,35 +10,18 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
   const [form, setForm] = useState({ ...product });
   const [preview, setPreview] = useState(product.image || "");
 
-  const [categories, setCategories] = useState(["Danh mục A", "Danh mục B"]);
-  const [brands, setBrands] = useState(["Thương hiệu 1", "Thương hiệu 2"]);
-  const [suppliers, setSuppliers] = useState(["Nhà cung cấp A", "Nhà cung cấp B"]);
+  const [categories, setCategories] = useState([
+    { value: "Danh mục A", label: "Danh mục A" },
+    { value: "Danh mục B", label: "Danh mục B" },
+  ]);
+  const [brands, setBrands] = useState([
+    { value: "Thương hiệu 1", label: "Thương hiệu 1" },
+    { value: "Thương hiệu 2", label: "Thương hiệu 2" },
+  ]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleAddOption = (type) => {
-    const labelMap = {
-      Category: t("products.enterNewCategory") || "Nhập danh mục mới:",
-      Brand: t("products.enterNewBrand") || "Nhập thương hiệu mới:",
-      Supplier: t("products.enterNewSupplier") || "Nhập nhà cung cấp mới:",
-    };
-
-    const newValue = prompt(labelMap[type]);
-    if (newValue && newValue.trim()) {
-      if (type === "Category" && !categories.includes(newValue))
-        setCategories([...categories, newValue]);
-      if (type === "Brand" && !brands.includes(newValue)) setBrands([...brands, newValue]);
-      if (type === "Supplier" && !suppliers.includes(newValue))
-        setSuppliers([...suppliers, newValue]);
-
-      setForm((prev) => ({
-        ...prev,
-        [type.toLowerCase()]: newValue.trim(),
-      }));
-    }
   };
 
   const handleImageChange = (e) => {
@@ -54,6 +38,27 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
     e.preventDefault();
     onSave(form);
     onClose();
+  };
+
+  const handleSelectChange = (type, option) => {
+    setForm((prev) => ({ ...prev, [type]: option?.value || "" }));
+  };
+
+  const handleAddOption = (type) => {
+    const labelMap = {
+      category: t("products.enterNewCategory") || "Nhập danh mục mới:",
+      brand: t("products.enterNewBrand") || "Nhập thương hiệu mới:",
+    };
+
+    const newValue = prompt(labelMap[type]);
+    if (newValue && newValue.trim()) {
+      const val = { value: newValue.trim(), label: newValue.trim() };
+      if (type === "category" && !categories.find((c) => c.value === val.value))
+        setCategories([...categories, val]);
+      if (type === "brand" && !brands.find((b) => b.value === val.value))
+        setBrands([...brands, val]);
+      setForm((prev) => ({ ...prev, [type]: val.value }));
+    }
   };
 
   return (
@@ -87,15 +92,14 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
               {t("products.chooseImage")}
               <input type="file" accept="image/*" hidden onChange={handleImageChange} />
             </label>
-            <small className="text-muted d-block mt-1">{t("products.imageLimit")}</small>
           </div>
         </div>
 
         {/* Form nội dung */}
         <form onSubmit={handleSubmit}>
-          {/* --- THÔNG TIN SP + GIÁ --- */}
           <div className="p-3 mb-4">
             <div className="row g-3">
+              {/* ID sản phẩm */}
               <div className="col-md-6">
                 <label className="form-label">{t("products.productId")}</label>
                 <input
@@ -107,6 +111,7 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
                 />
               </div>
 
+              {/* Mã vạch */}
               <div className="col-md-6">
                 <label className="form-label">{t("products.barcode")}</label>
                 <input
@@ -119,6 +124,7 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
                 />
               </div>
 
+              {/* Tên sản phẩm */}
               <div className="col-md-6">
                 <label className="form-label">{t("products.productName")}</label>
                 <input
@@ -131,7 +137,7 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
                 />
               </div>
 
-              {/* Danh mục */}
+              {/* Danh mục (react-select có tìm kiếm) */}
               <div className="col-md-6">
                 <label className="form-label d-flex justify-content-between align-items-center">
                   <span>{t("products.category")}</span>
@@ -139,27 +145,21 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
                     type="button"
                     className={`btn btn-outline-${theme} btn-sm rounded-circle p-0`}
                     style={{ width: 24, height: 24 }}
-                    onClick={() => handleAddOption("Category")}
+                    onClick={() => handleAddOption("category")}
                   >
                     <i className="bi bi-plus-lg" style={{ fontSize: 11 }}></i>
                   </button>
                 </label>
-                <select
-                  name="category"
-                  className="form-select"
-                  value={form.category}
-                  onChange={handleChange}
-                >
-                  <option value="">{t("products.selectCategory")}</option>
-                  {categories.map((cat, idx) => (
-                    <option key={idx} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
+                <Select
+                  options={categories}
+                  value={categories.find((opt) => opt.value === form.category) || null}
+                  onChange={(opt) => handleSelectChange("category", opt)}
+                  placeholder={t("products.selectCategory")}
+                  isSearchable
+                />
               </div>
 
-              {/* Thương hiệu */}
+              {/* Thương hiệu (react-select có tìm kiếm) */}
               <div className="col-md-6">
                 <label className="form-label d-flex justify-content-between align-items-center">
                   <span>{t("products.brand")}</span>
@@ -167,52 +167,18 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
                     type="button"
                     className={`btn btn-outline-${theme} btn-sm rounded-circle p-0`}
                     style={{ width: 24, height: 24 }}
-                    onClick={() => handleAddOption("Brand")}
+                    onClick={() => handleAddOption("brand")}
                   >
                     <i className="bi bi-plus-lg" style={{ fontSize: 11 }}></i>
                   </button>
                 </label>
-                <select
-                  name="brand"
-                  className="form-select"
-                  value={form.brand}
-                  onChange={handleChange}
-                >
-                  <option value="">{t("products.selectBrand")}</option>
-                  {brands.map((b, idx) => (
-                    <option key={idx} value={b}>
-                      {b}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Nhà cung cấp */}
-              <div className="col-md-6">
-                <label className="form-label d-flex justify-content-between align-items-center">
-                  <span>{t("products.supplier")}</span>
-                  <button
-                    type="button"
-                    className={`btn btn-outline-${theme} btn-sm rounded-circle p-0`}
-                    style={{ width: 24, height: 24 }}
-                    onClick={() => handleAddOption("Supplier")}
-                  >
-                    <i className="bi bi-plus-lg" style={{ fontSize: 11 }}></i>
-                  </button>
-                </label>
-                <select
-                  name="supplier"
-                  className="form-select"
-                  value={form.supplier}
-                  onChange={handleChange}
-                >
-                  <option value="">{t("products.selectSupplier")}</option>
-                  {suppliers.map((s, idx) => (
-                    <option key={idx} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
+                <Select
+                  options={brands}
+                  value={brands.find((opt) => opt.value === form.brand) || null}
+                  onChange={(opt) => handleSelectChange("brand", opt)}
+                  placeholder={t("products.selectBrand")}
+                  isSearchable
+                />
               </div>
 
               {/* Giá và tồn kho */}

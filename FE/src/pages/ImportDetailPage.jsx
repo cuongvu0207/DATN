@@ -9,6 +9,8 @@ import * as XLSX from "xlsx";
 import ImportHeader from "../components/import/ImportHeader";
 import ImportTable from "../components/import/ImportTable";
 import ImportFileModal from "../components/import/ImportFileModal";
+import AddProductCard from "../components/common/AddProductCard";
+import SupplierAddCard from "../components/import/SupplierAddCard"; // ✅ thêm vào
 
 export default function ImportDetailPage() {
   const { theme } = useTheme();
@@ -62,6 +64,13 @@ export default function ImportDetailPage() {
   const [barcodeMode, setBarcodeMode] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [showImportPopup, setShowImportPopup] = useState(false);
+  const [showAddProduct, setShowAddProduct] = useState(false);
+  const [showAddSupplier, setShowAddSupplier] = useState(false); // ✅ modal NCC
+  const [suppliers, setSuppliers] = useState([
+    { id: 1, name: "Công ty Pharmedic" },
+    { id: 2, name: "Công ty TNHH Citigo" },
+    { id: 3, name: "Đại lý Hồng Phúc" },
+  ]);
 
   /* === Load dữ liệu khi chỉnh sửa phiếu === */
   useEffect(() => {
@@ -156,7 +165,8 @@ export default function ImportDetailPage() {
 
   /* === Xóa sản phẩm === */
   const handleDeleteItem = (index) => {
-    if (!window.confirm(t("import.confirmDelete") || "Bạn có chắc muốn xóa sản phẩm này không?")) return;
+    if (!window.confirm(t("import.confirmDelete") || "Bạn có chắc muốn xóa sản phẩm này không?"))
+      return;
     const updated = items.filter((_, i) => i !== index);
     setItems(updated);
     recalcTotal(updated);
@@ -239,6 +249,7 @@ export default function ImportDetailPage() {
           searchResults={searchResults}
           handleSelectSearchResult={handleAddProduct}
           setShowImportPopup={setShowImportPopup}
+          onAddProductClick={() => setShowAddProduct(true)}
         />
 
         {/* TABLE */}
@@ -257,18 +268,30 @@ export default function ImportDetailPage() {
           <div className="col-lg-3">
             <div className="card shadow-sm border-0">
               <div className="card-body">
-                <label className="form-label fw-semibold mb-1">
-                  {t("import.supplier") || "Nhà cung cấp"}
-                </label>
+                <div className="d-flex align-items-center justify-content-between mb-1">
+                  <label className="form-label fw-semibold mb-0">
+                    {t("import.supplier") || "Nhà cung cấp"}
+                  </label>
+                  {/* ✅ Nút thêm nhà cung cấp */}
+                  <button
+                    type="button"
+                    className={`btn btn-outline-${theme} btn-sm d-flex align-items-center`}
+                    onClick={() => setShowAddSupplier(true)}
+                  >
+                    <i className="bi bi-plus-lg"></i>
+                  </button>
+                </div>
                 <select
                   className="form-select mb-3"
                   value={supplier}
                   onChange={(e) => setSupplier(e.target.value)}
                 >
                   <option value="">Chọn nhà cung cấp</option>
-                  <option value="Pharmedic">Công ty Pharmedic</option>
-                  <option value="Citigo">Công ty TNHH Citigo</option>
-                  <option value="Hồng Phúc">Đại lý Hồng Phúc</option>
+                  {suppliers.map((s) => (
+                    <option key={s.id} value={s.name}>
+                      {s.name}
+                    </option>
+                  ))}
                 </select>
 
                 <label className="form-label mb-1">
@@ -317,6 +340,73 @@ export default function ImportDetailPage() {
             handleImportFile={handleImportFile}
             onClose={() => setShowImportPopup(false)}
           />
+        )}
+
+        {/* ✅ MODAL THÊM SẢN PHẨM */}
+        {showAddProduct && (
+          <AddProductCard
+            onCancel={() => setShowAddProduct(false)}
+            onSave={(newProduct) => {
+              const newItem = {
+                product_id: newProduct.id,
+                barcode: newProduct.barcode,
+                product_name: newProduct.name,
+                importPrice: Number(newProduct.cost),
+                unit: "Cái",
+                quantity: 1,
+                discount: 0,
+                subtotal: Number(newProduct.cost),
+              };
+              const updated = [...items, newItem];
+              setItems(updated);
+              recalcTotal(updated);
+              setShowAddProduct(false);
+              alert("✅ Đã thêm sản phẩm mới!");
+            }}
+          />
+        )}
+
+        {/* ✅ MODAL THÊM NHÀ CUNG CẤP */}
+        {showAddSupplier && (
+          <div
+            className="modal fade show"
+            style={{
+              display: "block",
+              backgroundColor: "rgba(0,0,0,0.5)",
+            }}
+          >
+            <div className="modal-dialog modal-lg modal-dialog-centered">
+              <div className="modal-content border-0 shadow">
+                <div
+                  className={`modal-header bg-${theme} text-white py-2 px-3`}
+                >
+                  <h6 className="modal-title m-0">
+                    <i className="bi bi-building-add me-2"></i>
+                    {t("supplier.addTitle") || "Thêm nhà cung cấp mới"}
+                  </h6>
+                  <button
+                    type="button"
+                    className="btn-close btn-close-white"
+                    onClick={() => setShowAddSupplier(false)}
+                  ></button>
+                </div>
+                <div className="modal-body">
+                  <SupplierAddCard
+                    onSave={(data) => {
+                      const newSupplier = {
+                        id: suppliers.length + 1,
+                        name: data.supplierName,
+                      };
+                      setSuppliers([...suppliers, newSupplier]);
+                      setSupplier(data.supplierName);
+                      setShowAddSupplier(false);
+                      alert("✅ Đã thêm nhà cung cấp mới!");
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </MainLayout>

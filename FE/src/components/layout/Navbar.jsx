@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
-import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "../../context/ThemeContext";
 
 export default function Navbar() {
@@ -8,36 +8,29 @@ export default function Navbar() {
   const { t } = useTranslation();
   const location = useLocation();
 
+  //  Chỉ xử lý hover dropdown, không can thiệp Link
   useEffect(() => {
     const dropdowns = document.querySelectorAll(".nav-item.dropdown");
     dropdowns.forEach((dropdown) => {
-      const menu = dropdown.querySelector(".dropdown-menu");
-
-      const openMenu = () => {
+      dropdown.addEventListener("mouseenter", () => {
         dropdown.classList.add("show");
-        if (menu) menu.classList.add("show");
-      };
-
-      const closeMenu = () => {
+        dropdown.querySelector(".dropdown-menu")?.classList.add("show");
+      });
+      dropdown.addEventListener("mouseleave", () => {
         dropdown.classList.remove("show");
-        if (menu) menu.classList.remove("show");
-      };
-
-      dropdown.addEventListener("mouseenter", openMenu);
-      dropdown.addEventListener("mouseleave", closeMenu);
-      
+        dropdown.querySelector(".dropdown-menu")?.classList.remove("show");
+      });
     });
   }, []);
 
   const buttonClass = (path) =>
     `btn btn-${theme} text-white px-3 py-2 border-0 ${
-      location.pathname === path ? "fw-bold" : ""
+      location.pathname.startsWith(path) ? "fw-bold" : ""
     }`;
 
   return (
     <nav className={`navbar navbar-expand-lg navbar-dark bg-${theme}`}>
       <div className="container-fluid">
-        {/* Nội dung lùi 1/12 mỗi bên */}
         <div className="container" style={{ maxWidth: "83.33%" }}>
           {/* Toggle mobile */}
           <button
@@ -54,91 +47,103 @@ export default function Navbar() {
 
           <div className="collapse navbar-collapse" id="navbarContent">
             <ul className="navbar-nav mb-2 mb-lg-0 gap-2">
+              {/* Trang tổng quan */}
               <li className="nav-item">
                 <Link className={buttonClass("/")} to="/">
                   {t("menu.overview")}
                 </Link>
               </li>
 
-              {/* Hàng hoá */}
+              {/* Hàng hóa */}
               <li className="nav-item dropdown">
-                <a className={buttonClass("/products")} href="#">
+                {/* ✅ dùng button, KHÔNG dùng <a href="#"> */}
+                <button className={`${buttonClass("/products")} dropdown-toggle`} type="button">
                   {t("menu.products")}
-                </a>
-                <ul className="dropdown-menu ">
+                </button>
+
+                <ul className="dropdown-menu">
                   <li>
-                    <h6 className="dropdown-header fw-bold text-black">{t("menu.groups.products")}</h6>
+                    <h6 className="dropdown-header fw-bold text-black">
+                      {t("menu.groups.products")}
+                    </h6>
                   </li>
                   <li>
-                    <Link className="dropdown-item dropdown-${theme}-subtle" to="/products/list">
+                    <Link className="dropdown-item" to="/products/list">
                       {t("menu.productList")}
                     </Link>
                   </li>
                   <li>
-                    <a className="dropdown-item" href="#">
+                    <Link className="dropdown-item" to="/products/prices">
                       {t("menu.priceSetup")}
-                    </a>
+                    </Link>
                   </li>
                   <li>
                     <hr className="dropdown-divider" />
                   </li>
                   <li>
-                    <h6 className="dropdown-header fw-bold text-black">{t("menu.groups.import")}</h6>
+                    <h6 className="dropdown-header fw-bold text-black">
+                      {t("menu.groups.import")}
+                    </h6>
                   </li>
                   <li>
-                    <a className="dropdown-item" href="#">
+                    <Link className="dropdown-item" to="/products/supplier">
                       {t("menu.supplier")}
-                    </a>
+                    </Link>
                   </li>
                   <li>
-                    <a className="dropdown-item" href="import">
+                    <Link className="dropdown-item" to="/products/import">
                       {t("menu.importGoods")}
-                    </a>
+                    </Link>
                   </li>
                 </ul>
               </li>
 
               {/* Đơn hàng */}
               <li className="nav-item dropdown">
-                <a className={buttonClass("/orders")} href="#">
+                <button className={`${buttonClass("/orders")} dropdown-toggle`} type="button">
                   {t("menu.orders")}
-                </a>
+                </button>
                 <ul className="dropdown-menu">
                   <li>
-                    <a className="dropdown-item" href="#">
+                    <Link className="dropdown-item" to="/orders/invoice">
                       {t("menu.invoice")}
-                    </a>
+                    </Link>
                   </li>
                   <li>
-                    <a className="dropdown-item" href="#">
+                    <Link className="dropdown-item" to="/orders/returns">
                       {t("menu.returns")}
-                    </a>
+                    </Link>
                   </li>
                 </ul>
               </li>
 
               {/* Khách hàng */}
               <li className="nav-item">
-                <a className={buttonClass("/customers")} href="#">
+                <Link className={buttonClass("/customers")} to="/customers">
                   {t("menu.customers")}
-                </a>
+                </Link>
               </li>
 
               {/* Nhân viên */}
               <li className="nav-item">
-                <a className={buttonClass("/staff")} href="#">
+                <Link className={buttonClass("/staff")} to="/staff">
                   {t("menu.staff")}
-                </a>
+                </Link>
+              </li>
+
+              {/* Tài chính & Kế toán  */}
+              <li className="nav-item">
+                <Link className={buttonClass("/")} to="/finance">
+                  {t("menu.finace")}
+                </Link>
               </li>
             </ul>
 
             {/* Nút bán hàng */}
             <div className="d-flex ms-auto">
-              <Link
-                className="btn btn-light fw-bold d-flex align-items-center"
-                to="/sales"
-              >
-                <i className="bi bi-cart me-2"></i> {t("menu.sales")}
+              <Link className="btn btn-light fw-bold d-flex align-items-center" to="/sales">
+                <i className="bi bi-cart me-2"></i>
+                {t("menu.sales")}
               </Link>
             </div>
           </div>

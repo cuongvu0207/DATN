@@ -62,7 +62,7 @@ export default function SalesHeaderBar({
           title={t("sales.barcodeMode")}
           onClick={() => setBarcodeMode(!barcodeMode)}
         >
-          <i className="bi bi-qr-code-scan fs-6" />
+          <i className="bi bi-upc fs-6 fs-6" />
         </button>
 
         {/* Tabs hoá đơn */}

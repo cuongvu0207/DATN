@@ -10,20 +10,18 @@ export default function AddProductCard({ onCancel, onSave }) {
     name: "",
     category: "",
     brand: "",
-    supplier: "",
     cost: "",
     price: "",
     stock: "",
-    barcode: "", // ✅ Thêm mã vạch
+    barcode: "",
     imageFile: null,
   });
   const [preview, setPreview] = useState(null);
 
   const [categories, setCategories] = useState(["Danh mục A", "Danh mục B"]);
   const [brands, setBrands] = useState(["Thương hiệu 1", "Thương hiệu 2"]);
-  const [suppliers, setSuppliers] = useState(["Nhà cung cấp A", "Nhà cung cấp B"]);
 
-  // ✅ Tự sinh mã vạch ngẫu nhiên nếu người dùng không nhập
+  // ✅ Sinh mã vạch ngẫu nhiên nếu chưa nhập
   const generateBarcode = () =>
     "SP" + Math.floor(100000000000 + Math.random() * 900000000000);
 
@@ -32,11 +30,11 @@ export default function AddProductCard({ onCancel, onSave }) {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  // ✅ Thêm danh mục / thương hiệu mới
   const handleAddOption = (type) => {
     const labelMap = {
       Category: t("products.enterNewCategory") || "Nhập danh mục mới:",
       Brand: t("products.enterNewBrand") || "Nhập thương hiệu mới:",
-      Supplier: t("products.enterNewSupplier") || "Nhập nhà cung cấp mới:",
     };
 
     const newValue = prompt(labelMap[type]);
@@ -44,7 +42,6 @@ export default function AddProductCard({ onCancel, onSave }) {
       const val = newValue.trim();
       if (type === "Category" && !categories.includes(val)) setCategories([...categories, val]);
       if (type === "Brand" && !brands.includes(val)) setBrands([...brands, val]);
-      if (type === "Supplier" && !suppliers.includes(val)) setSuppliers([...suppliers, val]);
       setForm((prev) => ({ ...prev, [type.toLowerCase()]: val }));
     }
   };
@@ -63,7 +60,7 @@ export default function AddProductCard({ onCancel, onSave }) {
     e.preventDefault();
     const newProduct = {
       ...form,
-      barcode: form.barcode || generateBarcode(), // ✅ Nếu chưa có, sinh tự động
+      barcode: form.barcode || generateBarcode(),
       id: "SPNEW" + Math.floor(Math.random() * 1000),
       image: preview,
       createdAt: new Date().toLocaleDateString("vi-VN"),
@@ -192,35 +189,6 @@ export default function AddProductCard({ onCancel, onSave }) {
                   {brands.map((b, idx) => (
                     <option key={idx} value={b}>
                       {b}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Nhà cung cấp */}
-              <div className="col-md-6">
-                <label className="form-label d-flex justify-content-between align-items-center">
-                  <span>{t("products.supplier")}</span>
-                  <button
-                    type="button"
-                    className={`btn btn-outline-${theme} btn-sm rounded-circle p-0`}
-                    style={{ width: 24, height: 24 }}
-                    onClick={() => handleAddOption("Supplier")}
-                  >
-                    <i className="bi bi-plus-lg" style={{ fontSize: 11 }}></i>
-                  </button>
-                </label>
-                <select
-                  name="supplier"
-                  className="form-select"
-                  value={form.supplier}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="">{t("products.selectSupplier")}</option>
-                  {suppliers.map((s, idx) => (
-                    <option key={idx} value={s}>
-                      {s}
                     </option>
                   ))}
                 </select>
