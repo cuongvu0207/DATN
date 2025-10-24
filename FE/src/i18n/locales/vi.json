@@ -107,5 +107,34 @@
   "account": {
   "profile": "Thông tin tài khoản",
   "logout": "Đăng xuất"
+  },
+  "sales": {
+    "address": "Địa chỉ",
+    "invoiceTitle": "HÓA ĐƠN BÁN HÀNG",
+    "date": "Ngày",
+    "customer": "Khách hàng",
+    "walkInCustomer": "Khách lẻ",
+    "paymentMethod": "Phương thức thanh toán",
+    "cash": "Tiền mặt",
+    "bank": "Chuyển khoản",
+    "qr": "Quét mã QR",
+
+    "productName": "Tên sản phẩm",
+    "qty": "Số lượng",
+    "price": "Đơn giá",
+    "discount": "Giảm giá",
+    "total": "Thành tiền",
+
+    "subtotal": "Tạm tính",
+    "discountTotal": "Giảm giá hóa đơn",
+    "vatIncluded": "Đã bao gồm thuế VAT",
+    "thankYou": "Cảm ơn quý khách và hẹn gặp lại!",
+
+    "seller": "Người lập hóa đơn",
+    "buyer": "Khách hàng",
+    "signAndName": "Ký và ghi rõ họ tên",
+
+    "noItems": "Chưa có sản phẩm để in!"
   }
+
 }

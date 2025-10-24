@@ -91,7 +91,7 @@ export default function Navbar() {
                     </a>
                   </li>
                   <li>
-                    <a className="dropdown-item" href="#">
+                    <a className="dropdown-item" href="import">
                       {t("menu.importGoods")}
                     </a>
                   </li>
