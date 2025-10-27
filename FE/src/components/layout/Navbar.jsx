@@ -105,7 +105,7 @@ export default function Navbar() {
                 </button>
                 <ul className="dropdown-menu">
                   <li>
-                    <Link className="dropdown-item" to="/orders/invoice">
+                    <Link className="dropdown-item" to="/sales/invoices">
                       {t("menu.invoice")}
                     </Link>
                   </li>

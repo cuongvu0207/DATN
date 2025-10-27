@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 
 export default function ThemeSwitcher() {
   const { theme, setTheme } = useTheme(); 
-  const { t } = useTranslation(); // 👈 thêm hook dịch
+  const { t } = useTranslation(); //  thêm hook dịch
 
   const colors = ["primary", "secondary", "success", "danger", "warning", "info", "dark"];
 

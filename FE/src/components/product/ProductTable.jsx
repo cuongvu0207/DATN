@@ -25,11 +25,13 @@ export default function ProductTable({
 
   // --- Pagination ---
   const totalPages = Math.max(1, Math.ceil(products.length / rowsPerPage));
-  const currentRows = products.slice(
-    (currentPage - 1) * rowsPerPage,
-    currentPage * rowsPerPage
-  );
-  const allChecked = currentRows.every((p) => selectedProducts.includes(p.id));
+  const startIndex = (currentPage - 1) * rowsPerPage;
+  const currentRows = products.slice(startIndex, startIndex + rowsPerPage);
+
+  // ✅ Kiểm tra xem có chọn hết trang hiện tại chưa
+  const allChecked =
+    currentRows.length > 0 &&
+    currentRows.every((p) => selectedProducts.includes(p.id));
 
   return (
     <div className="col-lg-10 col-12">
@@ -40,8 +42,11 @@ export default function ProductTable({
               <th style={{ width: 40 }}>
                 <input
                   type="checkbox"
+                  className="form-check-input"
                   checked={allChecked}
-                  onChange={onSelectAll}
+                  onChange={(e) =>
+                    onSelectAll(e.target.checked, currentRows)
+                  }
                 />
               </th>
               <th>{t("products.productId")}</th>
@@ -62,12 +67,15 @@ export default function ProductTable({
                   <tr
                     style={{ cursor: "pointer" }}
                     onClick={() =>
-                      setSelectedProductId((prev) => (prev === p.id ? null : p.id))
+                      setSelectedProductId((prev) =>
+                        prev === p.id ? null : p.id
+                      )
                     }
                   >
                     <td onClick={(e) => e.stopPropagation()}>
                       <input
                         type="checkbox"
+                        className="form-check-input"
                         checked={selectedProducts.includes(p.id)}
                         onChange={() => onSelectOne(p.id)}
                       />
@@ -112,8 +120,8 @@ export default function ProductTable({
               ))
             ) : (
               <tr>
-                <td colSpan={9} className="text-center text-muted">
-                  {t("products.noData")}
+                <td colSpan={9} className="text-center text-muted py-4">
+                  {t("products.noData") || "Không có dữ liệu"}
                 </td>
               </tr>
             )}
@@ -123,8 +131,9 @@ export default function ProductTable({
 
       {/* Pagination control */}
       <div className="d-flex justify-content-between align-items-center mt-3">
+        {/* Số dòng hiển thị */}
         <div className="d-flex align-items-center gap-2">
-          <span>{t("products.show")}</span>
+          <span>{t("products.show") || "Hiển thị"}</span>
           <select
             className="form-select form-select-sm"
             style={{ width: 130 }}
@@ -138,13 +147,14 @@ export default function ProductTable({
           >
             {[15, 20, 30, 50, 100].map((n) => (
               <option key={n} value={n}>
-                {n} {t("products.rows")}
+                {n} {t("products.rows") || "dòng"}
               </option>
             ))}
-            <option value="all">{t("products.all")}</option>
+            <option value="all">{t("products.all") || "Tất cả"}</option>
           </select>
         </div>
 
+        {/* Phân trang */}
         <div className="btn-group">
           <button
             className={`btn btn-outline-${theme}`}
@@ -153,7 +163,9 @@ export default function ProductTable({
           >
             &lt;
           </button>
-          <span className={`btn btn-${theme} text-white fw-bold`}>{currentPage}</span>
+          <span className={`btn btn-${theme} text-white fw-bold`}>
+            {currentPage}
+          </span>
           <button
             className={`btn btn-outline-${theme}`}
             disabled={currentPage === totalPages}

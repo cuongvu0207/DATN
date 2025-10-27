@@ -9,6 +9,7 @@ import AccountPage from "./pages/AccountPage";
 import ImportPage from "./pages/ImportPage";
 import ImportDetailPage from "./pages/ImportDetailPage";
 import SetPricePage from "./pages/SetPricePage";
+import SalesInvoicesPage from "./pages/InvoiceListPage";
 export default function App() {
   return (
     <ThemeProvider>  
@@ -17,6 +18,7 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/" element={<HomePage />} />
           <Route path="/sales" element={<SalesPage />} />
+          <Route path="/sales/invoices" element={<SalesInvoicesPage />} />
           <Route path="/account" element={<AccountPage />} />
           <Route path="/products/list" element={<ProductListPage />} />
           <Route path="/products/import" element={<ImportPage />} />
