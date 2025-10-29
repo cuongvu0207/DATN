@@ -3,27 +3,27 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import InputField from "../components/InputField";
 import LanguageSwitcher from "../components/navigation/LanguageSwitcher";
+import { API_BASE_URL } from "../services/api"; // ✅ dùng biến API gateway
 import "bootstrap/dist/css/bootstrap.min.css";
 import bgLogin from "../assets/img/bg-login.jpg";
 
 export default function LoginPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-
   const [showPassword, setShowPassword] = useState(false);
-
   const [loadingManager, setLoadingManager] = useState(false);
   const [loadingSales, setLoadingSales] = useState(false);
-  const [errorKey, setErrorKey] = useState(""); //  chỉ lưu key
+  const [errorKey, setErrorKey] = useState("");
 
   const handleLogin = async (redirectPath, setLoading) => {
     setLoading(true);
     setErrorKey("");
 
     try {
-      const res = await fetch("https://aerobiotically-supereffective-marcus.ngrok-free.dev/api/auth/login", {
+      const res = await fetch(`${API_BASE_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
@@ -33,10 +33,10 @@ export default function LoginPage() {
 
       const data = await res.json();
       localStorage.setItem("accessToken", data.accessToken);
-
       navigate(redirectPath);
     } catch (err) {
-      setErrorKey("login.error"); //  luôn lưu key, không lưu chuỗi
+      console.error("❌ Lỗi đăng nhập:", err);
+      setErrorKey("login.error");
     } finally {
       setLoading(false);
     }
@@ -59,16 +59,15 @@ export default function LoginPage() {
 
       {/* Card đăng nhập */}
       <div
-        className="card shadow rounded-4 border-0 d-flex flex-column justify-content-between mx-auto"
+        className="card shadow rounded-4 border-0 mx-auto"
         style={{ width: "100%", maxWidth: "400px", borderRadius: "16px" }}
       >
         <div className="card-body p-4">
           <h4 className="text-center mb-4 fw-bold">{t("login.title")}</h4>
 
-          {/* Thông báo lỗi (dịch động theo i18n) */}
+          {/* Thông báo lỗi */}
           {errorKey && <p className="text-danger text-center">{t(errorKey)}</p>}
 
-          {/* Username */}
           <InputField
             type="text"
             placeholder={t("login.username")}
@@ -76,7 +75,6 @@ export default function LoginPage() {
             onChange={(e) => setUsername(e.target.value)}
           />
 
-          {/* Password với icon show/hide */}
           <div className="mb-3 position-relative">
             <input
               type={showPassword ? "text" : "password"}

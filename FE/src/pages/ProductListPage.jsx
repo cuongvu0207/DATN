@@ -1,6 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import MainLayout from "../layouts/MainLayout";
 import { useTranslation } from "react-i18next";
+import { API_BASE_URL } from "../services/api";
 import { exportProductsToExcel } from "../utils/exportProductsUtils";
 import ProductHeaderBar from "../components/product/ProductHeaderBar";
 import ProductFilterPanel from "../components/product/ProductFilterPanel";
@@ -10,80 +12,156 @@ import AddProductCard from "../components/common/AddProductCard";
 export default function ProductListPage() {
   const { t } = useTranslation();
 
-  // --- Fake Data ---
-  const products = Array.from({ length: 30 }, (_, i) => ({
-    id: `SP00${i + 1}`,
-    barcode: `8934567890${i + 10}`, // ✅ thêm barcode demo
-    name: `${t("products.product")} ${i + 1}`,
-    category: i % 2 === 0 ? "Danh mục A" : "Danh mục B",
-    brand: i % 2 ? "Thương hiệu B" : "Thương hiệu A",
-    supplier: i % 2 === 0 ? "Nhà cung cấp A" : "Nhà cung cấp B",
-    price: 10000 + i * 1000,
-    cost: 8000 + i * 900,
-    stock: 50 - i,
-    createdAt: i % 2 === 0 ? "22/10/2025" : "21/10/2025",
-    image: "https://via.placeholder.com/80x80.png?text=IMG",
-  }));
-
   // --- STATE ---
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
   const [query, setQuery] = useState("");
   const [rowsPerPage, setRowsPerPage] = useState(15);
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedProducts, setSelectedProducts] = useState([]); // ✅ danh sách sản phẩm được chọn
+  const [selectedProducts, setSelectedProducts] = useState([]);
   const [filters, setFilters] = useState({
     category: "",
     brand: "",
     supplier: "",
     stock: "all",
-    createdAt: "",
   });
+
   const [editingProduct, setEditingProduct] = useState(null);
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [addingProduct, setAddingProduct] = useState(false);
 
-  // ✅ Thêm state quản lý danh sách filter động
-  const [categories, setCategories] = useState(["Danh mục A", "Danh mục B"]);
-  const [brands, setBrands] = useState(["Thương hiệu A", "Thương hiệu B"]);
-  const [suppliers, setSuppliers] = useState(["Nhà cung cấp A", "Nhà cung cấp B"]);
+  const [categories, setCategories] = useState([]);
+  const [brands, setBrands] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
 
-  // --- HANDLERS ---
+  const token = localStorage.getItem("accessToken");
+
+  // --- AXIOS INSTANCE ---
+  const axiosInstance = axios.create({
+    baseURL: API_BASE_URL,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  /* ==============================
+      🔹 LẤY DANH SÁCH SẢN PHẨM
+     ============================== */
+  const fetchProducts = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const { data } = await axiosInstance.get("/inventory/products");
+      const formatted = (data || []).map((p) => ({
+        id: p?.productId?.toString() || "",
+        barcode: p?.barcode || "",
+        name: p?.productName || t("products.unnamed"),
+        category: p?.categoryName || t("products.uncategorized"),
+        brand: "",
+        supplier: "",
+        unit: p?.unit || "",
+        price: p?.sellingPrice || 0,
+        cost: 0,
+        stock: p?.quantityInStock || 0,
+        createdAt: p?.lastUpdated
+          ? new Date(p.lastUpdated).toLocaleDateString("vi-VN")
+          : "",
+        image: "https://via.placeholder.com/80x80.png?text=No+Image",
+      }));
+
+      setProducts(formatted);
+      setCategories([...new Set(formatted.map((p) => p.category).filter(Boolean))]);
+      setBrands([...new Set(formatted.map((p) => p.brand).filter(Boolean))]);
+      setSuppliers([...new Set(formatted.map((p) => p.supplier).filter(Boolean))]);
+    } catch (err) {
+      console.error("❌ Fetch error:", err);
+      setError(t("products.fetchError"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  /* ==============================
+      🔹 THÊM SẢN PHẨM
+     ============================== */
+  const handleAddNew = async (newProduct) => {
+    try {
+      await axiosInstance.post("/inventory/products", {
+        productName: newProduct.name,
+        categoryName: newProduct.category,
+        unit: newProduct.unit,
+        barcode: newProduct.barcode,
+        sellingPrice: newProduct.price,
+        quantityInStock: newProduct.stock,
+      });
+      alert(t("products.addSuccess") || "Thêm sản phẩm thành công!");
+      setAddingProduct(false);
+      fetchProducts();
+    } catch (err) {
+      console.error("❌ Lỗi thêm sản phẩm:", err);
+      alert(t("products.addError") || "Không thể thêm sản phẩm!");
+    }
+  };
+
+  /* ==============================
+      🔹 SỬA SẢN PHẨM
+     ============================== */
+  const handleEdit = async (updated) => {
+    try {
+      await axiosInstance.put(`/inventory/products/${updated.id}`, {
+        productId: updated.id,
+        productName: updated.name,
+        categoryName: updated.category,
+        unit: updated.unit,
+        barcode: updated.barcode,
+        sellingPrice: updated.price,
+        quantityInStock: updated.stock,
+      });
+      alert(t("products.updateSuccess") || "Cập nhật thành công!");
+      setEditingProduct(null);
+      fetchProducts();
+    } catch (err) {
+      console.error("❌ Lỗi cập nhật:", err);
+      alert(t("products.updateError") || "Không thể cập nhật sản phẩm!");
+    }
+  };
+
+  /* ==============================
+      🔹 XOÁ SẢN PHẨM
+     ============================== */
+  const handleDelete = async (id) => {
+    if (!window.confirm(t("common.confirmDelete") || "Bạn có chắc muốn xoá?")) return;
+    try {
+      await axiosInstance.delete(`/inventory/products/${id}`);
+      alert(t("products.deleteSuccess") || "Đã xoá sản phẩm thành công!");
+      fetchProducts();
+    } catch (err) {
+      console.error("❌ Lỗi xoá sản phẩm:", err);
+      alert(t("products.deleteError") || "Không thể xoá sản phẩm!");
+    }
+  };
+
+  /* ==============================
+      🔹 BỘ LỌC & TÌM KIẾM
+     ============================== */
   const handleFilterChange = (field, value) => {
     setFilters((prev) => ({ ...prev, [field]: value }));
     setCurrentPage(1);
   };
 
-  // ✅ Thêm mới danh mục / thương hiệu / NCC
-  const handleAddCategory = (newCat) =>
-    setCategories((prev) => [...prev, newCat]);
-  const handleAddBrand = (newBrand) =>
-    setBrands((prev) => [...prev, newBrand]);
-  const handleAddSupplier = (newSup) =>
-    setSuppliers((prev) => [...prev, newSup]);
-
-  const handleAddNew = (newProduct) => {
-    console.log(t("products.addedProduct"), newProduct);
-    setAddingProduct(false);
-  };
-
-  const handleDelete = (id) => {
-    if (window.confirm(t("common.confirmDelete"))) {
-      console.log(t("products.deletedProduct"), id);
-    }
-  };
-
-  const handleEdit = (updated) => {
-    console.log(t("products.savedProduct"), updated);
-    setEditingProduct(null);
-  };
-
-  // ✅ Lọc sản phẩm (tìm theo tên, ID, barcode, category, brand, supplier...)
   const filtered = products.filter((p) => {
-    const queryLower = query.toLowerCase();
-
+    const queryLower = (query || "").toLowerCase();
     const matchesQuery =
-      p.name.toLowerCase().includes(queryLower) ||
-      p.id.toLowerCase().includes(queryLower) ||
-      (p.barcode && p.barcode.toLowerCase().includes(queryLower));
+      (p.name?.toLowerCase?.() || "").includes(queryLower) ||
+      (p.id?.toLowerCase?.() || "").includes(queryLower) ||
+      (p.barcode?.toLowerCase?.() || "").includes(queryLower);
 
     const matchesCategory = !filters.category || p.category === filters.category;
     const matchesBrand = !filters.brand || p.brand === filters.brand;
@@ -94,70 +172,51 @@ export default function ProductListPage() {
         : filters.stock === "in"
         ? p.stock > 0
         : p.stock === 0;
-    const matchesDate =
-      !filters.createdAt ||
-      p.createdAt === new Date(filters.createdAt).toLocaleDateString("vi-VN");
 
     return (
       matchesQuery &&
       matchesCategory &&
       matchesBrand &&
       matchesSupplier &&
-      matchesStock &&
-      matchesDate
+      matchesStock
     );
   });
 
-  // ✅ Chọn sản phẩm (checkbox)
-  const handleSelectOne = (id) => {
-    setSelectedProducts((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+  /* ==============================
+      🔹 EXPORT + PRINT
+     ============================== */
+  const handleExportSelected = () => {
+    const selectedList = products.filter((p) => selectedProducts.includes(p.id));
+    if (selectedList.length === 0) return alert(t("products.selectToExport"));
+    exportProductsToExcel(selectedList, t);
   };
 
-  const handleSelectAll = (checked, currentPageItems) => {
-    if (checked) {
-      const allIds = currentPageItems.map((p) => p.id);
-      setSelectedProducts((prev) => [...new Set([...prev, ...allIds])]);
-    } else {
-      const pageIds = currentPageItems.map((p) => p.id);
-      setSelectedProducts((prev) => prev.filter((id) => !pageIds.includes(id)));
-    }
-  };
-
-  // ✅ In mã vạch cho sản phẩm được chọn
   const handlePrintBarcode = () => {
     const selectedList = products.filter((p) => selectedProducts.includes(p.id));
-    if (selectedList.length === 0) {
-      alert(t("products.selectToPrint") || "Vui lòng chọn sản phẩm để in mã vạch!");
-      return;
-    }
+    if (selectedList.length === 0) return alert(t("products.selectToPrint"));
 
     const win = window.open("", "_blank");
     const html = `
       <html>
         <head>
-          <title>In mã vạch sản phẩm</title>
+          <title>${t("products.barcodeTitle")}</title>
           <style>
-            body { font-family: Arial, sans-serif; padding: 20px; }
-            h2 { text-align: center; margin-bottom: 20px; }
+            body { font-family: Arial; padding: 20px; }
             .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-            .item { border: 1px solid #ccc; text-align: center; padding: 10px; border-radius: 8px; }
-            svg { width: 160px; height: 60px; margin: 5px auto; }
-            @media print { body { margin: 0; } .item { border: none; } }
+            .item { text-align: center; border: 1px solid #ccc; border-radius: 8px; padding: 10px; }
           </style>
         </head>
         <body>
-          <h2>Danh sách mã vạch sản phẩm</h2>
+          <h2>${t("products.barcodeTitle")}</h2>
           <div class="grid">
             ${selectedList
               .map(
                 (p, i) => `
-                <div class="item">
-                  <svg id="barcode-${i}"></svg>
-                  <p>${p.name}</p>
-                  <small>${p.barcode || p.id}</small>
-                </div>`
+                  <div class="item">
+                    <svg id="barcode-${i}"></svg>
+                    <p>${p.name}</p>
+                    <small>${p.barcode || p.id}</small>
+                  </div>`
               )
               .join("")}
           </div>
@@ -175,21 +234,12 @@ export default function ProductListPage() {
     win.document.close();
   };
 
-  // ✅ Xuất file Excel chỉ cho sản phẩm đã chọn
-  const handleExportSelected = () => {
-    const selectedList = products.filter((p) => selectedProducts.includes(p.id));
-    if (selectedList.length === 0) {
-      alert(t("products.selectToExport") || "Vui lòng chọn sản phẩm để xuất file!");
-      return;
-    }
-    exportProductsToExcel(selectedList, t);
-  };
-
-  // --- JSX ---
+  /* ==============================
+      🔹 RENDER
+     ============================== */
   return (
     <MainLayout>
       <div className="container-fluid py-3">
-        {/* Header */}
         <ProductHeaderBar
           query={query}
           setQuery={setQuery}
@@ -198,7 +248,6 @@ export default function ProductListPage() {
           onPrint={handlePrintBarcode}
         />
 
-        {/* Popup thêm sản phẩm */}
         {addingProduct && (
           <div className="border border-primary rounded-3 mb-3 p-3 shadow-sm bg-body-tertiary">
             <AddProductCard
@@ -212,9 +261,9 @@ export default function ProductListPage() {
           <ProductFilterPanel
             filters={filters}
             onChange={{
-              addCategory: handleAddCategory,
-              addBrand: handleAddBrand,
-              addSupplier: handleAddSupplier,
+              addCategory: (cat) => setCategories((prev) => [...prev, cat]),
+              addBrand: (brand) => setBrands((prev) => [...prev, brand]),
+              addSupplier: (sup) => setSuppliers((prev) => [...prev, sup]),
               change: handleFilterChange,
             }}
             categories={categories}
@@ -222,22 +271,46 @@ export default function ProductListPage() {
             suppliers={suppliers}
           />
 
-          <ProductTable
-            products={filtered}
-            currentPage={currentPage}
-            setCurrentPage={setCurrentPage}
-            rowsPerPage={rowsPerPage}
-            setRowsPerPage={setRowsPerPage}
-            selectedProducts={selectedProducts}
-            onSelectOne={handleSelectOne}
-            onSelectAll={handleSelectAll}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            editingProduct={editingProduct}
-            setEditingProduct={setEditingProduct}
-            selectedProductId={selectedProductId}
-            setSelectedProductId={setSelectedProductId}
-          />
+          {loading ? (
+            <p className="text-center mt-3">{t("common.loadingProducts")}</p>
+          ) : error ? (
+            <p className="text-center text-danger mt-3">{error}</p>
+          ) : (
+            <ProductTable
+              products={filtered}
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+              rowsPerPage={rowsPerPage}
+              setRowsPerPage={setRowsPerPage}
+              selectedProducts={selectedProducts}
+              onSelectOne={(id) =>
+                setSelectedProducts((prev) =>
+                  prev.includes(id)
+                    ? prev.filter((x) => x !== id)
+                    : [...prev, id]
+                )
+              }
+              onSelectAll={(checked, currentPageItems) => {
+                if (checked) {
+                  const allIds = currentPageItems.map((p) => p.id);
+                  setSelectedProducts((prev) => [
+                    ...new Set([...prev, ...allIds]),
+                  ]);
+                } else {
+                  const pageIds = currentPageItems.map((p) => p.id);
+                  setSelectedProducts((prev) =>
+                    prev.filter((id) => !pageIds.includes(id))
+                  );
+                }
+              }}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              editingProduct={editingProduct}
+              setEditingProduct={setEditingProduct}
+              selectedProductId={selectedProductId}
+              setSelectedProductId={setSelectedProductId}
+            />
+          )}
         </div>
       </div>
     </MainLayout>

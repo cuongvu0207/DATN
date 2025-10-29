@@ -10,6 +10,7 @@ import ImportPage from "./pages/ImportPage";
 import ImportDetailPage from "./pages/ImportDetailPage";
 import SetPricePage from "./pages/SetPricePage";
 import SalesInvoicesPage from "./pages/InvoiceListPage";
+import StaffPage from "./pages/StaffPage";
 export default function App() {
   return (
     <ThemeProvider>  
@@ -24,6 +25,7 @@ export default function App() {
           <Route path="/products/import" element={<ImportPage />} />
           <Route path="/products/importdetail" element={<ImportDetailPage />} />
           <Route path="/products/prices" element={<SetPricePage />} />
+          <Route path="/staff" element={<StaffPage />} />
         </Routes>
       </Router>
     </ThemeProvider>
