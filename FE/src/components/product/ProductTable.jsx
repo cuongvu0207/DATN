@@ -35,7 +35,9 @@ export default function ProductTable({
 
   return (
     <div className="col-lg-10 col-12">
-      <div className={`table-responsive rounded-2 border border-${theme} shadow-sm`}>
+      <div
+        className={`table-responsive rounded-2 border border-${theme} shadow-sm`}
+      >
         <table className="table table-hover align-middle mb-0">
           <thead className={`table-${theme}`}>
             <tr>
@@ -44,25 +46,25 @@ export default function ProductTable({
                   type="checkbox"
                   className="form-check-input"
                   checked={allChecked}
-                  onChange={(e) =>
-                    onSelectAll(e.target.checked, currentRows)
-                  }
+                  onChange={(e) => onSelectAll(e.target.checked, currentRows)}
                 />
               </th>
-              <th>{t("products.productId")}</th>
-              <th></th>
-              <th>{t("products.productName")}</th>
-              <th>{t("products.brand")}</th>
-              <th>{t("products.sellingPrice")}</th>
-              <th>{t("products.costOfCapital")}</th>
-              <th>{t("products.stock")}</th>
-              <th>{t("products.createdDate")}</th>
+              <th>STT</th>
+              <th>{t("products.barcode") || "Mã vạch"}</th>
+              <th>{t("products.productName") || "Tên sản phẩm"}</th>
+              <th>{t("products.category") || "Danh mục"}</th>
+              <th>{t("products.unit") || "Đơn vị"}</th>
+              <th>{t("products.sellingPrice") || "Giá bán"}</th>
+              <th>{t("products.costOfCapital") || "Giá vốn"}</th>
+              <th>{t("products.stock") || "Tồn kho"}</th>
+              <th>{t("products.status") || "Trạng thái"}</th>
+              <th>{t("products.createdDate") || "Ngày cập nhật"}</th>
             </tr>
           </thead>
 
           <tbody>
             {currentRows.length > 0 ? (
-              currentRows.map((p) => (
+              currentRows.map((p, index) => (
                 <React.Fragment key={p.id}>
                   <tr
                     style={{ cursor: "pointer" }}
@@ -72,6 +74,7 @@ export default function ProductTable({
                       )
                     }
                   >
+                    {/* Checkbox */}
                     <td onClick={(e) => e.stopPropagation()}>
                       <input
                         type="checkbox"
@@ -80,26 +83,60 @@ export default function ProductTable({
                         onChange={() => onSelectOne(p.id)}
                       />
                     </td>
-                    <td>{p.id}</td>
+
+                    {/* Số thứ tự */}
+                    <td>{index + 1 + (currentPage - 1) * rowsPerPage}</td>
+
+                    {/* Mã vạch */}
+                    <td>{p.barcode || "-"}</td>
+
+                    {/* Tên sản phẩm */}
                     <td>
-                      <img
-                        src={p.image}
-                        alt={p.name}
-                        className="rounded"
-                        style={{ width: 50, height: 50 }}
-                      />
+                      <div className="d-flex align-items-center gap-2">
+                        <img
+                          src={p.image}
+                          alt={p.name}
+                          className="rounded"
+                          style={{ width: 45, height: 45, objectFit: "cover" }}
+                        />
+                        <span>{p.name}</span>
+                      </div>
                     </td>
-                    <td>{p.name}</td>
-                    <td>{p.brand}</td>
-                    <td>{p.price.toLocaleString()}</td>
-                    <td>{p.cost.toLocaleString()}</td>
+
+                    {/* Danh mục */}
+                    <td>{p.category}</td>
+
+                    {/* Đơn vị */}
+                    <td>{p.unit || "-"}</td>
+
+                    {/* Giá bán */}
+                    <td>{p.price.toLocaleString("vi-VN")} ₫</td>
+
+                    {/* Giá vốn */}
+                    <td>{p.cost.toLocaleString("vi-VN")} ₫</td>
+
+                    {/* Tồn kho */}
                     <td>{p.stock}</td>
+
+                    {/* Trạng thái */}
+                    <td
+                      className={
+                        p.status === "Đang kinh doanh"
+                          ? "text-success fw-semibold"
+                          : "text-danger fw-semibold"
+                      }
+                    >
+                      {p.status}
+                    </td>
+
+                    {/* Ngày cập nhật */}
                     <td>{p.createdAt}</td>
                   </tr>
 
+                  {/* Chi tiết sản phẩm */}
                   {selectedProductId === p.id && (
                     <tr className="bg-body-tertiary">
-                      <td colSpan={9} className="p-0 border-0">
+                      <td colSpan={11} className="p-0 border-0">
                         {editingProduct?.id === p.id ? (
                           <EditProductDetailCard
                             product={editingProduct}
@@ -120,7 +157,7 @@ export default function ProductTable({
               ))
             ) : (
               <tr>
-                <td colSpan={9} className="text-center text-muted py-4">
+                <td colSpan={11} className="text-center text-muted py-4">
                   {t("products.noData") || "Không có dữ liệu"}
                 </td>
               </tr>

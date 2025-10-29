@@ -55,17 +55,21 @@ export default function ProductListPage() {
     setError("");
     try {
       const { data } = await axiosInstance.get("/inventory/products");
+
       const formatted = (data || []).map((p) => ({
         id: p?.productId?.toString() || "",
         barcode: p?.barcode || "",
         name: p?.productName || t("products.unnamed"),
         category: p?.categoryName || t("products.uncategorized"),
-        brand: "",
+        brand: p?.brandName || "",
         supplier: "",
         unit: p?.unit || "",
         price: p?.sellingPrice || 0,
-        cost: 0,
+        cost: p?.costOfCapital || 0, // ✅ lấy giá vốn từ BE
         stock: p?.quantityInStock || 0,
+        status: p?.isActive
+      ? t("products.active") || "Đang kinh doanh"
+      : t("products.inactive") || "Ngừng kinh doanh",
         createdAt: p?.lastUpdated
           ? new Date(p.lastUpdated).toLocaleDateString("vi-VN")
           : "",
@@ -73,6 +77,8 @@ export default function ProductListPage() {
       }));
 
       setProducts(formatted);
+
+      // ✅ cập nhật các filter
       setCategories([...new Set(formatted.map((p) => p.category).filter(Boolean))]);
       setBrands([...new Set(formatted.map((p) => p.brand).filter(Boolean))]);
       setSuppliers([...new Set(formatted.map((p) => p.supplier).filter(Boolean))]);
@@ -100,6 +106,8 @@ export default function ProductListPage() {
         barcode: newProduct.barcode,
         sellingPrice: newProduct.price,
         quantityInStock: newProduct.stock,
+        costOfCapital: newProduct.cost || 0,
+        isActive: true,
       });
       alert(t("products.addSuccess") || "Thêm sản phẩm thành công!");
       setAddingProduct(false);
@@ -123,6 +131,8 @@ export default function ProductListPage() {
         barcode: updated.barcode,
         sellingPrice: updated.price,
         quantityInStock: updated.stock,
+        costOfCapital: updated.cost,
+        isActive: updated.status === "Đang kinh doanh",
       });
       alert(t("products.updateSuccess") || "Cập nhật thành công!");
       setEditingProduct(null);
