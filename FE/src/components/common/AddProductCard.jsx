@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../context/ThemeContext";
 
-export default function AddProductCard({ onCancel, onSave }) {
+export default function AddProductCard({ onCancel, onSave, categories = [], brands = [] }) {
   const { t } = useTranslation();
   const { theme } = useTheme();
 
@@ -10,27 +10,32 @@ export default function AddProductCard({ onCancel, onSave }) {
     name: "",
     category: "",
     brand: "",
-    cost: "",
-    price: "",
-    stock: "",
+    cost: 0,
+    price: 0,
+    stock: 0,
     barcode: "",
     imageFile: null,
   });
-  const [preview, setPreview] = useState(null);
 
-  const [categories, setCategories] = useState(["Danh mục A", "Danh mục B"]);
-  const [brands, setBrands] = useState(["Thương hiệu 1", "Thương hiệu 2"]);
+  const [preview, setPreview] = useState(null);
+  const [localCategories, setLocalCategories] = useState(categories);
+  const [localBrands, setLocalBrands] = useState(brands);
 
   // ✅ Sinh mã vạch ngẫu nhiên nếu chưa nhập
   const generateBarcode = () =>
     "SP" + Math.floor(100000000000 + Math.random() * 900000000000);
 
+  // ✅ Xử lý nhập liệu (chỉ cho phép >= 0)
   const handleChange = (e) => {
     const { name, value } = e.target;
+    if (["price", "cost", "stock"].includes(name)) {
+      const num = Number(value);
+      if (num < 0) return; // không cho âm
+    }
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ✅ Thêm danh mục / thương hiệu mới
+  // ✅ Thêm danh mục / thương hiệu mới (chỉ lưu tạm thời ở FE)
   const handleAddOption = (type) => {
     const labelMap = {
       Category: t("products.enterNewCategory") || "Nhập danh mục mới:",
@@ -40,31 +45,41 @@ export default function AddProductCard({ onCancel, onSave }) {
     const newValue = prompt(labelMap[type]);
     if (newValue && newValue.trim()) {
       const val = newValue.trim();
-      if (type === "Category" && !categories.includes(val)) setCategories([...categories, val]);
-      if (type === "Brand" && !brands.includes(val)) setBrands([...brands, val]);
-      setForm((prev) => ({ ...prev, [type.toLowerCase()]: val }));
+      if (type === "Category" && !localCategories.includes(val)) {
+        setLocalCategories((prev) => [...prev, val]);
+        setForm((prev) => ({ ...prev, category: val }));
+      }
+      if (type === "Brand" && !localBrands.includes(val)) {
+        setLocalBrands((prev) => [...prev, val]);
+        setForm((prev) => ({ ...prev, brand: val }));
+      }
     }
   };
 
+  // ✅ Xử lý ảnh
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = () => setPreview(reader.result);
-      reader.readAsDataURL(file);
       setForm((prev) => ({ ...prev, imageFile: file }));
+      setPreview(URL.createObjectURL(file));
     }
   };
 
+  // ✅ Gửi form
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    if (!form.name.trim()) return alert(t("products.enterProductName"));
+    if (!form.category || !form.brand)
+      return alert(t("products.chooseCategoryBrand") || "Chọn danh mục và thương hiệu!");
+
     const newProduct = {
       ...form,
       barcode: form.barcode || generateBarcode(),
       id: "SPNEW" + Math.floor(Math.random() * 1000),
-      image: preview,
       createdAt: new Date().toLocaleDateString("vi-VN"),
     };
+
     onSave(newProduct);
   };
 
@@ -101,7 +116,6 @@ export default function AddProductCard({ onCancel, onSave }) {
               {t("products.chooseImage") || "Chọn ảnh"}
               <input type="file" accept="image/*" hidden onChange={handleImageChange} />
             </label>
-            <small className="text-muted d-block mt-1">{t("products.imageLimit")}</small>
           </div>
         </div>
 
@@ -156,8 +170,8 @@ export default function AddProductCard({ onCancel, onSave }) {
                   onChange={handleChange}
                   required
                 >
-                  <option value="">{t("products.selectCategory")}</option>
-                  {categories.map((cat, idx) => (
+                  <option value="">{t("products.selectCategory") || "Chọn danh mục"}</option>
+                  {localCategories.map((cat, idx) => (
                     <option key={idx} value={cat}>
                       {cat}
                     </option>
@@ -185,8 +199,8 @@ export default function AddProductCard({ onCancel, onSave }) {
                   onChange={handleChange}
                   required
                 >
-                  <option value="">{t("products.selectBrand")}</option>
-                  {brands.map((b, idx) => (
+                  <option value="">{t("products.selectBrand") || "Chọn thương hiệu"}</option>
+                  {localBrands.map((b, idx) => (
                     <option key={idx} value={b}>
                       {b}
                     </option>
@@ -243,11 +257,7 @@ export default function AddProductCard({ onCancel, onSave }) {
 
           {/* Nút hành động */}
           <div className="d-flex justify-content-end gap-2 mt-3">
-            <button
-              type="button"
-              className="btn btn-secondary px-4"
-              onClick={onCancel}
-            >
+            <button type="button" className="btn btn-secondary px-4" onClick={onCancel}>
               {t("common.cancel") || "Bỏ qua"}
             </button>
             <button type="submit" className={`btn btn-${theme} text-white px-4`}>

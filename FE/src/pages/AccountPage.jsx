@@ -90,7 +90,7 @@ export default function AccountPage() {
             : account.gender === "Nữ" || account.gender === 0
             ? 0
             : account.gender,
-        // ✅ Chuyển ngày sang ISO (yyyy-MM-dd)
+        //  Chuyển ngày sang ISO (yyyy-MM-dd)
         dateOfBirth: (() => {
           const [d, m, y] = account.dateOfBirth.split("/");
           return `${y}-${m}-${d}`;

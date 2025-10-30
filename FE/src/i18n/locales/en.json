@@ -14,7 +14,8 @@
     "delete" : "Delete",
     "edit" : "Edit",
     "cancel" : "Cancel",
-    "save" : "Save"
+    "save" : "Save",
+    "all" :"All"
   },
   "menu": {
     "overview": "Overview",
@@ -86,7 +87,8 @@
     "costOfCapital": "Cost of Capital",
     "quantityInStock": "In Stock",
     "expectedOutOfStock": "Expected Out of Stock",
-    "editProduct" : "Edit Product"
+    "editProduct" : "Edit Product",
+    "unit" : "Unit"
   },
   "actions": {
     "apply": "Apply",
@@ -129,6 +131,74 @@
     "signAndName": "Sign and full name",
 
     "noItems": "No items to print!"
+  },
+  "supplier": {
+    "supplierName": "Supplier Name",
+    "phone": "Phone Number",
+    "email": "Email",
+    "address": "Address",
+    "note": "Note",
+    "addSuccess": "✅ Supplier added successfully!",
+    "addFail": "❌ Failed to add supplier!",
+    "placeholder": {
+      "name": "Enter supplier name...",
+      "phone": "Enter phone number...",
+      "email": "Enter contact email...",
+      "address": "Enter address...",
+      "note": "Additional notes (optional)..."
+    }
+  },
+  "import": {
+    "title": "Import Goods",
+    "importList": "Import List",
+    "importCode": "Import Code",
+    "supplier": "Supplier",
+    "importer": "Importer",
+    "totalAmount": "Total Amount",
+    "status": "Status",
+    "createdAt": "Created At",
+    "note": "Note",
+    "details": "Details",
+    "productCode": "Product Code",
+    "productName": "Product Name",
+    "quantity": "Quantity",
+    "unitPrice": "Unit Price",
+    "totalPrice": "Total Price",
+    "draft": "DRAFT",
+    "completed": "COMPLETED",
+    "searchPlaceholder": "Search by import code, supplier",
+    "createImport": "Create Import",
+    "addProduct": "Add Product",
+    "selectProduct": "Select Product",
+    "noProducts": "No products available. Please add products first.",
+    "total": "Total",
+    "selectsupplier": "Select Supplier",
+    "importFile": "Import File"
+  },
+  "importProducts": {
+    "title": "Import Products",
+    "barcode": "Barcode",
+    "name": "Product Name",
+    "unit": "Unit",
+    "stock": "Quantity",
+    "cost": "Cost Price",
+    "discount": "Discount",
+    "total": "Total Amount",
+    "supplier": "Supplier",
+    "employee": "Importer",
+    "createdAt": "Created At",
+    "status": "Status",
+    "completed": "Completed",
+    "draft": "Draft",
+    "note": "Note",
+    "addNew": "Add Import Receipt",
+    "exportFile": "Export File",
+    "searchPlaceholder": "Search by code, product name, or supplier...",
+    "loadFail": "Failed to load import receipts!",
+    "empty": "No data available",
+    "display": "Display",
+    "rows": "rows",
+    "all": "All"
   }
   
 }

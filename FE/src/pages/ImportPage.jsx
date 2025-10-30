@@ -1,91 +1,138 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import MainLayout from "../layouts/MainLayout";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../context/ThemeContext";
 import { useNavigate } from "react-router-dom";
-import ImportFilterPanel from "../components/import/ImportFilterPanel"; // ✅ thêm
+import ImportFilterPanel from "../components/import/ImportFilterPanel";
+import ImportTableList from "../components/import/ImportTableList";
+import { API_BASE_URL } from "../services/api";
+import axios from "axios";
 
 export default function ImportListPage() {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const navigate = useNavigate();
+  const token = localStorage.getItem("accessToken");
 
-  // --- Dữ liệu giả lập ---
-  const importList = Array.from({ length: 25 }, (_, i) => ({
-    code: `PN${(46 - i).toString().padStart(6, "0")}`,
-    supplierCode: `NCC${(i % 5 + 1).toString().padStart(4, "0")}`,
-    supplier:
-      i % 3 === 0
-        ? "Công ty Pharmedic"
-        : i % 3 === 1
-        ? "Công ty TNHH Citigo"
-        : "Đại lý Hồng Phúc",
-    importer: i % 2 === 0 ? "Nguyễn Văn A" : "Trần Thị B",
-    total: 8000000 + i * 100000,
-    status: i % 2 === 0 ? "imported" : "temporary", // 🔹 dùng key như ImportFilterPanel
-    createdAt: i % 2 === 0 ? "2025-10-22" : "2025-10-21",
-    creator: i % 2 === 0 ? "Lê Văn Hùng" : "Nguyễn Thu Hà",
-    note:
-      i % 2 === 0
-        ? "Phiếu nhập hàng đã hoàn tất và được lưu kho."
-        : "Phiếu đang chờ xác nhận từ nhà cung cấp.",
-  }));
-
-  // --- State ---
+  // --- STATE ---
+  const [importList, setImportList] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [query, setQuery] = useState("");
   const [rowsPerPage, setRowsPerPage] = useState(15);
   const [currentPage, setCurrentPage] = useState(1);
-  const [filters, setFilters] = useState({
-    status: [],
-    timeRange: "thisMonth",
-    creator: "",
-    importer: "",
-    supplier: "",
-  });
-  const [selectedImports, setSelectedImports] = useState([]);
   const [expandedRow, setExpandedRow] = useState(null);
 
-  // --- Lọc dữ liệu ---
+  // ✅ Bộ lọc nâng cấp
+  const [filters, setFilters] = useState({
+    status: "",
+    startDate: "",
+    endDate: "",
+    creator: "",
+    supplier: "",
+  });
+
+  // Danh sách người tạo & nhà cung cấp (đổ vào select)
+  const [creators, setCreators] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
+
+  // Lấy danh sách import
+  const fetchImports = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await axios.get(`${API_BASE_URL}/inventory/import-product`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const formatted = (res.data || []).map((item) => ({
+        id: item.importProductId || item.importCode || "PN000001",
+        supplierCode: item.supplierCode || "NCC0001",
+        supplier: item.supplierName || "Chưa có tên",
+        employee: item.employeeName || "Không rõ",
+        total: Number(item.totalAmount) || 0,
+        status: item.status || "DRAFT",
+        createdAt: item.createdAt || new Date().toISOString(),
+        note: item.note || "",
+        details: item.details || [],
+      }));
+
+      setImportList(formatted);
+    } catch (err) {
+      console.error(err);
+      setError(t("import.loadFail") || "❌ Không thể tải danh sách phiếu nhập!");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Lấy danh sách người tạo & nhà cung cấp
+  const fetchDropdownData = async () => {
+    try {
+      const [empRes, supRes] = await Promise.all([
+        axios.get(`${API_BASE_URL}/auth/users/all`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`${API_BASE_URL}/supplier/all`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
+
+      setCreators(empRes.data || []);
+      setSuppliers(supRes.data || []);
+    } catch (err) {
+      console.error("Lỗi load dropdown:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchImports();
+    fetchDropdownData();
+  }, []);
+
+  // ===== BỘ LỌC DỮ LIỆU =====
   const filtered = importList.filter((p) => {
     const matchQuery =
-      p.code.toLowerCase().includes(query.toLowerCase()) ||
-      p.supplier.toLowerCase().includes(query.toLowerCase());
+      (p.id?.toString().toLowerCase().includes(query.toLowerCase()) ||
+        p.supplier?.toLowerCase().includes(query.toLowerCase())) ?? false;
 
     const matchStatus =
-      filters.status.length === 0 || filters.status.includes(p.status);
+      !filters.status || p.status.toLowerCase() === filters.status.toLowerCase();
+
+    const matchCreator =
+      !filters.creator || p.employee.toLowerCase().includes(filters.creator.toLowerCase());
 
     const matchSupplier =
       !filters.supplier ||
       p.supplier.toLowerCase().includes(filters.supplier.toLowerCase());
 
-    const matchCreator =
-      !filters.creator ||
-      p.creator.toLowerCase().includes(filters.creator.toLowerCase());
+    // Lọc theo thời gian
+    const matchDate =
+      (!filters.startDate ||
+        new Date(p.createdAt) >= new Date(filters.startDate)) &&
+      (!filters.endDate ||
+        new Date(p.createdAt) <= new Date(filters.endDate));
 
-    const matchImporter =
-      !filters.importer ||
-      p.importer.toLowerCase().includes(filters.importer.toLowerCase());
-
-    return matchQuery && matchStatus && matchSupplier && matchCreator && matchImporter;
+    return matchQuery && matchStatus && matchCreator && matchSupplier && matchDate;
   });
 
-  // --- Phân trang ---
+  // ===== Phân trang =====
   const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
   const currentRows = filtered.slice(
     (currentPage - 1) * rowsPerPage,
     currentPage * rowsPerPage
   );
 
-  const handleSelectAll = (e) => {
-    if (e.target.checked) {
-      const allCodes = currentRows.map((p) => p.code);
-      setSelectedImports((prev) => Array.from(new Set([...prev, ...allCodes])));
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      const allIds = currentRows.map((p) => p.id);
+      setSelectedImports(allIds);
     } else {
-      setSelectedImports((prev) =>
-        prev.filter((id) => !currentRows.some((p) => p.code === id))
-      );
+      setSelectedImports([]);
     }
   };
+
+  const [selectedImports, setSelectedImports] = useState([]);
 
   const handleSelectOne = (id) => {
     setSelectedImports((prev) =>
@@ -93,22 +140,23 @@ export default function ImportListPage() {
     );
   };
 
-  const allChecked = currentRows.every((p) => selectedImports.includes(p.code));
-  const toggleRow = (code) => setExpandedRow((prev) => (prev === code ? null : code));
+  const handleToggleRow = (id) => {
+    setExpandedRow((prev) => (prev === id ? null : id));
+  };
 
-  // --- Giao diện ---
+  // ===== Giao diện =====
   return (
     <MainLayout>
       <div className="container-fluid py-3 position-relative">
-        {/* ================= HEADER ================= */}
+        {/* ===== HEADER ===== */}
         <div className="row align-items-center gy-2 mb-2">
           <div className="col-12 col-md-3 col-lg-2 d-flex align-items-center">
             <h4 className="fw-bold text-capitalize mb-0">
-              {t("import.title") || "Nhập hàng"}
+              {t("import.title") || "Phiếu nhập hàng"}
             </h4>
           </div>
 
-          {/* Thanh tìm kiếm */}
+          {/* Ô tìm kiếm */}
           <div className="col-12 col-md-5 col-lg-5">
             <div
               className={`input-group border border-${theme} rounded-3 align-items-center`}
@@ -135,7 +183,7 @@ export default function ImportListPage() {
             </div>
           </div>
 
-          {/* Nhóm nút chức năng */}
+          {/* Nút chức năng */}
           <div className="col-12 col-md-4 col-lg-5 d-flex justify-content-end gap-2 flex-wrap">
             <button
               className={`btn btn-${theme} text-white fw-semibold d-flex align-items-center rounded-3 px-3`}
@@ -159,247 +207,102 @@ export default function ImportListPage() {
           </div>
         </div>
 
-        {/* ================= BODY ================= */}
+        {/* ===== BODY ===== */}
         <div className="row g-3 mt-1">
-          {/* ==== Sidebar bộ lọc ==== */}
+          {/* ==== Bộ lọc ==== */}
           <aside className="col-lg-2 d-none d-lg-block">
-            <div className="card shadow-sm border-0 h-100">
-              <ImportFilterPanel filters={filters} onChange={setFilters} />
-            </div>
-          </aside>
+            <div className="card shadow-sm border-0 h-100 p-3">
+              <h6 className="fw-bold mb-3">{t("import.filter") || "Bộ lọc"}</h6>
 
-          {/* ==== Main Content ==== */}
-          <main className="col-lg-10 col-12">
-            <div
-              className={`table-responsive rounded-2 border border-${theme} shadow-sm`}
-            >
-              <table className="table table-hover align-middle mb-0">
-                <thead className={`table-${theme}`}>
-                  <tr>
-                    <th style={{ width: 40 }}>
-                      <input
-                        type="checkbox"
-                        checked={allChecked}
-                        onChange={handleSelectAll}
-                      />
-                    </th>
-                    <th>{t("import.code") || "Mã nhập hàng"}</th>
-                    <th>{t("import.supplierCode") || "Mã NCC"}</th>
-                    <th>{t("import.supplier") || "Nhà cung cấp"}</th>
-                    <th>{t("import.importer") || "Người nhập"}</th>
-                    <th className="text-end">
-                      {t("import.total") || "Tổng tiền"}
-                    </th>
-                    <th className="text-center">
-                      {t("import.status") || "Trạng thái"}
-                    </th>
-                    <th>{t("import.date") || "Ngày tạo"}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {currentRows.length > 0 ? (
-                    currentRows.map((row) => (
-                      <React.Fragment key={row.code}>
-                        <tr
-                          style={{ cursor: "pointer" }}
-                          onClick={() => toggleRow(row.code)}
-                        >
-                          <td>
-                            <input
-                              type="checkbox"
-                              checked={selectedImports.includes(row.code)}
-                              onChange={() => handleSelectOne(row.code)}
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          </td>
-                          <td>
-                            <i
-                              className={`bi me-2 ${
-                                expandedRow === row.code
-                                  ? "bi-caret-down-fill"
-                                  : "bi-caret-right-fill"
-                              }`}
-                            ></i>
-                            {row.code}
-                          </td>
-                          <td>{row.supplierCode}</td>
-                          <td>{row.supplier}</td>
-                          <td>{row.importer}</td>
-                          <td className="text-end">
-                            {row.total.toLocaleString()} ₫
-                          </td>
-                          <td className="text-center">
-                            <span
-                              className={`badge px-2 py-1 ${
-                                row.status === "imported"
-                                  ? "bg-success-subtle text-success border border-success"
-                                  : "bg-warning-subtle text-warning border border-warning"
-                              }`}
-                            >
-                              {row.status === "imported"
-                                ? "Đã nhập hàng"
-                                : "Phiếu tạm"}
-                            </span>
-                          </td>
-                          <td>
-                            {new Date(row.createdAt).toLocaleDateString("vi-VN")}
-                          </td>
-                        </tr>
-
-                        {expandedRow === row.code && (
-                          <tr className="bg-light">
-                            <td colSpan={8}>
-                              <div className="p-3 border-top bg-white">
-                                <div className="d-flex justify-content-between align-items-center mb-2">
-                                  <h6 className="fw-bold mb-0">
-                                    <i className="bi bi-receipt-cutoff me-2 text-primary"></i>
-                                    {t("import.detailCardTitle") ||
-                                      "Chi tiết phiếu nhập"}
-                                  </h6>
-                                  <button
-                                    className={`btn btn-outline-${theme} btn-sm`}
-                                    onClick={() =>
-                                      navigate("/products/importdetail", {
-                                        state: { importData: row },
-                                      })
-                                    }
-                                  >
-                                    <i className="bi bi-pencil-square me-1"></i>
-                                    {t("import.edit") || "Chỉnh sửa"}
-                                  </button>
-                                </div>
-
-                                <div className="row g-3">
-                                  <div className="col-md-6">
-                                    <label className="fw-semibold text-muted">
-                                      {t("import.supplier") || "Nhà cung cấp"}
-                                    </label>
-                                    <div>{row.supplier}</div>
-                                  </div>
-                                  <div className="col-md-6">
-                                    <label className="fw-semibold text-muted">
-                                      {t("import.supplierCode") || "Mã NCC"}
-                                    </label>
-                                    <div>{row.supplierCode}</div>
-                                  </div>
-                                  <div className="col-md-6">
-                                    <label className="fw-semibold text-muted">
-                                      {t("import.importer") || "Người nhập"}
-                                    </label>
-                                    <div>{row.importer}</div>
-                                  </div>
-                                  <div className="col-md-6">
-                                    <label className="fw-semibold text-muted">
-                                      {t("import.status") || "Trạng thái"}
-                                    </label>
-                                    <div>
-                                      <span
-                                        className={`badge px-3 py-1 ${
-                                          row.status === "imported"
-                                            ? "bg-success-subtle text-success border border-success"
-                                            : "bg-warning-subtle text-warning border border-warning"
-                                        }`}
-                                      >
-                                        {row.status === "imported"
-                                          ? "Đã nhập hàng"
-                                          : "Phiếu tạm"}
-                                      </span>
-                                    </div>
-                                  </div>
-                                  <div className="col-md-6">
-                                    <label className="fw-semibold text-muted">
-                                      {t("import.total") || "Tổng tiền"}
-                                    </label>
-                                    <div className="fw-semibold text-success">
-                                      {row.total.toLocaleString()} ₫
-                                    </div>
-                                  </div>
-                                  <div className="col-md-6">
-                                    <label className="fw-semibold text-muted">
-                                      {t("import.date") || "Ngày tạo"}
-                                    </label>
-                                    <div>
-                                      {new Date(
-                                        row.createdAt
-                                      ).toLocaleDateString("vi-VN")}
-                                    </div>
-                                  </div>
-                                  <div className="col-12">
-                                    <label className="fw-semibold text-muted">
-                                      {t("import.note") || "Ghi chú"}
-                                    </label>
-                                    <textarea
-                                      className="form-control"
-                                      rows={2}
-                                      value={row.note}
-                                      disabled
-                                    ></textarea>
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </React.Fragment>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={8} className="text-center text-muted py-4">
-                        {t("import.noData") || "Không có dữ liệu"}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* ==== PHÂN TRANG ==== */}
-            <div className="d-flex justify-content-between align-items-center mt-3">
-              <div className="d-flex align-items-center gap-2">
-                <span>{t("import.display") || "Hiển thị"}</span>
+              {/* Trạng thái */}
+              <div className="mb-3">
+                <label className="form-label fw-semibold">{t("import.status") || "Trạng thái"}</label>
                 <select
                   className="form-select form-select-sm"
-                  style={{ width: 130 }}
-                  value={rowsPerPage >= filtered.length ? "all" : rowsPerPage}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val === "all") {
-                      setRowsPerPage(filtered.length);
-                    } else {
-                      setRowsPerPage(Number(val));
-                    }
-                    setCurrentPage(1);
-                  }}
+                  value={filters.status}
+                  onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}
                 >
-                  {[15, 20, 30, 50, 100].map((n) => (
-                    <option key={n} value={n}>
-                      {n} {t("import.rows") || "hàng"}
-                    </option>
-                  ))}
-                  <option value="all">{t("import.all") || "Tất cả"}</option>
+                  <option value="">Tất cả</option>
+                  <option value="COMPLETED">Hoàn tất</option>
+                  <option value="DRAFT">Phiếu tạm</option>
                 </select>
               </div>
 
-              <div className="btn-group">
-                <button
-                  className={`btn btn-outline-${theme}`}
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              {/* Thời gian */}
+              <div className="mb-3">
+                <label className="form-label fw-semibold">Từ ngày</label>
+                <input
+                  type="date"
+                  className="form-control form-control-sm"
+                  value={filters.startDate}
+                  onChange={(e) => setFilters((f) => ({ ...f, startDate: e.target.value }))}
+                />
+                <label className="form-label fw-semibold mt-2">Đến ngày</label>
+                <input
+                  type="date"
+                  className="form-control form-control-sm"
+                  value={filters.endDate}
+                  onChange={(e) => setFilters((f) => ({ ...f, endDate: e.target.value }))}
+                />
+              </div>
+
+              {/* Người tạo */}
+              <div className="mb-3">
+                <label className="form-label fw-semibold">Người tạo</label>
+                <select
+                  className="form-select form-select-sm"
+                  value={filters.creator}
+                  onChange={(e) => setFilters((f) => ({ ...f, creator: e.target.value }))}
                 >
-                  &lt;
-                </button>
-                <span className={`btn btn-${theme} text-white fw-bold`}>
-                  {currentPage}
-                </span>
-                <button
-                  className={`btn btn-outline-${theme}`}
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  <option value="">Tất cả</option>
+                  {creators.map((c) => (
+                    <option key={c.id} value={c.fullName}>
+                      {c.fullName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Nhà cung cấp */}
+              <div className="mb-3">
+                <label className="form-label fw-semibold">Nhà cung cấp</label>
+                <select
+                  className="form-select form-select-sm"
+                  value={filters.supplier}
+                  onChange={(e) => setFilters((f) => ({ ...f, supplier: e.target.value }))}
                 >
-                  &gt;
-                </button>
+                  <option value="">Tất cả</option>
+                  {suppliers.map((s) => (
+                    <option key={s.supplierCode} value={s.supplierName}>
+                      {s.supplierName}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
+          </aside>
+
+          {/* ==== Bảng danh sách ==== */}
+          <main className="col-lg-10 col-12">
+            {loading ? (
+              <div className="text-center py-5">
+                <div className="spinner-border text-primary" />
+              </div>
+            ) : error ? (
+              <div className="text-danger text-center py-4">{error}</div>
+            ) : (
+              <ImportTableList
+                data={currentRows}
+                selected={selectedImports}
+                onSelectOne={handleSelectOne}
+                onSelectAll={handleSelectAll}
+                expandedRow={expandedRow}
+                onExpand={handleToggleRow}
+                onEdit={(row) =>
+                  navigate("/products/importdetail", { state: { importData: row } })
+                }
+              />
+            )}
           </main>
         </div>
       </div>

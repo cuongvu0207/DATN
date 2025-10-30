@@ -73,7 +73,7 @@ export default function ProductListPage() {
         createdAt: p?.lastUpdated
           ? new Date(p.lastUpdated).toLocaleDateString("vi-VN")
           : "",
-        image: "https://via.placeholder.com/80x80.png?text=No+Image",
+        image: p?.image || "",
       }));
 
       setProducts(formatted);
@@ -97,26 +97,45 @@ export default function ProductListPage() {
   /* ==============================
       🔹 THÊM SẢN PHẨM
      ============================== */
-  const handleAddNew = async (newProduct) => {
-    try {
-      await axiosInstance.post("/inventory/products", {
-        productName: newProduct.name,
-        categoryName: newProduct.category,
-        unit: newProduct.unit,
-        barcode: newProduct.barcode,
-        sellingPrice: newProduct.price,
-        quantityInStock: newProduct.stock,
-        costOfCapital: newProduct.cost || 0,
-        isActive: true,
-      });
-      alert(t("products.addSuccess") || "Thêm sản phẩm thành công!");
-      setAddingProduct(false);
-      fetchProducts();
-    } catch (err) {
-      console.error("❌ Lỗi thêm sản phẩm:", err);
-      alert(t("products.addError") || "Không thể thêm sản phẩm!");
-    }
-  };
+     const handleAddNew = async (newProduct) => {
+      try {
+        const formData = new FormData();
+  
+        // ✅ Các trường trùng ProductRequest.java
+        formData.append("productName", newProduct.name);
+        formData.append("unit", newProduct.unit || "");
+        formData.append("barcode", newProduct.barcode);
+        formData.append("sellingPrice", newProduct.price);
+        formData.append("costOfCapital", newProduct.cost || 0);
+        formData.append("quantityInStock", newProduct.stock);
+        formData.append("isActive", true);
+  
+        // ⚙️ BE cần categoryId (không phải categoryName)
+        // Nếu AddProductCard đang lưu categoryName, bạn cần đổi nó sang ID khi chọn
+        // Tạm thời, nếu chưa có, ta gán 1 mặc định
+        formData.append("categoryId", newProduct.categoryId || 1);
+  
+        // ✅ Ảnh (MultipartFile)
+        if (newProduct.imageFile) {
+          formData.append("file", newProduct.imageFile);
+        }
+  
+        // ✅ Gửi multipart
+        await axios.post(`${API_BASE_URL}/inventory/products`, formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        });
+  
+        alert(t("products.addSuccess") || "Thêm sản phẩm thành công!");
+        setAddingProduct(false);
+        fetchProducts();
+      } catch (err) {
+        console.error("❌ Lỗi thêm sản phẩm:", err);
+        alert(t("products.addError") || "Không thể thêm sản phẩm!");
+      }
+    };
 
   /* ==============================
       🔹 SỬA SẢN PHẨM
@@ -173,9 +192,15 @@ export default function ProductListPage() {
       (p.id?.toLowerCase?.() || "").includes(queryLower) ||
       (p.barcode?.toLowerCase?.() || "").includes(queryLower);
 
-    const matchesCategory = !filters.category || p.category === filters.category;
-    const matchesBrand = !filters.brand || p.brand === filters.brand;
-    const matchesSupplier = !filters.supplier || p.supplier === filters.supplier;
+// ✅ Nếu filter đang ở mặc định ("", "Tất cả" hoặc null) thì bỏ qua
+const matchesCategory =
+  !filters.category || filters.category === "all" || p.category === filters.category;
+
+const matchesBrand =
+  !filters.brand || filters.brand === "all" || p.brand === filters.brand;
+
+const matchesSupplier =
+  !filters.supplier || filters.supplier === "all" || p.supplier === filters.supplier;
     const matchesStock =
       filters.stock === "all"
         ? true

@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Header from "../components/layout/Header";
 import SalesHeaderBar from "../components/sale/SalesHeaderBar";
 import CartItem from "../components/sale/CartItem";
@@ -6,20 +6,55 @@ import CustomerPanel from "../components/sale/CustomerPanel";
 import CustomerModal from "../components/sale/CustomerModal";
 import { useTheme } from "../context/ThemeContext";
 import { useTranslation } from "react-i18next";
+import axios from "axios";
+import { API_BASE_URL } from "../services/api";
 
 export default function SalesPage() {
   const { theme } = useTheme();
   const { t } = useTranslation();
+  const token = localStorage.getItem("accessToken");
 
-  /* ====== SẢN PHẨM DEMO ====== */
-  const productList = useMemo(
-    () => [
-      { id: 1, code: "SP000001", name: "Bút bi Thiên Long", price: 5000, stock: 10 },
-      { id: 2, code: "SP000002", name: "Vở Campus 200 trang", price: 15000, stock: 5 },
-      { id: 3, code: "SP000005", name: "Ví nhỏ đựng card Synapse", price: 180000, stock: 2 },
-    ],
-    []
-  );
+  /* ====== SẢN PHẨM TỪ DATABASE ====== */
+  const [productList, setProductList] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const res = await axios.get(`${API_BASE_URL}/inventory/products`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+  
+        // ✅ Chuẩn hóa đúng với dữ liệu thực tế của bạn
+        const formatted = (res.data || []).map((p) => ({
+          id: p.productId,
+          code: p.barcode || `SP${String(p.productId).padStart(6, "0")}`,
+          name: p.productName,
+          category: p.categoryName || "",
+          unit: p.unit || "",
+          brand: p.brandName || "",
+          price: Number(p.sellingPrice || 0),
+          cost: Number(p.costOfCapital || 0),
+          discount: Number(p.discount || 0),
+          stock: Number(p.quantityInStock || 0),
+          image: p.image || "",
+          updatedAt: p.lastUpdated || null,
+          active: p.isActive ?? true,
+        }));
+  
+        setProductList(formatted);
+      } catch (err) {
+        console.error(err);
+        setError("❌ Không thể tải danh sách sản phẩm!");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProducts();
+  }, [token]);
 
   /* ====== STATE HOÁ ĐƠN ====== */
   const [tabs, setTabs] = useState([{ id: 1, name: "Hóa đơn 1", items: [], orderNote: "" }]);
@@ -32,14 +67,8 @@ export default function SalesPage() {
   /* ====== KHÁCH HÀNG ====== */
   const [customers, setCustomers] = useState(() => {
     const saved = localStorage.getItem("customers");
-    return saved
-      ? JSON.parse(saved)
-      : [
-          { id: 1, name: "Nguyễn Văn A", phone: "0905123456" },
-          { id: 2, name: "Trần Thị B", phone: "0987654321" },
-        ];
+    return saved ? JSON.parse(saved) : [];
   });
-
   const [customer, setCustomer] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
@@ -68,9 +97,8 @@ export default function SalesPage() {
       alert(t("sales.alertEmptyCustomer") || "⚠️ Vui lòng nhập tên khách hàng!");
       return;
     }
-    const newId = customers.length + 1;
     const newCus = {
-      id: newId,
+      id: Date.now(),
       name: newCustomer.name.trim(),
       phone: newCustomer.phone.trim(),
     };
@@ -128,20 +156,19 @@ export default function SalesPage() {
     setSearchQuery("");
   };
 
-  /* ====== XỬ LÝ QUÉT BARCODE ====== */
+  /* ====== QUÉT BARCODE ====== */
   const handleScanProduct = (code) => {
     const found = productList.find(
-      (p) => p.code.toLowerCase() === code.trim().toLowerCase()
+      (p) => p.code?.toLowerCase() === code.trim().toLowerCase()
     );
     if (found) {
       handleAddProduct(found);
-      setSearchQuery("");
     } else {
       alert(t("sales.productNotFound") || "⚠️ Không tìm thấy sản phẩm!");
     }
   };
 
-  /* ====== GIẢM GIÁ SẢN PHẨM ====== */
+  /* ====== GIẢM GIÁ, SỐ LƯỢNG, XÓA, GHI CHÚ ====== */
   const setDiscount = (code, { discount, discountValue, discountMode }) => {
     setTabs((prev) =>
       prev.map((tab) =>
@@ -169,7 +196,6 @@ export default function SalesPage() {
     );
   };
 
-  /* ====== CẬP NHẬT SỐ LƯỢNG ====== */
   const changeQty = (code, delta) => {
     setTabs((prev) =>
       prev.map((tab) =>
@@ -242,38 +268,20 @@ export default function SalesPage() {
     );
   };
 
-  /* ====== TÍNH TỔNG ====== */
+  /* ====== THANH TOÁN ====== */
   const totalAmount = cartItems.reduce((s, it) => s + (it.total ?? 0), 0);
   const finalTotal = Math.max(totalAmount - invoiceDiscount, 0);
 
-  /* ====== XỬ LÝ THANH TOÁN ====== */
   const handlePayment = () => {
     if (cartItems.length === 0) {
-      alert(t("sales.alertNoItems") || "🛒 Chưa có sản phẩm nào trong giỏ hàng!");
+      alert("🛒 Chưa có sản phẩm nào trong giỏ hàng!");
       return;
     }
-
-    const overItems = cartItems.filter((it) => it.quantity > it.stock);
-    if (overItems.length > 0) {
-      alert(
-        `${t("sales.alertStockExceeded") || "⚠️ Một số sản phẩm vượt quá tồn kho:"}\n` +
-          overItems
-            .map((i) => `- ${i.name}: tồn ${i.stock}, giỏ ${i.quantity}`)
-            .join("\n")
-      );
-      return;
-    }
-
-    const finalCustomer = selectedCustomer
-      ? selectedCustomer.name
-      : customer.trim()
-      ? customer
-      : t("sales.walkInCustomer") || "Khách lẻ";
 
     alert(
-      `${t("sales.alertSuccess") || "✅ Thanh toán thành công!"}\n` +
-        `${t("sales.customer")}: ${finalCustomer}\n` +
-        `${t("sales.total") || "Tổng tiền"}: ${finalTotal.toLocaleString()}`
+      `✅ Thanh toán thành công!\nKhách hàng: ${
+        selectedCustomer?.name || customer || "Khách lẻ"
+      }\nTổng tiền: ${finalTotal.toLocaleString()}`
     );
 
     setTabs((prev) =>
@@ -314,14 +322,21 @@ export default function SalesPage() {
         setSearchQuery={setSearchQuery}
         barcodeMode={barcodeMode}
         setBarcodeMode={setBarcodeMode}
-        onScanProduct={handleScanProduct} // 🔹 hỗ trợ quét mã vạch
+        onScanProduct={handleScanProduct}
       />
 
       <div className="row gx-1 gy-1 m-0" style={{ height: "calc(100vh - 110px)" }}>
         {/* === TRÁI: GIỎ HÀNG === */}
         <div className="col-lg-8 col-md-7 p-2 d-flex flex-column">
           <div className="flex-grow-1 overflow-auto position-relative">
-            {filteredProducts.length > 0 && (
+            {loading ? (
+              <div className="text-center text-muted mt-5">
+                <div className="spinner-border text-primary" />
+                <p>Đang tải sản phẩm...</p>
+              </div>
+            ) : error ? (
+              <div className="text-danger text-center mt-5">{error}</div>
+            ) : filteredProducts.length > 0 ? (
               <div className="position-absolute bg-white shadow rounded-3 p-2" style={{ zIndex: 10, width: 300 }}>
                 {filteredProducts.map((p) => (
                   <button
@@ -334,9 +349,7 @@ export default function SalesPage() {
                   </button>
                 ))}
               </div>
-            )}
-
-            {cartItems.length === 0 ? (
+            ) : cartItems.length === 0 ? (
               <div className="text-center text-muted mt-5">
                 {t("sales.noItems") || "Chưa có sản phẩm trong giỏ hàng"}
               </div>

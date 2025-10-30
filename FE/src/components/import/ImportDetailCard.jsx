@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 export default function ImportDetailCard({ data, onClose }) {
   const { theme } = useTheme();
   const { t } = useTranslation();
-  const [showItems, setShowItems] = useState(true); // ✅ có thể ẩn/hiện phần hàng hóa
+  const [showItems, setShowItems] = useState(true); //  có thể ẩn/hiện phần hàng hóa
 
   if (!data) return null;
 

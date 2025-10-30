@@ -14,7 +14,8 @@
     "delete" : "Xoá",
     "edit" : "Chỉnh sửa",
     "cancel" : "Huỷ",
-    "save" : "Lưu"
+    "save" : "Lưu",
+    "all" :"Tất cả"
   },
   "menu": {
     "overview": "Tổng quan",
@@ -92,7 +93,8 @@
     "rows" : "Hàng",
     "showAll" : "Tất cả",
     "show" : "Hiển thị",
-    "barcode" : "Mã vạch"
+    "barcode" : "Mã vạch",
+    "unit" : "Đơn vị"
   },
   "actions": {
     "apply": "Áp dụng",
@@ -135,6 +137,75 @@
     "signAndName": "Ký và ghi rõ họ tên",
 
     "noItems": "Chưa có sản phẩm để in!"
-  }
+  },
+  "supplier": {
+    "supplierName": "Tên nhà cung cấp",
+    "phone": "Số điện thoại",
+    "email": "Email",
+    "address": "Địa chỉ",
+    "note": "Ghi chú",
+    "addSuccess": "✅ Thêm nhà cung cấp thành công!",
+    "addFail": "❌ Không thể thêm nhà cung cấp!",
+    "placeholder": {
+      "name": "Nhập tên nhà cung cấp...",
+      "phone": "Nhập số điện thoại...",
+      "email": "Nhập email liên hệ...",
+      "address": "Nhập địa chỉ...",
+      "note": "Ghi chú thêm (nếu có)..."
+    }
+  },
+  "import": {
+    "title": "Nhập hàng",
+    "importList": "Danh sách phiếu nhập",
+    "createImport": "Tạo phiếu nhập",
+    "importCode": "Mã phiếu nhập",
+    "supplier": "Nhà cung cấp",
+    "importer": "Người nhập hàng",
+    "employee": "Nhân viên",
+    "totalAmount": "Tổng tiền",
+    "status": "Trạng thái",
+    "createdAt": "Ngày tạo",
+    "note": "Ghi chú",
+    "details": "Chi tiết phiếu nhập",
+    "productName": "Tên sản phẩm",
+    "quantity": "Số lượng",
+    "unitPrice": "Đơn giá",
+    "totalPrice": "Thành tiền",
+    "addProduct": "Thêm sản phẩm",
+    "selectProduct": "Chọn sản phẩm",
+    "draft": "Phiếu tạm",
+    "completed": "Đã nhập hàng",
+    "total": "Tổng cộng",
+    "selectsupplier": "Chọn nhà cung cấp",
+    "searchPlaceholder": "Tìm theo mã phiếu nhập, nhà cung cấp",
+    "noProducts": "Chưa có sản phẩm nào. Vui lòng thêm sản phẩm trước.",
+    "importFile": "Nhập từ File"
+  },
+  "importProducts": {
+    "title": "Phiếu nhập hàng",
+    "barcode": "Mã vạch",
+    "name": "Tên sản phẩm",
+    "unit": "Đơn vị tính",
+    "stock": "Số lượng",
+    "cost": "Đơn giá",
+    "discount": "Giảm giá",
+    "total": "Thành tiền",
+    "supplier": "Nhà cung cấp",
+    "employee": "Người nhập",
+    "createdAt": "Ngày tạo",
+    "status": "Trạng thái",
+    "completed": "Hoàn tất",
+    "draft": "Phiếu tạm",
+    "note": "Ghi chú",
+    "addNew": "Thêm phiếu nhập",
+    "exportFile": "Xuất file",
+    "searchPlaceholder": "Tìm theo mã, tên sản phẩm hoặc nhà cung cấp...",
+    "loadFail": "Không thể tải danh sách phiếu nhập!",
+    "empty": "Chưa có dữ liệu để hiển thị",
+    "display": "Hiển thị",
+    "rows": "hàng",
+    "all": "Tất cả"
+    
 
+  }
 }

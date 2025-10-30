@@ -1,8 +1,9 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import MainLayout from "../layouts/MainLayout";
 import { useTheme } from "../context/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
+import axios from "axios";
 import * as XLSX from "xlsx";
 
 /* === Import các component con === */
@@ -10,7 +11,8 @@ import ImportHeader from "../components/import/ImportHeader";
 import ImportTable from "../components/import/ImportTable";
 import ImportFileModal from "../components/import/ImportFileModal";
 import AddProductCard from "../components/common/AddProductCard";
-import SupplierAddCard from "../components/import/SupplierAddCard"; // ✅ thêm vào
+import SupplierAddCard from "../components/import/SupplierAddCard";
+import { API_BASE_URL } from "../services/api";
 
 export default function ImportDetailPage() {
   const { theme } = useTheme();
@@ -18,42 +20,8 @@ export default function ImportDetailPage() {
   const navigate = useNavigate();
   const { state } = useLocation();
 
-  /* === Demo danh sách sản phẩm === */
-  const productList = useMemo(
-    () => [
-      {
-        product_id: "SP001",
-        barcode: "8938505970011",
-        cost_of_capital: 85000,
-        selling_price: 120000,
-        product_name: "Áo Thun Nam Cotton Trơn",
-        quantity_in_stock: 120,
-        unit: "Cái",
-      },
-      {
-        product_id: "SP002",
-        barcode: "8938505970028",
-        cost_of_capital: 190000,
-        selling_price: 250000,
-        product_name: "Quần Jean Nữ Lưng Cao",
-        quantity_in_stock: 80,
-        unit: "Cái",
-      },
-      {
-        product_id: "SP003",
-        barcode: "8938505970035",
-        cost_of_capital: 420000,
-        selling_price: 600000,
-        product_name: "Giày Sneaker Trắng Classic",
-        quantity_in_stock: 60,
-        unit: "Đôi",
-      },
-    ],
-    []
-  );
-
   /* === STATE === */
-  const importData = state?.importData || null;
+  const [productList, setProductList] = useState([]); // ✅ Lấy từ API
   const [supplier, setSupplier] = useState("");
   const [note, setNote] = useState("");
   const [status, setStatus] = useState("Phiếu tạm");
@@ -65,22 +33,66 @@ export default function ImportDetailPage() {
   const [searchResults, setSearchResults] = useState([]);
   const [showImportPopup, setShowImportPopup] = useState(false);
   const [showAddProduct, setShowAddProduct] = useState(false);
-  const [showAddSupplier, setShowAddSupplier] = useState(false); // ✅ modal NCC
-  const [suppliers, setSuppliers] = useState([
-    { id: 1, name: "Công ty Pharmedic" },
-    { id: 2, name: "Công ty TNHH Citigo" },
-    { id: 3, name: "Đại lý Hồng Phúc" },
-  ]);
+  const [showAddSupplier, setShowAddSupplier] = useState(false);
+  const [suppliers, setSuppliers] = useState([]);
 
+  const token = localStorage.getItem("accessToken");
+
+  /* === Load dữ liệu sản phẩm thật từ BE === */
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await axios.get(`${API_BASE_URL}/inventory/products`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const formatted = res.data.map((p) => ({
+          product_id: p.productId?.toString(),
+          barcode: p.barcode,
+          cost_of_capital: p.costOfCapital,
+          selling_price: p.sellingPrice,
+          product_name: p.productName,
+          quantity_in_stock: p.quantityInStock,
+          unit: p.unit || "Cái",
+        }));
+
+        setProductList(formatted);
+      } catch (error) {
+        console.error("❌ Lỗi tải danh sách sản phẩm:", error);
+      }
+    };
+
+    fetchProducts();
+  }, [token]);
+  /* === Load danh sách nhà cung cấp thật từ BE === */
+  useEffect(() => {
+    const fetchSuppliers = async () => {
+      try {
+        const res = await axios.get(`${API_BASE_URL}/inventory/supplier`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setSuppliers(res.data || []);
+      } catch (error) {
+        console.error("❌ Lỗi tải danh sách nhà cung cấp:", error);
+      }
+    };
+
+    fetchSuppliers();
+  }, [token]);
   /* === Load dữ liệu khi chỉnh sửa phiếu === */
   useEffect(() => {
-    if (importData) {
+    if (state?.importData) {
+      const { importData } = state;
       setSupplier(importData.supplier);
       setStatus(importData.status);
       setNote(importData.note || "");
       setTotal(importData.total || 0);
     }
-  }, [importData]);
+  }, [state]);
 
   /* === Tính tổng tiền === */
   const recalcTotal = (data) => {
@@ -131,8 +143,8 @@ export default function ImportDetailPage() {
     if (barcodeMode) {
       const found = productList.find(
         (p) =>
-          p.barcode.toLowerCase() === value.toLowerCase() ||
-          p.product_id.toLowerCase() === value.toLowerCase()
+          p.barcode?.toLowerCase() === value.toLowerCase() ||
+          p.product_id?.toLowerCase() === value.toLowerCase()
       );
       if (found) {
         handleAddProduct(found);
@@ -222,24 +234,76 @@ export default function ImportDetailPage() {
     else reader.readAsBinaryString(file);
   };
 
-  /* === Lưu / Hoàn thành === */
-  const handleSave = () => {
-    setStatus("Phiếu tạm");
-    alert("💾 Phiếu đã lưu tạm!");
-    navigate("/products/importlist");
-  };
+ /* === Gửi dữ liệu lưu phiếu === */
+const sendImportData = async (isComplete) => {
+  try {
+    if (!supplier) {
+      alert("⚠️ Vui lòng chọn nhà cung cấp trước khi lưu!");
+      return;
+    }
+    if (items.length === 0) {
+      alert("⚠️ Danh sách sản phẩm trống!");
+      return;
+    }
 
-  const handleComplete = () => {
-    setStatus("Hoàn thành");
-    alert("✅ Phiếu nhập hoàn thành!");
-    navigate("/products/importlist");
+    const payload = {
+      supplierId: Number(supplier),
+      complete: isComplete,
+      note,
+      details: items.map((item) => ({
+        barcode: item.barcode,
+        productName: item.product_name,
+        unit: item.unit || "Cái",
+        quantity: Number(item.quantity),
+        price: Number(item.importPrice),
+        discount: Number(item.discount),
+      })),
+    };
+
+    console.log("📦 Payload gửi lên BE:", payload);
+
+    const res = await axios.post(`${API_BASE_URL}/inventory/import-product`, payload, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (isComplete) {
+      alert("✅ Phiếu nhập đã hoàn thành!");
+    } else {
+      alert("💾 Phiếu đã lưu tạm!");
+    }
+
+    navigate("/products/import");
+  } catch (error) {
+    console.error("❌ Lỗi khi gửi phiếu nhập:", error);
+    alert("❌ Gửi phiếu nhập thất bại!");
+  }
+};
+
+const handleAddRow = () => {
+  const newItem = {
+    barcode: "",
+    product_name: "",
+    unit: "Cái",
+    quantity: 1,
+    importPrice: 0,
+    discount: 0,
+    subtotal: 0,
   };
+  const updated = [...items, newItem];
+  setItems(updated);
+};
+
+/* === Nút lưu và hoàn thành === */
+const handleSave = () => sendImportData(false);
+const handleComplete = () => sendImportData(true);
 
   /* === JSX === */
   return (
     <MainLayout>
       <div className="container-fluid py-3">
-        {/* HEADER */}
         <ImportHeader
           theme={theme}
           barcodeMode={barcodeMode}
@@ -252,7 +316,6 @@ export default function ImportDetailPage() {
           onAddProductClick={() => setShowAddProduct(true)}
         />
 
-        {/* TABLE */}
         <div className="row g-3">
           <div className="col-lg-9">
             <ImportTable
@@ -261,10 +324,10 @@ export default function ImportDetailPage() {
               updateItem={updateItem}
               total={total}
               onDeleteItem={handleDeleteItem}
+              onAddRow={handleAddRow}
             />
           </div>
 
-          {/* FORM NHẬP PHIẾU */}
           <div className="col-lg-3">
             <div className="card shadow-sm border-0">
               <div className="card-body">
@@ -272,7 +335,6 @@ export default function ImportDetailPage() {
                   <label className="form-label fw-semibold mb-0">
                     {t("import.supplier") || "Nhà cung cấp"}
                   </label>
-                  {/* ✅ Nút thêm nhà cung cấp */}
                   <button
                     type="button"
                     className={`btn btn-outline-${theme} btn-sm d-flex align-items-center`}
@@ -286,28 +348,20 @@ export default function ImportDetailPage() {
                   value={supplier}
                   onChange={(e) => setSupplier(e.target.value)}
                 >
-                  <option value="">Chọn nhà cung cấp</option>
+                  <option value="">{t("import.selectsupplier")}</option>
                   {suppliers.map((s) => (
-                    <option key={s.id} value={s.name}>
-                      {s.name}
+                    <option key={s.supplierId} value={s.supplierId}>
+                      {s.supplierName}
                     </option>
                   ))}
                 </select>
+
 
                 <label className="form-label mb-1">
                   {t("import.total") || "Tổng tiền hàng"}
                 </label>
                 <input type="number" className="form-control text-end" value={total} disabled />
 
-                <label className="form-label mb-1 mt-2">
-                  {t("import.discount") || "Giảm giá"}
-                </label>
-                <input
-                  type="number"
-                  className="form-control text-end"
-                  value={discount}
-                  onChange={(e) => setDiscount(e.target.value)}
-                />
 
                 <label className="form-label mb-1 mt-2">
                   {t("import.note") || "Ghi chú"}
@@ -333,7 +387,6 @@ export default function ImportDetailPage() {
           </div>
         </div>
 
-        {/* MODAL NHẬP FILE */}
         {showImportPopup && (
           <ImportFileModal
             theme={theme}
@@ -342,7 +395,6 @@ export default function ImportDetailPage() {
           />
         )}
 
-        {/* ✅ MODAL THÊM SẢN PHẨM */}
         {showAddProduct && (
           <AddProductCard
             onCancel={() => setShowAddProduct(false)}
@@ -366,7 +418,6 @@ export default function ImportDetailPage() {
           />
         )}
 
-        {/* ✅ MODAL THÊM NHÀ CUNG CẤP */}
         {showAddSupplier && (
           <div
             className="modal fade show"
@@ -377,9 +428,7 @@ export default function ImportDetailPage() {
           >
             <div className="modal-dialog modal-lg modal-dialog-centered">
               <div className="modal-content border-0 shadow">
-                <div
-                  className={`modal-header bg-${theme} text-white py-2 px-3`}
-                >
+                <div className={`modal-header bg-${theme} text-white py-2 px-3`}>
                   <h6 className="modal-title m-0">
                     <i className="bi bi-building-add me-2"></i>
                     {t("supplier.addTitle") || "Thêm nhà cung cấp mới"}
@@ -392,15 +441,10 @@ export default function ImportDetailPage() {
                 </div>
                 <div className="modal-body">
                   <SupplierAddCard
-                    onSave={(data) => {
-                      const newSupplier = {
-                        id: suppliers.length + 1,
-                        name: data.supplierName,
-                      };
-                      setSuppliers([...suppliers, newSupplier]);
-                      setSupplier(data.supplierName);
+                    onSave={(newSupplier) => {
+                      setSuppliers((prev) => [...prev, newSupplier]);
+                      setSupplier(newSupplier.supplierId?.toString() || "");
                       setShowAddSupplier(false);
-                      alert("✅ Đã thêm nhà cung cấp mới!");
                     }}
                   />
                 </div>

@@ -1,13 +1,15 @@
 import React, { useState } from "react";
 import { useTheme } from "../../context/ThemeContext";
 import { useTranslation } from "react-i18next";
+import axios from "axios";
+import { API_BASE_URL } from "../../services/api";
 
 export default function SupplierAddCard({ onSave }) {
   const { theme } = useTheme();
   const { t } = useTranslation();
+  const token = localStorage.getItem("accessToken");
 
   const [form, setForm] = useState({
-    supplierId: "",
     supplierName: "",
     address: "",
     email: "",
@@ -20,44 +22,36 @@ export default function SupplierAddCard({ onSave }) {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (onSave) onSave(form);
-    alert("✅ Đã thêm nhà cung cấp mới!");
+    try {
+      const res = await axios.post(`${API_BASE_URL}/inventory/supplier`, form, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-    // Reset form sau khi lưu
-    setForm({
-      supplierId: "",
-      supplierName: "",
-      address: "",
-      email: "",
-      phone: "",
-      note: "",
-    });
+      const newSupplier = res.data;
+      alert(t("supplier.addSuccess") || "✅ Thêm nhà cung cấp thành công!");
+      if (onSave) onSave(newSupplier);
+
+      setForm({
+        supplierName: "",
+        address: "",
+        email: "",
+        phone: "",
+        note: "",
+      });
+    } catch (err) {
+      console.error("❌", err);
+      alert(t("supplier.addFail") || "Không thể thêm nhà cung cấp!");
+    }
   };
 
   return (
     <form onSubmit={handleSubmit} className="row g-3">
-      {/* Mã NCC */}
+      {/* Tên nhà cung cấp */}
       <div className="col-md-6">
         <label className="form-label fw-medium">
-          {t("supplier.supplierId") || "Mã nhà cung cấp"}
-        </label>
-        <input
-          type="text"
-          name="supplierId"
-          value={form.supplierId}
-          onChange={handleChange}
-          className="form-control"
-          placeholder="Nhập mã NCC..."
-          required
-        />
-      </div>
-
-      {/* Tên NCC */}
-      <div className="col-md-6">
-        <label className="form-label fw-medium">
-          {t("supplier.supplierName") || "Tên nhà cung cấp"}
+          {t("supplier.supplierName")}
         </label>
         <input
           type="text"
@@ -65,79 +59,68 @@ export default function SupplierAddCard({ onSave }) {
           value={form.supplierName}
           onChange={handleChange}
           className="form-control"
-          placeholder="Nhập tên nhà cung cấp..."
+          placeholder={t("supplier.placeholder.name")}
           required
-        />
-      </div>
-
-      {/* Địa chỉ */}
-      <div className="col-md-6">
-        <label className="form-label fw-medium">
-          {t("supplier.address") || "Địa chỉ"}
-        </label>
-        <input
-          type="text"
-          name="address"
-          value={form.address}
-          onChange={handleChange}
-          className="form-control"
-          placeholder="Nhập địa chỉ..."
-        />
-      </div>
-
-      {/* Email */}
-      <div className="col-md-6">
-        <label className="form-label fw-medium">
-          {t("supplier.email") || "Email"}
-        </label>
-        <input
-          type="email"
-          name="email"
-          value={form.email}
-          onChange={handleChange}
-          className="form-control"
-          placeholder="Nhập email liên hệ..."
         />
       </div>
 
       {/* Số điện thoại */}
       <div className="col-md-6">
-        <label className="form-label fw-medium">
-          {t("supplier.phone") || "Số điện thoại"}
-        </label>
+        <label className="form-label fw-medium">{t("supplier.phone")}</label>
         <input
           type="tel"
           name="phone"
           value={form.phone}
           onChange={handleChange}
           className="form-control"
-          placeholder="Nhập số điện thoại..."
+          placeholder={t("supplier.placeholder.phone")}
+        />
+      </div>
+
+      {/* Email */}
+      <div className="col-md-6">
+        <label className="form-label fw-medium">{t("supplier.email")}</label>
+        <input
+          type="email"
+          name="email"
+          value={form.email}
+          onChange={handleChange}
+          className="form-control"
+          placeholder={t("supplier.placeholder.email")}
+        />
+      </div>
+
+      {/* Địa chỉ */}
+      <div className="col-md-6">
+        <label className="form-label fw-medium">{t("supplier.address")}</label>
+        <input
+          type="text"
+          name="address"
+          value={form.address}
+          onChange={handleChange}
+          className="form-control"
+          placeholder={t("supplier.placeholder.address")}
         />
       </div>
 
       {/* Ghi chú */}
-      <div className="col-md-6">
-        <label className="form-label fw-medium">
-          {t("supplier.note") || "Ghi chú"}
-        </label>
+      <div className="col-12">
+        <label className="form-label fw-medium">{t("supplier.note")}</label>
         <textarea
           name="note"
           value={form.note}
           onChange={handleChange}
           className="form-control"
           rows="2"
-          placeholder="Ghi chú thêm (nếu có)..."
+          placeholder={t("supplier.placeholder.note")}
         ></textarea>
       </div>
 
       {/* Nút lưu */}
       <div className="col-12 text-end mt-3">
-        <button
-          type="submit"
-          className={`btn btn-${theme} text-white fw-semibold`}
-        >
+        <button type="submit" className={`btn btn-${theme} text-white fw-semibold`}>
           <i className="bi bi-save me-2"></i>
-          {t("common.save") || "Lưu nhà cung cấp"}
+          {t("common.save")}
         </button>
       </div>
     </form>
