@@ -13,7 +13,7 @@ import SetPricePage from "./pages/SetPricePage";
 import SalesInvoicesPage from "./pages/InvoiceListPage";
 import StaffPage from "./pages/StaffPage";
 import SupplierPage from "./pages/SupplierPage";
-import ProtectedRoute from "./components/auth/ProtectedRoute"; // ✅ thêm
+import ProtectedRoute from "./components/auth/ProtectedRoute"; //  thêm
 
 export default function App() {
   return (
