@@ -94,7 +94,30 @@
     "showAll" : "Tất cả",
     "show" : "Hiển thị",
     "barcode" : "Mã vạch",
-    "unit" : "Đơn vị"
+    "unit" : "Đơn vị",
+    "description" : "Mô tả",
+    "addNewProduct" : "Thêm sản phẩm mới",
+    "noProducts": "Chưa có sản phẩm nào. Vui lòng thêm sản phẩm.",
+    "loadFail": "Không thể tải danh sách sản phẩm!",
+    "placeholder": {
+      "code": "Nhập mã hàng...",
+      "name": "Nhập tên hàng...",
+      "price": "Nhập giá bán...",
+      "cost": "Nhập giá vốn...",
+      "stock": "Nhập số lượng tồn kho...",
+      "expectedOut": "Nhập số lượng dự kiến hết hàng...",
+      "barcode": "Nhập mã vạch...",
+      "unit": "Nhập đơn vị tính...",
+      "description": "Nhập mô tả sản phẩm..."
+    },
+    "addSuccess": "✅ Thêm sản phẩm thành công!",
+    "addFail": "❌ Không thể thêm sản phẩm!",
+    "editSuccess": "✅ Cập nhật sản phẩm thành công!",
+    "editFail": "❌ Không thể cập nhật sản phẩm!",
+    "deleteSuccess": "✅ Xoá sản phẩm thành công!",
+    "deleteFail": "❌ Không thể xoá sản phẩm!",
+    "deleteConfirm": "Bạn có chắc muốn xoá sản phẩm này?",
+    "uncategorized": "Chưa phân loại"
   },
   "actions": {
     "apply": "Áp dụng",
