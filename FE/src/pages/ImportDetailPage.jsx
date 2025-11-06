@@ -13,6 +13,7 @@ import ImportFileModal from "../components/import/ImportFileModal";
 import AddProductCard from "../components/common/AddProductCard";
 import SupplierAddCard from "../components/import/SupplierAddCard";
 import { API_BASE_URL } from "../services/api";
+import { formatCurrency } from "../utils/formatters";
 
 export default function ImportDetailPage() {
   const { theme } = useTheme();
@@ -357,10 +358,13 @@ const handleComplete = () => sendImportData(true);
                 </select>
 
 
-                <label className="form-label mb-1">
-                  {t("import.total") || "Tổng tiền hàng"}
-                </label>
-                <input type="number" className="form-control text-end" value={total} disabled />
+                <label className="form-label mb-1">{t("import.total")}</label>
+                <input
+                  type="text"
+                  className="form-control text-end"
+                  value={formatCurrency(total || 0)}
+                  readOnly
+                />
 
 
                 <label className="form-label mb-1 mt-2">

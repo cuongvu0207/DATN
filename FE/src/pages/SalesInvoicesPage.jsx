@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useTheme } from "../context/ThemeContext";
 import { useTranslation } from "react-i18next";
 import MainLayout from "../layouts/MainLayout"; // added
+// using native date input for quick filtering
 
 /**
  * Trang quản lý hóa đơn bán hàng - hỗ trợ:
@@ -92,12 +93,12 @@ export default function SalesInvoicesPage() {
 
   const handleExportSelected = () => {
     const list = invoices.filter((inv) => selectedInvoices.includes(inv.id));
-    if (!list.length) return alert(t("invoices.selectToExport") || "Vui lòng chọn hóa đơn để xuất!");
+    if (!list.length) return alert(t("invoices.selectToExport"));
     console.log("Export invoices", list);
   };
   const handlePrintSelected = () => {
     const list = invoices.filter((inv) => selectedInvoices.includes(inv.id));
-    if (!list.length) return alert(t("invoices.selectToPrint") || "Vui lòng chọn hóa đơn để in!");
+    if (!list.length) return alert(t("invoices.selectToPrint"));
     console.log("Print invoices", list);
   };
 
@@ -178,7 +179,7 @@ export default function SalesInvoicesPage() {
 
               <div className="mb-2">
                 <label className="form-label small m-0">{t("invoice.date", "Ngày")}</label>
-                <input type="date" className="form-control form-control-sm" onChange={(e) => { /* hook date filter if needed */ }} />
+                <input type="date" className="form-control form-control-sm" onChange={(e) => { /* TODO: hook filter */ }} />
               </div>
 
               <div className="mb-2">
@@ -327,3 +328,5 @@ export default function SalesInvoicesPage() {
     </MainLayout>
   );
 }
+
+

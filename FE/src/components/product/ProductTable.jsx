@@ -3,6 +3,8 @@ import { useTheme } from "../../context/ThemeContext";
 import { useTranslation } from "react-i18next";
 import ProductDetailCard from "../common/ProductDetailCard";
 import EditProductDetailCard from "../common/EditProductDetailCard";
+import { formatCurrency } from "../../utils/formatters";
+
 
 export default function ProductTable({
   products,
@@ -35,9 +37,7 @@ export default function ProductTable({
 
   return (
     <div className="col-lg-10 col-12">
-      <div
-        className={`table-responsive rounded-2 border border-${theme} shadow-sm`}
-      >
+      <div className={`table-responsive rounded-2 border border-${theme} shadow-sm`}>
         <table className="table table-hover align-middle mb-0">
           <thead className={`table-${theme}`}>
             <tr>
@@ -53,6 +53,7 @@ export default function ProductTable({
               <th>{t("products.barcode") || "Mã vạch"}</th>
               <th>{t("products.productName") || "Tên sản phẩm"}</th>
               <th>{t("products.category") || "Danh mục"}</th>
+              <th>{t("products.brand") || "Thương hiệu"}</th> {/* ✅ Thêm cột mới */}
               <th>{t("products.unit") || "Đơn vị"}</th>
               <th>{t("products.sellingPrice") || "Giá bán"}</th>
               <th>{t("products.costOfCapital") || "Giá vốn"}</th>
@@ -104,16 +105,23 @@ export default function ProductTable({
                     </td>
 
                     {/* Danh mục */}
-                    <td>{p.category}</td>
+                    <td>{p.category || "-"}</td>
+
+                    {/* ✅ Thương hiệu */}
+                    <td>
+                      <span className="badge bg-light text-dark border">
+                        {p.brand || p.brandName || t("common.undefined")}
+                      </span>
+                    </td>
 
                     {/* Đơn vị */}
                     <td>{p.unit || "-"}</td>
 
                     {/* Giá bán */}
-                    <td>{p.price.toLocaleString("vi-VN")} ₫</td>
+                    <td>{formatCurrency(p.price)}</td>
 
                     {/* Giá vốn */}
-                    <td>{p.cost.toLocaleString("vi-VN")} ₫</td>
+                    <td>{formatCurrency(p.cost)}</td>
 
                     {/* Tồn kho */}
                     <td>{p.stock}</td>
@@ -136,7 +144,8 @@ export default function ProductTable({
                   {/* Chi tiết sản phẩm */}
                   {selectedProductId === p.id && (
                     <tr className="bg-body-tertiary">
-                      <td colSpan={11} className="p-0 border-0">
+                      {/* ✅ Cập nhật colSpan để khớp với số cột mới (12 thay vì 11) */}
+                      <td colSpan={12} className="p-0 border-0">
                         {editingProduct?.id === p.id ? (
                           <EditProductDetailCard
                             product={editingProduct}
@@ -157,7 +166,7 @@ export default function ProductTable({
               ))
             ) : (
               <tr>
-                <td colSpan={11} className="text-center text-muted py-4">
+                <td colSpan={12} className="text-center text-muted py-4">
                   {t("products.noData") || "Không có dữ liệu"}
                 </td>
               </tr>

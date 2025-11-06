@@ -4,8 +4,6 @@ import MainLayout from "../layouts/MainLayout";
 import { useTheme } from "../context/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { API_BASE_URL } from "../services/api";
-import { formatters } from "../utils/formatters";
-import { validators } from "../utils/validators";
 
 export default function AccountPage() {
   const { theme } = useTheme();
@@ -18,12 +16,31 @@ export default function AccountPage() {
   const [message, setMessage] = useState("");
 
   const token = localStorage.getItem("accessToken");
+
+  // ===== Hàm định dạng ngày =====
+  const formatDate = (dateValue) => {
+    if (!dateValue) return "";
+    const date = new Date(dateValue);
+    if (isNaN(date)) return dateValue;
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  const parseDateForInput = (dateStr) => {
+    if (!dateStr) return "";
+    const [d, m, y] = dateStr.split("/");
+    if (!d || !m || !y) return "";
+    return `${y}-${m}-${d}`;
+  };
+
   // ===== Lấy thông tin tài khoản =====
   const fetchAccount = async () => {
     setLoading(true);
     try {
       if (!token) {
-        setError(t("account.noToken"));
+        setError(t("account.noToken") || "Không tìm thấy accessToken!");
         setLoading(false);
         return;
       }
@@ -34,12 +51,12 @@ export default function AccountPage() {
 
       const formatted = {
         ...res.data,
-        dateOfBirth: formatters.date.toDisplay(res.data.dateOfBirth),
+        dateOfBirth: formatDate(res.data.dateOfBirth),
       };
       setAccount(formatted);
     } catch (err) {
       console.error(err);
-      setError(t("account.loadError"));
+      setError(t("account.loadError") || "Không thể tải thông tin tài khoản!");
     } finally {
       setLoading(false);
     }
@@ -61,12 +78,7 @@ export default function AccountPage() {
   const handleUpdate = async () => {
     try {
       if (!token) {
-        setError(t("account.noToken"));
-        return;
-      }
-
-      if (account.dateOfBirth && !validators.date(account.dateOfBirth)) {
-        setError(t("account.invalidDate"));
+        setError(t("account.noToken") || "Không có token, vui lòng đăng nhập lại!");
         return;
       }
 
@@ -78,7 +90,10 @@ export default function AccountPage() {
             : account.gender === "Nữ" || account.gender === 0
             ? 0
             : account.gender,
-        dateOfBirth: formatters.date.toISO(account.dateOfBirth),
+        dateOfBirth: (() => {
+          const [d, m, y] = account.dateOfBirth.split("/");
+          return `${y}-${m}-${d}`;
+        })(),
       };
 
       await axios.put(`${API_BASE_URL}/auth/users/me`, payload, {
@@ -89,11 +104,11 @@ export default function AccountPage() {
       });
 
       await fetchAccount();
-      setMessage(t("account.updateSuccess"));
+      setMessage(t("account.updateSuccess") || "✅ Cập nhật thông tin thành công!");
       setEditing(false);
     } catch (err) {
       console.error(err);
-      setMessage(t("account.updateFail"));
+      setMessage(t("account.updateFail") || "❌ Cập nhật thất bại, vui lòng thử lại!");
     }
   };
 
@@ -103,7 +118,7 @@ export default function AccountPage() {
       <MainLayout>
         <div className="text-center py-4">
           <div className="spinner-border text-primary" role="status"></div>
-          <p className="mt-2">{t("common.loading")}</p>
+          <p className="mt-2">{t("common.loading") || "Đang tải dữ liệu..."}</p>
         </div>
       </MainLayout>
     );
@@ -114,7 +129,7 @@ export default function AccountPage() {
         {/* === Tiêu đề === */}
         <div className="d-flex align-items-center justify-content-between mb-3">
           <h4 className={`fw-bold text-black mb-0`}>
-            {t("account.title")}
+            {t("account.title") || "Thông tin tài khoản"}
           </h4>
         </div>
 
@@ -126,14 +141,14 @@ export default function AccountPage() {
           {account && (
             <div className="row g-3">
               {[
-                { label: t("account.username"), name: "username" },
-                { label: t("account.fullName"), name: "fullName" },
-                { label: t("account.email"), name: "email" },
-                { label: t("account.phoneNumber"), name: "phoneNumber" },
-                { label: t("account.role"), name: "role" },
-                { label: t("account.gender"), name: "gender" },
-                { label: t("account.address"), name: "address" },
-                { label: t("account.dateOfBirth"), name: "dateOfBirth" },
+                { label: t("account.username") || "Tên đăng nhập", name: "username" },
+                { label: t("account.fullName") || "Họ và tên", name: "fullName" },
+                { label: t("account.email") || "Email", name: "email" },
+                { label: t("account.phoneNumber") || "Số điện thoại", name: "phoneNumber" },
+                { label: t("account.role") || "Vai trò", name: "role" },
+                { label: t("account.gender") || "Giới tính", name: "gender" },
+                { label: t("account.address") || "Địa chỉ", name: "address" },
+                { label: t("account.dateOfBirth") || "Ngày sinh", name: "dateOfBirth" },
               ].map((field) => (
                 <div key={field.name} className="col-md-6">
                   <label className="form-label fw-semibold">{field.label}</label>
@@ -157,16 +172,21 @@ export default function AccountPage() {
                           })
                         }
                       >
-                        <option value="Nam">{t("account.male")}</option>
-                        <option value="Nữ">{t("account.female")}</option>
+                        <option value="Nam">{t("account.male") || "Nam"}</option>
+                        <option value="Nữ">{t("account.female") || "Nữ"}</option>
                       </select>
                     ) : field.name === "dateOfBirth" ? (
                       <input
                         type="date"
                         name="dateOfBirth"
+                        value={parseDateForInput(account.dateOfBirth)}
+                        onChange={(e) =>
+                          setAccount({
+                            ...account,
+                            dateOfBirth: formatDate(e.target.value),
+                          })
+                        }
                         className="form-control"
-                        value={formatters.date.toISO(account.dateOfBirth || "")}
-                        onChange={(e) => setAccount({ ...account, dateOfBirth: formatters.date.toDisplay(e.target.value) })}
                       />
                     ) : field.name === "role" ? (
                       <p className="form-control mb-0 bg-light">{account.role}</p>
@@ -185,17 +205,17 @@ export default function AccountPage() {
                         ? account.gender === 1 ||
                           account.gender === "1" ||
                           account.gender === "Nam"
-                          ? t("account.male")
-                          : t("account.female")
+                          ? t("account.male") || "Nam"
+                          : t("account.female") || "Nữ"
                         : field.name === "role"
                         ? (() => {
                             switch (account.role) {
                               case "ROLE_ADMIN":
-                                return t("roles.admin");
+                                return t("roles.admin") || "Quản trị viên";
                               case "ROLE_USER":
-                                return t("roles.user");
+                                return t("roles.user") || "Người dùng";
                               default:
-                                return t("roles.unknown");
+                                return t("roles.unknown") || "Không xác định";
                             }
                           })()
                         : field.name === "dateOfBirth"
@@ -212,15 +232,15 @@ export default function AccountPage() {
           <div className="mt-4 d-flex justify-content-end gap-2">
             {!editing ? (
               <button className={`btn btn-${theme}`} onClick={() => setEditing(true)}>
-                {t("account.edit")}
+                {t("account.edit") || "Chỉnh sửa"}
               </button>
             ) : (
               <>
                 <button className={`btn btn-${theme}`} onClick={handleUpdate}>
-                  {t("account.save")}
+                  {t("account.save") || "Lưu thay đổi"}
                 </button>
                 <button className="btn btn-secondary" onClick={() => setEditing(false)}>
-                  {t("account.cancel")}
+                  {t("account.cancel") || "Hủy"}
                 </button>
               </>
             )}
@@ -230,5 +250,4 @@ export default function AccountPage() {
     </MainLayout>
   );
 }
-
 

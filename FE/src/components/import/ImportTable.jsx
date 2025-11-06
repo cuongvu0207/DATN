@@ -1,4 +1,5 @@
 import React from "react";
+import { formatCurrency } from "../../utils/formatters";
 import { useTranslation } from "react-i18next";
 
 export default function ImportTable({ theme, items, updateItem, total, onDeleteItem, onAddRow }) {
@@ -92,7 +93,7 @@ export default function ImportTable({ theme, items, updateItem, total, onDeleteI
 
                 {/* Thành tiền */}
                 <td className="text-end text-success fw-semibold">
-                  {item.subtotal.toLocaleString()}
+                  {formatCurrency(item.subtotal)}
                 </td>
 
                 {/* Xóa sản phẩm */}
@@ -132,7 +133,7 @@ export default function ImportTable({ theme, items, updateItem, total, onDeleteI
       {/* Tổng tiền hàng */}
       <div className="d-flex justify-content-end align-items-center mt-3 pe-3">
         <h6 className="fw-bold me-3">{t("import.total") || "Tổng tiền hàng:"}</h6>
-        <h5 className="text-success">{total.toLocaleString()}</h5>
+        <h5 className="text-success">{formatCurrency(total)}</h5>
       </div>
     </div>
   );

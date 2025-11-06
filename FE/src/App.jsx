@@ -12,9 +12,10 @@ import ImportDetailPage from "./pages/ImportDetailPage";
 import SetPricePage from "./pages/SetPricePage";
 import SalesInvoicesPage from "./pages/InvoiceListPage";
 import StaffPage from "./pages/StaffPage";
+import FinancePage from "./pages/FinancePage";
 import SupplierPage from "./pages/SupplierPage";
-import ProtectedRoute from "./components/auth/ProtectedRoute"; //  thêm
-
+import ProtectedRoute from "./components/auth/ProtectedRoute"; 
+import CustomerPage from "./pages/CustomerPage";
 export default function App() {
   return (
     <ThemeProvider>
@@ -38,7 +39,9 @@ export default function App() {
                   <Route path="/products/importdetail" element={<ImportDetailPage />} />
                   <Route path="/products/prices" element={<SetPricePage />} />
                   <Route path="/staff" element={<StaffPage />} />
+                  <Route path="/finance" element={<FinancePage />} />
                   <Route path="/products/supplier" element={<SupplierPage />} />
+                  <Route path="/customers" element={<CustomerPage />} />
                 </Routes>
               </ProtectedRoute>
             }

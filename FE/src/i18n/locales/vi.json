@@ -15,7 +15,15 @@
     "edit" : "Chỉnh sửa",
     "cancel" : "Huỷ",
     "save" : "Lưu",
-    "all" :"Tất cả"
+    "all" :"Tất cả",
+    "active": "Hoạt động",
+    "inactive": "Không hoạt động",
+    "yes": "Có",
+    "no": "Không",
+    "search": "Tìm kiếm...",
+    "loading": "Đang tải...",
+    "noData": "Không có dữ liệu để hiển thị",
+    "undefined": "Chưa xác định"
   },
   "menu": {
     "overview": "Tổng quan",
@@ -117,7 +125,24 @@
     "deleteSuccess": "✅ Xoá sản phẩm thành công!",
     "deleteFail": "❌ Không thể xoá sản phẩm!",
     "deleteConfirm": "Bạn có chắc muốn xoá sản phẩm này?",
-    "uncategorized": "Chưa phân loại"
+    "uncategorized": "Chưa phân loại",
+    "noSupplier": "Chưa có nhà cung cấp",
+    "noGroup": "Chưa có nhóm hàng",
+    "noCategory": "Chưa có danh mục",
+    "noBrand": "Chưa có thương hiệu",
+    "selectSupplier": "Chọn nhà cung cấp",
+    "selectGroup": "Chọn nhóm hàng",
+    "selectCategory": "Chọn danh mục",
+    "selectBrand": "Chọn thương hiệu",
+    "createNewSupplier": "Tạo nhà cung cấp mới",
+    "createNewGroup": "Tạo nhóm hàng mới",
+    "createNewCategory": "Tạo danh mục mới",
+    "createNewBrand": "Tạo thương hiệu mới",
+    "addToStock": "Thêm vào tồn kho",
+    "status":"Trạng thái",
+    "active":"Hoạt động",
+    "inactive":"Không hoạt động",
+    "createdDate":"Ngày tạo"
   },
   "actions": {
     "apply": "Áp dụng",

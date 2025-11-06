@@ -1,4 +1,5 @@
 import React from "react";
+import { formatCurrency } from "../../utils/formatters";
 import { useTheme } from "../../context/ThemeContext";
 import { useTranslation } from "react-i18next";
 
@@ -66,8 +67,8 @@ export default function InvoiceTable({
                   <td>{inv.id}</td>
                   <td>{inv.customer}</td>
                   <td>{inv.phone}</td>
-                  <td>{inv.total.toLocaleString()} ₫</td>
-                  <td>{inv.discount.toLocaleString()} ₫</td>
+                  <td>{formatCurrency(inv.total)}</td>
+                  <td>{formatCurrency(inv.discount)}</td>
                   <td>{inv.paymentMethod}</td>
                   <td>
                     <span

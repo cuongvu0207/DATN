@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useTheme } from "../../context/ThemeContext";
 import { useTranslation } from "react-i18next";
+import { formatCurrency } from "../../utils/formatters";
 
 export default function CartItem({
   item,
@@ -100,7 +101,7 @@ export default function CartItem({
           </div>
 
           {/* GIÁ */}
-          <span style={{ width: 80, textAlign: "right" }}>{item.price.toLocaleString()}</span>
+          <span style={{ width: 80, textAlign: "right" }}>{formatCurrency(item.price)}</span>
 
           {/* GIẢM GIÁ */}
           <div
@@ -160,14 +161,14 @@ export default function CartItem({
               </div>
             ) : (
               <span className="fw-semibold text-secondary">
-                {discountAmount > 0 ? `–${discountAmount.toLocaleString()}` : "–0"}
+                {discountAmount > 0 ? `–${formatCurrency(discountAmount)}` : "–0"}
               </span>
             )}
           </div>
 
           {/* THÀNH TIỀN */}
           <strong style={{ width: 100, textAlign: "right" }}>
-            {totalAfterDiscount.toLocaleString()}
+            {formatCurrency(totalAfterDiscount)}
           </strong>
 
           <button className={`btn btn-sm border-0 text-${theme}`} onClick={() => toggleNote(item.code)}>

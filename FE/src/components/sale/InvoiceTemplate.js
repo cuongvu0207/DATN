@@ -31,7 +31,7 @@ export function generateInvoiceHTML({
       }
 
       const unitAfter = price - discountValue;
-      const discountText = `-${discountValue.toLocaleString("vi-VN")}`;
+      const discountText = `-${Number(discountValue || 0).toLocaleString("vi-VN")}`;
       const lineTotal =
         typeof it.total === "number" ? it.total : Math.max(unitAfter * qty, 0);
 
@@ -40,9 +40,9 @@ export function generateInvoiceHTML({
           <td class="text-center">${i + 1}</td>
           <td>${it.name || ""}</td>
           <td class="text-center">${qty}</td>
-          <td class="text-end">${price.toLocaleString("vi-VN")}</td>
+          <td class="text-end">${Number(price || 0).toLocaleString("vi-VN")}</td>
           <td class="text-end">${discountText}</td>
-          <td class="text-end">${lineTotal.toLocaleString("vi-VN")}</td>
+          <td class="text-end">${Number(lineTotal || 0).toLocaleString("vi-VN")}</td>
         </tr>`;
     })
     .join("");
@@ -99,15 +99,15 @@ export function generateInvoiceHTML({
     <div class="mt-4" style="font-size: 11pt;">
       <div class="d-flex justify-content-between mb-1">
         <span class="fw-semibold">${_t("sales.subtotal", "Tạm tính")}:</span>
-        <span class="fw-semibold">${Number(totalAmount || 0).toLocaleString("vi-VN")} VNĐ</span>
+        <span class="fw-semibold">${Number(totalAmount || 0).toLocaleString("vi-VN")}</span>
       </div>
       <div class="d-flex justify-content-between mb-1">
         <span class="fw-semibold">${_t("sales.discountTotal", "Giảm giá hóa đơn")}:</span>
-        <span class="fw-semibold">-${Number(invoiceDiscount || 0).toLocaleString("vi-VN")} VNĐ</span>
+        <span class="fw-semibold">-${Number(invoiceDiscount || 0).toLocaleString("vi-VN")}</span>
       </div>
       <div class="d-flex justify-content-between mt-2 border-top pt-2">
         <span class="fw-bold fs-6">${_t("sales.total", "Thành tiền")}:</span>
-        <span class="fw-bold fs-6">${totalAfterDiscount.toLocaleString("vi-VN")} VNĐ</span>
+        <span class="fw-bold fs-6">${Number(totalAfterDiscount || 0).toLocaleString("vi-VN")}</span>
       </div>
       <div class="fst-italic mt-1">${_t("sales.vatIncluded", "Đã bao gồm thuế VAT")}</div>
     </div>

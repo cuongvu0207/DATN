@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../context/ThemeContext";
 import axios from "axios";
 import { API_BASE_URL } from "../services/api";
+import { formatCurrency } from "../utils/formatters";
 
 export default function SetPricePage() {
   const { t } = useTranslation();
@@ -227,7 +228,7 @@ export default function SetPricePage() {
                       <td>{p.name}</td>
                       <td>{p.category}</td>
                       <td>{p.brand}</td>
-                      <td>{p.cost.toLocaleString()}</td>
+                      <td>{formatCurrency(p.cost)}</td>
 
                       {/* Giá bán */}
                       <td>

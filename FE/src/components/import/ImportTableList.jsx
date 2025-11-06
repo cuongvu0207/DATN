@@ -1,4 +1,5 @@
 import React from "react";
+import { formatCurrency } from "../../utils/formatters";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../context/ThemeContext";
 
@@ -74,7 +75,7 @@ export default function ImportTableList({
                   <td>{row.supplier || "—"}</td>
                   <td>{row.employee || "—"}</td>
                   <td className="text-end">
-                    {Number(row?.total ?? 0).toLocaleString("vi-VN")}
+                    {formatCurrency(Number(row?.total ?? 0))}
                   </td>
 
                   <td className="text-center">
@@ -130,10 +131,10 @@ export default function ImportTableList({
                                 <td>{d.unit}</td>
                                 <td className="text-end">{d.quantity}</td>
                                 <td className="text-end">
-                                  {d.price.toLocaleString("vi-VN")}
+                                  {formatCurrency(d.price)}
                                 </td>
                                 <td className="text-end">
-                                  {d.subtotal.toLocaleString("vi-VN")}
+                                  {formatCurrency(d.subtotal)}
                                 </td>
                               </tr>
                             ))}

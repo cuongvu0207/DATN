@@ -1,4 +1,5 @@
 import React from "react";
+import { formatCurrency } from "../../utils/formatters";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../context/ThemeContext";
 
@@ -55,13 +56,13 @@ export default function ProductDetailCard({ product, onDelete, onEdit }) {
             <div className="col-md-4">
               <span className="text-muted">{t("products.sellingPrice")}: </span>
               <span className="fw-semibold">
-                {product.price?.toLocaleString()}₫
+                {formatCurrency(product.price)}
               </span>
             </div>
             <div className="col-md-4">
               <span className="text-muted">{t("products.costOfCapital")}: </span>
               <span className="fw-semibold">
-                {product.cost?.toLocaleString()}₫
+                {formatCurrency(product.cost)}
               </span>
             </div>
             <div className="col-md-4">

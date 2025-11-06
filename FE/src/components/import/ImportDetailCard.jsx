@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useTheme } from "../../context/ThemeContext";
 import { useTranslation } from "react-i18next";
+import { formatCurrency } from "../../utils/formatters";
 
 export default function ImportDetailCard({ data, onClose }) {
   const { theme } = useTheme();
@@ -66,7 +67,7 @@ export default function ImportDetailCard({ data, onClose }) {
 
         <div className="mb-3">
           <label className="fw-semibold text-muted">{t("import.total") || "Tổng tiền"}</label>
-          <div className="text-success fw-bold">{data.total?.toLocaleString()} ₫</div>
+          <div className="text-success fw-bold">{formatCurrency(data.total)}</div>
         </div>
 
         <div className="mb-3">
@@ -124,10 +125,9 @@ export default function ImportDetailCard({ data, onClose }) {
                         <td>{idx + 1}</td>
                         <td className="text-start">{item.product_name}</td>
                         <td>{item.quantity}</td>
-                        <td>{item.importPrice?.toLocaleString()} ₫</td>
+                        <td>{formatCurrency(item.importPrice)}</td>
                         <td className="text-success fw-semibold">
-                          {(item.quantity * item.importPrice)?.toLocaleString()} ₫
-                        </td>
+                          {formatCurrency(item.quantity * item.importPrice)}</td>
                       </tr>
                     ))
                   ) : (
@@ -160,3 +160,4 @@ export default function ImportDetailCard({ data, onClose }) {
     </div>
   );
 }
+

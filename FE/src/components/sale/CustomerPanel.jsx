@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useTheme } from "../../context/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { printInvoice } from "./printInvoice";
+import { formatCurrency } from "../../utils/formatters";
 
 export default function CustomerPanel({
   customer,
@@ -124,7 +125,7 @@ export default function CustomerPanel({
         <div className="mt-2 small">
           <div className="d-flex justify-content-between mb-1">
             <span>{t("sales.subtotal") || "Tạm tính"}</span>
-            <span>{totalAmount.toLocaleString("vi-VN")}</span>
+            <span>{formatCurrency(totalAmount)}</span>
           </div>
 
           {/* Giảm giá hóa đơn */}
@@ -134,7 +135,7 @@ export default function CustomerPanel({
             onClick={() => setEditingDiscount(true)}
           >
             <span>{t("sales.discountTotal") || "Giảm giá hóa đơn"}</span>
-            <span>-{invoiceDiscount.toLocaleString("vi-VN")}</span>
+            <span>-{formatCurrency(invoiceDiscount)}</span>
 
             {editingDiscount && (
               <div
@@ -187,7 +188,7 @@ export default function CustomerPanel({
           {/* Tổng cộng */}
           <div className="d-flex justify-content-between fw-bold text-dark fs-6 mb-3">
             <span>{t("sales.total") || "Tổng cộng"}</span>
-            <span>{totalAfterDiscount.toLocaleString("vi-VN")}</span>
+            <span>{formatCurrency(totalAfterDiscount)}</span>
           </div>
         </div>
 

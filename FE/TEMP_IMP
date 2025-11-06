@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import MainLayout from "../layouts/MainLayout";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../context/ThemeContext";
@@ -7,6 +7,8 @@ import ImportFilterPanel from "../components/import/ImportFilterPanel";
 import ImportTableList from "../components/import/ImportTableList";
 import { API_BASE_URL } from "../services/api";
 import axios from "axios";
+import DateInput from "../components/common/DateInput";
+import { formatters } from "../utils/formatters";
 
 export default function ImportListPage() {
   const { t } = useTranslation();
@@ -23,7 +25,7 @@ export default function ImportListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedRow, setExpandedRow] = useState(null);
 
-  // Nâng cấp bộ lọc
+  // ✅ Bộ lọc nâng cấp
   const [filters, setFilters] = useState({
     status: "",
     startDate: "",
@@ -48,8 +50,8 @@ export default function ImportListPage() {
       const formatted = (res.data || []).map((item) => ({
         id: item.importProductId || item.importCode || "PN000001",
         supplierCode: item.supplierCode || "NCC0001",
-        supplier: item.supplierName || "",
-        employee: item.employeeName || "",
+        supplier: item.supplierName || "Chưa có tên",
+        employee: item.employeeName || "Không rõ",
         total: Number(item.totalAmount) || 0,
         status: item.status || "DRAFT",
         createdAt: item.createdAt || new Date().toISOString(),
@@ -60,7 +62,7 @@ export default function ImportListPage() {
       setImportList(formatted);
     } catch (err) {
       console.error(err);
-      setError(t("import.loadFail"));
+      setError(t("import.loadFail") || "❌ Không thể tải danh sách phiếu nhập!");
     } finally {
       setLoading(false);
     }
@@ -73,7 +75,7 @@ export default function ImportListPage() {
         axios.get(`${API_BASE_URL}/auth/users/all`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        axios.get(`${API_BASE_URL}/inventory/supplier`, {
+        axios.get(`${API_BASE_URL}/supplier/all`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);
@@ -88,32 +90,40 @@ export default function ImportListPage() {
   useEffect(() => {
     fetchImports();
     fetchDropdownData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Lọc dữ liệu
+  // ===== BỘ LỌC DỮ LIỆU =====
   const filtered = importList.filter((p) => {
     const matchQuery =
       (p.id?.toString().toLowerCase().includes(query.toLowerCase()) ||
         p.supplier?.toLowerCase().includes(query.toLowerCase())) ?? false;
 
-    const matchStatus = !filters.status || (p.status || "").toLowerCase() === filters.status.toLowerCase();
-    const matchCreator = !filters.creator || (p.employee || "").toLowerCase().includes(filters.creator.toLowerCase());
-    const matchSupplier = !filters.supplier || (p.supplier || "").toLowerCase().includes(filters.supplier.toLowerCase());
+    const matchStatus =
+      !filters.status || p.status.toLowerCase() === filters.status.toLowerCase();
 
-    // Lọc theo thời gian (ISO)
-    const created = new Date(p.createdAt);
-    const okStart = !filters.startDate || created >= new Date(filters.startDate);
-    const okEnd = !filters.endDate || created <= new Date(filters.endDate);
+    const matchCreator =
+      !filters.creator || p.employee.toLowerCase().includes(filters.creator.toLowerCase());
 
-    return matchQuery && matchStatus && matchCreator && matchSupplier && okStart && okEnd;
+    const matchSupplier =
+      !filters.supplier ||
+      p.supplier.toLowerCase().includes(filters.supplier.toLowerCase());
+
+    // Lọc theo thời gian
+    const matchDate =
+      (!filters.startDate ||
+        new Date(p.createdAt) >= new Date(filters.startDate)) &&
+      (!filters.endDate ||
+        new Date(p.createdAt) <= new Date(filters.endDate));
+
+    return matchQuery && matchStatus && matchCreator && matchSupplier && matchDate;
   });
 
-  // Phân trang
+  // ===== Phân trang =====
   const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
-  const currentRows = filtered.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
-
-  const [selectedImports, setSelectedImports] = useState([]);
+  const currentRows = filtered.slice(
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage
+  );
 
   const handleSelectAll = (checked) => {
     if (checked) {
@@ -123,27 +133,44 @@ export default function ImportListPage() {
       setSelectedImports([]);
     }
   };
+
+  const [selectedImports, setSelectedImports] = useState([]);
+
   const handleSelectOne = (id) => {
-    setSelectedImports((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+    setSelectedImports((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
   };
 
   const handleToggleRow = (id) => {
     setExpandedRow((prev) => (prev === id ? null : id));
   };
 
+  // ===== Giao diện =====
   return (
     <MainLayout>
       <div className="container-fluid py-3 position-relative">
-        {/* HEADER */}
+        {/* ===== HEADER ===== */}
         <div className="row align-items-center gy-2 mb-2">
           <div className="col-12 col-md-3 col-lg-2 d-flex align-items-center">
-            <h4 className="fw-bold text-capitalize mb-0">{t("import.title")}</h4>
+            <h4 className="fw-bold text-capitalize mb-0">
+              {t("import.title") || "Phiếu nhập hàng"}
+            </h4>
           </div>
 
           {/* Ô tìm kiếm */}
           <div className="col-12 col-md-5 col-lg-5">
-            <div className={`input-group border border-${theme} rounded-3 align-items-center`} style={{ height: "40px" }}>
-              <span className={`input-group-text bg-white border-0 text-${theme}`} style={{ borderRight: `1px solid var(--bs-${theme})`, height: "100%" }}>
+            <div
+              className={`input-group border border-${theme} rounded-3 align-items-center`}
+              style={{ height: "40px" }}
+            >
+              <span
+                className={`input-group-text bg-white border-0 text-${theme}`}
+                style={{
+                  borderRight: `1px solid var(--bs-${theme})`,
+                  height: "100%",
+                }}
+              >
                 <i className="bi bi-search"></i>
               </span>
               <input
@@ -151,35 +178,52 @@ export default function ImportListPage() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="form-control border-0 shadow-none"
-                placeholder={t("import.searchPlaceholder")}
+                placeholder={
+                  t("import.searchPlaceholder") || "Theo mã, nhà cung cấp..."
+                }
               />
             </div>
           </div>
 
           {/* Nút chức năng */}
           <div className="col-12 col-md-4 col-lg-5 d-flex justify-content-end gap-2 flex-wrap">
-            <button className={`btn btn-${theme} text-white fw-semibold d-flex align-items-center rounded-3 px-3`} onClick={() => navigate("/products/importdetail")}>
+            <button
+              className={`btn btn-${theme} text-white fw-semibold d-flex align-items-center rounded-3 px-3`}
+              onClick={() => navigate("/products/importdetail")}
+            >
               <i className="bi bi-plus-lg"></i>
-              <span className="ms-1 d-none d-sm-inline">{t("import.addNew")}</span>
+              <span className="ms-1 d-none d-sm-inline">
+                {t("import.addNew") || "Thêm phiếu nhập"}
+              </span>
             </button>
-            <button className={`btn btn-outline-${theme} d-flex align-items-center fw-semibold rounded-3 px-3`} onClick={() => alert("Xuất file danh sách nhập hàng") }>
+
+            <button
+              className={`btn btn-outline-${theme} d-flex align-items-center fw-semibold rounded-3 px-3`}
+              onClick={() => alert("Xuất file danh sách nhập hàng")}
+            >
               <i className="bi bi-download"></i>
-              <span className="ms-1 d-none d-md-inline">{t("import.exportFile")}</span>
+              <span className="ms-1 d-none d-md-inline">
+                {t("import.exportFile") || "Xuất file"}
+              </span>
             </button>
           </div>
         </div>
 
-        {/* BODY */}
+        {/* ===== BODY ===== */}
         <div className="row g-3 mt-1">
-          {/* Bộ lọc */}
+          {/* ==== Bộ lọc ==== */}
           <aside className="col-lg-2 d-none d-lg-block">
             <div className="card shadow-sm border-0 h-100 p-3">
-              <h6 className="fw-bold mb-3">{t("import.filter")}</h6>
+              <h6 className="fw-bold mb-3">{t("import.filter") || "Bộ lọc"}</h6>
 
               {/* Trạng thái */}
               <div className="mb-3">
-                <label className="form-label fw-semibold">{t("import.status")}</label>
-                <select className="form-select form-select-sm" value={filters.status} onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}>
+                <label className="form-label fw-semibold">{t("import.status") || "Trạng thái"}</label>
+                <select
+                  className="form-select form-select-sm"
+                  value={filters.status}
+                  onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}
+                >
                   <option value="">Tất cả</option>
                   <option value="COMPLETED">Hoàn tất</option>
                   <option value="DRAFT">Phiếu tạm</option>
@@ -189,19 +233,31 @@ export default function ImportListPage() {
               {/* Thời gian */}
               <div className="mb-3">
                 <label className="form-label fw-semibold">Từ ngày</label>
-                <input type="date" className="form-control form-control-sm" value={filters.startDate} onChange={(e) => setFilters((f) => ({ ...f, startDate: e.target.value }))} />
+                <DateInput
+                  className="form-control form-control-sm"
+                  value={filters.startDate ? formatters.date.toDisplay(filters.startDate) : ""}
+                  onChange={(v) => setFilters((f) => ({ ...f, startDate: formatters.date.toISO(v) }))}
+                />
                 <label className="form-label fw-semibold mt-2">Đến ngày</label>
-                <input type="date" className="form-control form-control-sm" value={filters.endDate} onChange={(e) => setFilters((f) => ({ ...f, endDate: e.target.value }))} />
+                <DateInput
+                  className="form-control form-control-sm"
+                  value={filters.endDate ? formatters.date.toDisplay(filters.endDate) : ""}
+                  onChange={(v) => setFilters((f) => ({ ...f, endDate: formatters.date.toISO(v) }))}
+                />
               </div>
 
               {/* Người tạo */}
               <div className="mb-3">
                 <label className="form-label fw-semibold">Người tạo</label>
-                <select className="form-select form-select-sm" value={filters.creator} onChange={(e) => setFilters((f) => ({ ...f, creator: e.target.value }))}>
+                <select
+                  className="form-select form-select-sm"
+                  value={filters.creator}
+                  onChange={(e) => setFilters((f) => ({ ...f, creator: e.target.value }))}
+                >
                   <option value="">Tất cả</option>
                   {creators.map((c) => (
-                    <option key={c.id || c.userID} value={(c.fullName || c.username || "").toString()}>
-                      {c.fullName || c.username}
+                    <option key={c.id} value={c.fullName}>
+                      {c.fullName}
                     </option>
                   ))}
                 </select>
@@ -210,10 +266,14 @@ export default function ImportListPage() {
               {/* Nhà cung cấp */}
               <div className="mb-3">
                 <label className="form-label fw-semibold">Nhà cung cấp</label>
-                <select className="form-select form-select-sm" value={filters.supplier} onChange={(e) => setFilters((f) => ({ ...f, supplier: e.target.value }))}>
+                <select
+                  className="form-select form-select-sm"
+                  value={filters.supplier}
+                  onChange={(e) => setFilters((f) => ({ ...f, supplier: e.target.value }))}
+                >
                   <option value="">Tất cả</option>
                   {suppliers.map((s) => (
-                    <option key={s.supplierCode || s.supplierId} value={s.supplierName}>
+                    <option key={s.supplierCode} value={s.supplierName}>
                       {s.supplierName}
                     </option>
                   ))}
@@ -222,7 +282,7 @@ export default function ImportListPage() {
             </div>
           </aside>
 
-          {/* Bảng danh sách */}
+          {/* ==== Bảng danh sách ==== */}
           <main className="col-lg-10 col-12">
             {loading ? (
               <div className="text-center py-5">
@@ -238,38 +298,11 @@ export default function ImportListPage() {
                 onSelectAll={handleSelectAll}
                 expandedRow={expandedRow}
                 onExpand={handleToggleRow}
+                onEdit={(row) =>
+                  navigate("/products/importdetail", { state: { importData: row } })
+                }
               />
             )}
-
-            {/* Pagination */}
-            <div className="d-flex justify-content-between align-items-center mt-3">
-              <div className="d-flex align-items-center gap-2">
-                <span>{t("common.show")}</span>
-                <select
-                  className="form-select form-select-sm"
-                  style={{ width: 130 }}
-                  value={rowsPerPage}
-                  onChange={(e) => {
-                    setRowsPerPage(Number(e.target.value));
-                    setCurrentPage(1);
-                  }}
-                >
-                  {[10, 15, 20, 30, 50].map((n) => (
-                    <option key={n} value={n}>{n} {t("common.rows")}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="btn-group">
-                <button className={`btn btn-outline-${theme}`} disabled={currentPage === 1} onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}>
-                  &lt;
-                </button>
-                <span className={`btn btn-${theme} text-white fw-bold`}>{currentPage}</span>
-                <button className={`btn btn-outline-${theme}`} disabled={currentPage === totalPages} onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}>
-                  &gt;
-                </button>
-              </div>
-            </div>
           </main>
         </div>
       </div>

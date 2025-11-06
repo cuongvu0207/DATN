@@ -8,6 +8,7 @@ import { useTheme } from "../context/ThemeContext";
 import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { API_BASE_URL } from "../services/api";
+import { formatCurrency } from "../utils/formatters";
 
 export default function SalesPage() {
   const { theme } = useTheme();
@@ -281,7 +282,7 @@ export default function SalesPage() {
     alert(
       `✅ Thanh toán thành công!\nKhách hàng: ${
         selectedCustomer?.name || customer || "Khách lẻ"
-      }\nTổng tiền: ${finalTotal.toLocaleString()}`
+      }\nTổng tiền: ${formatCurrency(finalTotal)}`
     );
 
     setTabs((prev) =>
@@ -345,7 +346,7 @@ export default function SalesPage() {
                     onClick={() => handleAddProduct(p)}
                   >
                     {p.name}{" "}
-                    <span className="text-success fw-semibold">{p.price.toLocaleString()}</span>
+                    <span className="text-success fw-semibold">{formatCurrency(p.price)}</span>
                   </button>
                 ))}
               </div>
@@ -416,3 +417,4 @@ export default function SalesPage() {
     </div>
   );
 }
+
