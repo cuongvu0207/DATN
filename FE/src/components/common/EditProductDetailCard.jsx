@@ -18,6 +18,8 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
   const [brands, setBrands] = useState([]);
   const [showModal, setShowModal] = useState(null); // "category" | "brand" | null
   const [loading, setLoading] = useState(false);
+  const [rawCats, setRawCats] = useState([]);
+  const [rawBrands, setRawBrands] = useState([]);
 
   // 🔹 Lấy dữ liệu từ BE
   useEffect(() => {
@@ -44,6 +46,8 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
 
         const catData = await catRes.json();
         const brandData = await brandRes.json();
+        setRawCats(catData || []);
+        setRawBrands(brandData || []);
 
         // Map dữ liệu từ BE -> react-select { value, label }
         setCategories(
@@ -93,7 +97,23 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
   // 🔹 Lưu sản phẩm
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave(form);
+    const resolvedCategoryId =
+      form.categoryId ||
+      rawCats.find((c) => c.categoryName === form.category)?.categoryId ||
+      rawCats.find((c) => c.name === form.category)?.id ||
+      "";
+    const resolvedBrandId =
+      form.brandId ||
+      rawBrands.find((b) => b.brandName === form.brand)?.brandId ||
+      rawBrands.find((b) => b.name === form.brand)?.id ||
+      "";
+
+    const payload = {
+      ...form,
+      categoryId: resolvedCategoryId ? String(resolvedCategoryId) : "",
+      brandId: resolvedBrandId ? String(resolvedBrandId) : "",
+    };
+    onSave(payload);
     onClose();
   };
 

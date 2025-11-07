@@ -15,18 +15,18 @@ export default function CategoryAddCard({ onSave, onCancel }) {
   });
   const [loading, setLoading] = useState(false);
 
-  // 🔹 Cập nhật giá trị input
+  // ðŸ”¹ Cáº­p nháº­t giÃ¡ trá»‹ input
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // 🔹 Gửi dữ liệu thêm danh mục
+  // ðŸ”¹ Gá»­i dá»¯ liá»‡u thÃªm danh má»¥c
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!form.categoryName.trim()) {
-      alert(t("category.enterName") || "Vui lòng nhập tên danh mục!");
+      alert(t("category.enterName") || "Vui lÃ²ng nháº­p tÃªn danh má»¥c!");
       return;
     }
 
@@ -40,14 +40,14 @@ export default function CategoryAddCard({ onSave, onCancel }) {
         },
       });
 
-      const newCategory = res.data;
-      alert(t("category.addSuccess") || "✅ Thêm danh mục thành công!");
+      const newCategory = { categoryId: res.data?.categoryId ?? res.data?.id, categoryName: res.data?.categoryName ?? res.data?.name ?? form.categoryName };
+      alert(t("category.addSuccess") || "âœ… ThÃªm danh má»¥c thÃ nh cÃ´ng!");
       if (onSave) onSave(newCategory);
 
       setForm({ categoryName: "", description: "" });
     } catch (err) {
-      console.error("❌ Lỗi thêm danh mục:", err);
-      alert(t("category.addFail") || "❌ Không thể thêm danh mục. Vui lòng thử lại!");
+      console.error("âŒ Lá»—i thÃªm danh má»¥c:", err);
+      alert(t("category.addFail") || "âŒ KhÃ´ng thá»ƒ thÃªm danh má»¥c. Vui lÃ²ng thá»­ láº¡i!");
     } finally {
       setLoading(false);
     }
@@ -55,10 +55,10 @@ export default function CategoryAddCard({ onSave, onCancel }) {
 
   return (
     <form onSubmit={handleSubmit} className="row g-3">
-      {/* === Tên danh mục === */}
+      {/* === TÃªn danh má»¥c === */}
       <div className="col-md-12">
         <label className="form-label fw-semibold">
-          {t("category.categoryName") || "Tên danh mục"}
+          {t("category.categoryName") || "TÃªn danh má»¥c"}
         </label>
         <input
           type="text"
@@ -66,15 +66,15 @@ export default function CategoryAddCard({ onSave, onCancel }) {
           value={form.categoryName}
           onChange={handleChange}
           className="form-control shadow-sm"
-          placeholder={t("category.placeholder.name") || "Nhập tên danh mục"}
+          placeholder={t("category.placeholder.name") || "Nháº­p tÃªn danh má»¥c"}
           required
         />
       </div>
 
-      {/* === Mô tả === */}
+      {/* === MÃ´ táº£ === */}
       <div className="col-md-12">
         <label className="form-label fw-semibold">
-          {t("category.description") || "Mô tả"}
+          {t("category.description") || "MÃ´ táº£"}
         </label>
         <textarea
           name="description"
@@ -82,11 +82,11 @@ export default function CategoryAddCard({ onSave, onCancel }) {
           onChange={handleChange}
           className="form-control shadow-sm"
           rows="3"
-          placeholder={t("category.placeholder.description") || "Nhập mô tả danh mục"}
+          placeholder={t("category.placeholder.description") || "Nháº­p mÃ´ táº£ danh má»¥c"}
         ></textarea>
       </div>
 
-      {/* === Nút hành động === */}
+      {/* === NÃºt hÃ nh Ä‘á»™ng === */}
       <div className="col-12 text-end mt-3">
         <button
           type="button"
@@ -94,7 +94,7 @@ export default function CategoryAddCard({ onSave, onCancel }) {
           onClick={onCancel}
           disabled={loading}
         >
-          {t("common.cancel") || "Hủy"}
+          {t("common.cancel") || "Há»§y"}
         </button>
         <button
           type="submit"
@@ -104,12 +104,12 @@ export default function CategoryAddCard({ onSave, onCancel }) {
           {loading ? (
             <>
               <span className="spinner-border spinner-border-sm me-2"></span>
-              {t("common.saving") || "Đang lưu..."}
+              {t("common.saving") || "Äang lÆ°u..."}
             </>
           ) : (
             <>
               <i className="bi bi-save me-2"></i>
-              {t("common.save") || "Lưu"}
+              {t("common.save") || "LÆ°u"}
             </>
           )}
         </button>

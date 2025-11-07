@@ -15,6 +15,7 @@ export default function AddProductCard({ onCancel, onSave }) {
     name: "",
     categoryId: "",
     brandId: "",
+    unit: "Cái",
     cost: 0,
     price: 0,
     stock: 0,
@@ -44,12 +45,12 @@ export default function AddProductCard({ onCancel, onSave }) {
 
         // ✅ Chuẩn hóa dữ liệu trả về
         const normalizedCats = (catRes.data || []).map((c, i) => ({
-          categoryId: c.categoryId || c.id || i,
+          categoryId: String(c.categoryId || c.id || i),
           categoryName: c.categoryName || c.name || c,
         }));
 
         const normalizedBrands = (brandRes.data || []).map((b, i) => ({
-          brandId: b.brandId || b.id || i,
+          brandId: String(b.brandId || b.id || i),
           brandName: b.brandName || b.name || b,
         }));
 
@@ -82,17 +83,32 @@ export default function AddProductCard({ onCancel, onSave }) {
      🔹 CALLBACK SAU KHI THÊM DANH MỤC / THƯƠNG HIỆU
      ===================================================== */
   const handleCategoryAdded = (data) => {
-    if (data?.categoryId && data?.categoryName) {
-      setLocalCategories((prev) => [...prev, data]);
-      setForm((prev) => ({ ...prev, categoryId: data.categoryId }));
+    // Normalize payload from API
+    const id = data?.categoryId ?? data?.id;
+    const name = data?.categoryName ?? data?.name;
+    if (id && name) {
+      const normalized = { categoryId: String(id), categoryName: name };
+      setLocalCategories((prev) =>
+        prev.find((c) => c.categoryId === normalized.categoryId)
+          ? prev
+          : [...prev, normalized]
+      );
+      setForm((prev) => ({ ...prev, categoryId: String(id) }));
     }
     setShowModal(null);
   };
 
   const handleBrandAdded = (data) => {
-    if (data?.brandId && data?.brandName) {
-      setLocalBrands((prev) => [...prev, data]);
-      setForm((prev) => ({ ...prev, brandId: data.brandId }));
+    const id = data?.brandId ?? data?.id;
+    const name = data?.brandName ?? data?.name;
+    if (id && name) {
+      const normalized = { brandId: String(id), brandName: name };
+      setLocalBrands((prev) =>
+        prev.find((b) => b.brandId === normalized.brandId)
+          ? prev
+          : [...prev, normalized]
+      );
+      setForm((prev) => ({ ...prev, brandId: String(id) }));
     }
     setShowModal(null);
   };
@@ -257,6 +273,20 @@ export default function AddProductCard({ onCancel, onSave }) {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {/* Đơn vị */}
+              <div className="col-md-6">
+                <label className="form-label">{t("products.unit")}</label>
+                <input
+                  type="text"
+                  name="unit"
+                  className="form-control"
+                  value={form.unit}
+                  onChange={handleChange}
+                  placeholder={t("products.placeholder.unit") || "Nhập đơn vị (vd: Cái)"}
+                  required
+                />
               </div>
 
               {/* Giá vốn / Giá bán / Tồn kho */}

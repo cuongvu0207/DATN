@@ -1,4 +1,22 @@
 {
+  "customer": {
+    "title": "Khách hàng",
+    "searchPlaceholder": "Tìm kiếm khách hàng...",
+    "add": "Thêm khách hàng",
+    "addSuccess": "Đã thêm khách hàng thành công!",
+    "addError": "Không thể thêm khách hàng.",
+    "loadError": "Không thể tải danh sách khách hàng.",
+    "deleteConfirm": "Xác nhận xóa khách hàng này?",
+    "deleteSuccess": "Đã xóa khách hàng thành công!",
+    "deleteError": "Lỗi khi xóa khách hàng!",
+    "fullName": "Họ và tên",
+    "email": "Email",
+    "phoneNumber": "Số điện thoại",
+    "gender": "Giới tính",
+    "address": "Địa chỉ",
+    "actions": "Hành động",
+    "noData": "Không có khách hàng nào"
+  },
   "login": {
     "title": "VPOS",
     "username": "Tên đăng nhập",

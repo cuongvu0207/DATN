@@ -16,18 +16,18 @@ export default function BrandAddCard({ onSave, onCancel }) {
 
   const [loading, setLoading] = useState(false);
 
-  // 🔹 Xử lý thay đổi input
+  // ðŸ”¹ Xá»­ lÃ½ thay Ä‘á»•i input
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // 🔹 Gửi dữ liệu lên API
+  // ðŸ”¹ Gá»­i dá»¯ liá»‡u lÃªn API
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!form.brandName.trim()) {
-      alert(t("brand.enterName") || "Vui lòng nhập tên thương hiệu!");
+      alert(t("brand.enterName") || "Vui lÃ²ng nháº­p tÃªn thÆ°Æ¡ng hiá»‡u!");
       return;
     }
 
@@ -41,16 +41,16 @@ export default function BrandAddCard({ onSave, onCancel }) {
         },
       });
 
-      const newBrand = res.data;
+      const newBrand = { brandId: res.data?.brandId ?? res.data?.id, brandName: res.data?.brandName ?? res.data?.name ?? form.brandName };
 
-      alert(t("brand.addSuccess") || "✅ Thêm thương hiệu thành công!");
+      alert(t("brand.addSuccess") || "âœ… ThÃªm thÆ°Æ¡ng hiá»‡u thÃ nh cÃ´ng!");
       if (onSave) onSave(newBrand);
 
       // Reset form
       setForm({ brandName: "", description: "" });
     } catch (err) {
-      console.error("❌ Lỗi thêm thương hiệu:", err);
-      alert(t("brand.addFail") || "❌ Không thể thêm thương hiệu. Vui lòng thử lại!");
+      console.error("âŒ Lá»—i thÃªm thÆ°Æ¡ng hiá»‡u:", err);
+      alert(t("brand.addFail") || "âŒ KhÃ´ng thá»ƒ thÃªm thÆ°Æ¡ng hiá»‡u. Vui lÃ²ng thá»­ láº¡i!");
     } finally {
       setLoading(false);
     }
@@ -58,10 +58,10 @@ export default function BrandAddCard({ onSave, onCancel }) {
 
   return (
     <form onSubmit={handleSubmit} className="row g-3">
-      {/* === Tên thương hiệu === */}
+      {/* === TÃªn thÆ°Æ¡ng hiá»‡u === */}
       <div className="col-md-12">
         <label className="form-label fw-semibold">
-          {t("brand.brandName") || "Tên thương hiệu"}
+          {t("brand.brandName") || "TÃªn thÆ°Æ¡ng hiá»‡u"}
         </label>
         <input
           type="text"
@@ -69,15 +69,15 @@ export default function BrandAddCard({ onSave, onCancel }) {
           value={form.brandName}
           onChange={handleChange}
           className="form-control shadow-sm"
-          placeholder={t("brand.placeholder.name") || "Nhập tên thương hiệu"}
+          placeholder={t("brand.placeholder.name") || "Nháº­p tÃªn thÆ°Æ¡ng hiá»‡u"}
           required
         />
       </div>
 
-      {/* === Mô tả === */}
+      {/* === MÃ´ táº£ === */}
       <div className="col-md-12">
         <label className="form-label fw-semibold">
-          {t("brand.description") || "Mô tả"}
+          {t("brand.description") || "MÃ´ táº£"}
         </label>
         <textarea
           name="description"
@@ -85,11 +85,11 @@ export default function BrandAddCard({ onSave, onCancel }) {
           onChange={handleChange}
           className="form-control shadow-sm"
           rows="3"
-          placeholder={t("brand.placeholder.description") || "Nhập mô tả thương hiệu"}
+          placeholder={t("brand.placeholder.description") || "Nháº­p mÃ´ táº£ thÆ°Æ¡ng hiá»‡u"}
         ></textarea>
       </div>
 
-      {/* === Nút hành động === */}
+      {/* === NÃºt hÃ nh Ä‘á»™ng === */}
       <div className="col-12 text-end mt-3">
         <button
           type="button"
@@ -97,7 +97,7 @@ export default function BrandAddCard({ onSave, onCancel }) {
           onClick={onCancel}
           disabled={loading}
         >
-          {t("common.cancel") || "Hủy"}
+          {t("common.cancel") || "Há»§y"}
         </button>
         <button
           type="submit"
@@ -107,12 +107,12 @@ export default function BrandAddCard({ onSave, onCancel }) {
           {loading ? (
             <>
               <span className="spinner-border spinner-border-sm me-2"></span>
-              {t("common.saving") || "Đang lưu..."}
+              {t("common.saving") || "Äang lÆ°u..."}
             </>
           ) : (
             <>
               <i className="bi bi-save me-2"></i>
-              {t("common.save") || "Lưu"}
+              {t("common.save") || "LÆ°u"}
             </>
           )}
         </button>

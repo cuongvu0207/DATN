@@ -1,4 +1,22 @@
 {
+  "customer": {
+    "title": "Customers",
+    "searchPlaceholder": "Search customers...",
+    "add": "Add Customer",
+    "addSuccess": "Customer added successfully!",
+    "addError": "Unable to add customer.",
+    "loadError": "Unable to load customers.",
+    "deleteConfirm": "Delete this customer?",
+    "deleteSuccess": "Customer deleted successfully!",
+    "deleteError": "Failed to delete customer!",
+    "fullName": "Full Name",
+    "email": "Email",
+    "phoneNumber": "Phone Number",
+    "gender": "Gender",
+    "address": "Address",
+    "actions": "Actions",
+    "noData": "No customers"
+  },
   "login": {
     "title": "VPOS",
     "username": "Username",

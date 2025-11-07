@@ -114,6 +114,7 @@ export default function ProductListPage() {
         // Nếu AddProductCard đang lưu categoryName, bạn cần đổi nó sang ID khi chọn
         // Tạm thời, nếu chưa có, ta gán 1 mặc định
         formData.append("categoryId", newProduct.categoryId || 1);
+        formData.append("brandId", newProduct.brandId || 1);
   
         // ✅ Ảnh (MultipartFile)
         if (newProduct.imageFile) {
@@ -145,7 +146,8 @@ export default function ProductListPage() {
       await axiosInstance.put(`/inventory/products/${updated.id}`, {
         productId: updated.id,
         productName: updated.name,
-        categoryName: updated.category,
+        categoryId: updated.categoryId || null,
+        brandId: updated.brandId || null,
         unit: updated.unit,
         barcode: updated.barcode,
         sellingPrice: updated.price,

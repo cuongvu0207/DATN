@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { useTranslation } from "react-i18next";
 
 export default function CustomerTable({
@@ -15,13 +15,13 @@ export default function CustomerTable({
         <thead className={`table-${theme}`}>
           <tr>
             <th>#</th>
-            <th>{t("customer.fullName") || "Họ và tên"}</th>
+            <th>{t("customer.fullName") || "Há» vÃ  tÃªn"}</th>
             <th>{t("customer.email") || "Email"}</th>
-            <th>{t("customer.phoneNumber") || "Số điện thoại"}</th>
-            <th>{t("customer.gender") || "Giới tính"}</th>
-            <th>{t("customer.dateOfBirth") || "Ngày sinh"}</th>
-            <th>{t("customer.address") || "Địa chỉ"}</th>
-            <th className="text-center">{t("customer.actions") || "Hành động"}</th>
+            <th>{t("customer.phoneNumber") || "Sá»‘ Ä‘iá»‡n thoáº¡i"}</th>
+            <th>{t("customer.gender") || "Giá»›i tÃ­nh"}</th>
+            
+            <th>{t("customer.address") || "Äá»‹a chá»‰"}</th>
+            <th className="text-center">{t("customer.actions") || "HÃ nh Ä‘á»™ng"}</th>
           </tr>
         </thead>
 
@@ -30,7 +30,7 @@ export default function CustomerTable({
             <tr>
               <td colSpan="8" className="text-center py-4">
                 <div className="spinner-border text-primary" role="status"></div>
-                <p className="mt-2">{t("common.loading") || "Đang tải..."}</p>
+                <p className="mt-2">{t("common.loading") || "Äang táº£i..."}</p>
               </td>
             </tr>
           ) : customers.length > 0 ? (
@@ -41,7 +41,7 @@ export default function CustomerTable({
                 <td>{c.email}</td>
                 <td>{c.phoneNumber}</td>
                 <td>{c.gender}</td>
-                <td>{c.dateOfBirth}</td>
+                
                 <td>{c.address}</td>
                 <td className="text-center">
                   <button
@@ -49,7 +49,7 @@ export default function CustomerTable({
                     onClick={() => onDelete(c.id)}
                   >
                     <i className="bi bi-trash me-1"></i>
-                    {t("actions.delete") || "Xóa"}
+                    {t("actions.delete") || "XÃ³a"}
                   </button>
                 </td>
               </tr>
@@ -57,7 +57,7 @@ export default function CustomerTable({
           ) : (
             <tr>
               <td colSpan="8" className="text-center text-muted py-4">
-                {t("customer.noData") || "Không có khách hàng nào"}
+                {t("customer.noData") || "KhÃ´ng cÃ³ khÃ¡ch hÃ ng nÃ o"}
               </td>
             </tr>
           )}
@@ -66,3 +66,4 @@ export default function CustomerTable({
     </div>
   );
 }
+
