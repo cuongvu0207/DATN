@@ -85,7 +85,7 @@ export default function SalesHeaderBar({
               }`}
               style={{ cursor: "pointer" }}
             >
-              {tab.name}
+              {tab.name || `${t("sales.tabPrefix") || "Order"} ${tab.id}`}
               {tabs.length > 1 && (
                 <i
                   className="bi bi-x ms-2 text-muted"

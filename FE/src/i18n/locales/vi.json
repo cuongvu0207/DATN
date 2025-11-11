@@ -177,6 +177,14 @@
   "logout": "Đăng xuất"
   },
   "sales": {
+    "addInvoice": "Thêm hóa đơn",
+    "searchProduct": "Tìm sản phẩm (F3)",
+    "scanBarcode": "Quét mã sản phẩm...",
+    "barcodeMode": "Chế độ mã vạch",
+    "tabPrefix": "Hóa đơn",
+    "orderNote": "Ghi chú đơn hàng...",
+    "alertEmptyCustomer": "Vui lòng nhập tên khách hàng!",
+    "productNotFound": "Không tìm thấy sản phẩm!",
     "address": "Địa chỉ",
     "invoiceTitle": "HÓA ĐƠN BÁN HÀNG",
     "date": "Ngày",

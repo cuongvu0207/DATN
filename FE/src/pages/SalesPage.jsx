@@ -58,7 +58,7 @@ export default function SalesPage() {
   }, [token]);
 
   /* ====== STATE HOÁ ĐƠN ====== */
-  const [tabs, setTabs] = useState([{ id: 1, name: "Hóa đơn 1", items: [], orderNote: "" }]);
+  const [tabs, setTabs] = useState([    { id: 1, name: `${t("sales.tabPrefix") || "Order"} 1`, items: [], orderNote: "", orderId: null },  ]);
   const [activeTab, setActiveTab] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [barcodeMode, setBarcodeMode] = useState(false);
@@ -78,6 +78,28 @@ export default function SalesPage() {
   useEffect(() => {
     localStorage.setItem("customers", JSON.stringify(customers));
   }, [customers]);
+
+  // Ensure the initial tab has a server draft orderId
+  useEffect(() => {
+    const ensureFirstDraft = async () => {
+      if (!tabs[0]?.orderId) {
+        try {
+          const res = await axios.post(`${API_BASE_URL}/order/draft`, {}, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const oid = res?.data?.orderId || null;
+          if (oid) {
+            setTabs((prev) => prev.map((t) => (t.id === 1 ? { ...t, orderId: oid } : t)));
+          }
+        } catch (e) {
+          console.error('Failed to create initial draft order:', e);
+        }
+      }
+    };
+    ensureFirstDraft();
+    // run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const filteredCustomers =
     customer.trim() === ""
@@ -269,9 +291,87 @@ export default function SalesPage() {
     );
   };
 
+  
+  // Create a draft order on server and open a new tab
+  const handleAddTab = async () => {
+    const nextIndex = tabs.length + 1;
+    let newOrderId = null;
+    let cashier = null;
+    let status = null;
+    try {
+      const res = await axios.post(`${API_BASE_URL}/order/draft`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      newOrderId = res?.data?.orderId || null;
+      cashier = res?.data?.cashierId || null;
+      status = res?.data?.status || null;
+    } catch (e) {
+      console.error("Failed to create draft order:", e);
+    }
+    console.log("New draft order ID:", newOrderId);
+    console.log("Cashier:", cashier);
+    console.log("Status:", status);
+
+    const newTab = {
+      id: nextIndex,
+      name: `${t("sales.tabPrefix") || "Order"} ${nextIndex}`,
+      items: [],
+      orderNote: "",
+      orderId: newOrderId,
+    };
+    setTabs((prev) => [...prev, newTab]);
+    setActiveTab(nextIndex);
+  };
+  
   /* ====== THANH TOÁN ====== */
   const totalAmount = cartItems.reduce((s, it) => s + (it.total ?? 0), 0);
   const finalTotal = Math.max(totalAmount - invoiceDiscount, 0);
+
+  // Gọi API lưu đơn ở trạng thái PENDING
+  const savePendingOrder = async () => {
+    if (cartItems.length === 0) {
+      alert("Chưa có sản phẩm nào trong giỏ hàng!");
+      return;
+    }
+
+    try {
+      const payload = {
+        orderItemDTOs: cartItems.map((it) => ({
+          productName: it.name,
+          barcode: it.code,
+          quantity: Number(it.quantity || 0),
+          price: Number(it.price || 0),
+        })),
+      };
+
+      const res = await axios.put(`${API_BASE_URL}/order/pending`, payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = res?.data || {};
+      const total = data.totalPrice ?? finalTotal;
+      const oid = data.orderId || "(chưa có mã)";
+
+      alert(`Đã lưu đơn PENDING.\nMã đơn: ${oid}\nTổng tiền: ${formatCurrency(total)}`);
+
+      // Reset giỏ hàng sau khi lưu
+      setTabs((prev) =>
+        prev.map((tab) =>
+          tab.id === activeTab ? { ...tab, items: [], orderNote: "" } : tab
+        )
+      );
+      setCustomer("");
+      setSelectedCustomer(null);
+      setInvoiceDiscount(0);
+    } catch (err) {
+      console.error("Lỗi lưu đơn PENDING:", err);
+      const msg = err?.response?.data?.message || "Không thể lưu đơn. Vui lòng thử lại.";
+      alert(msg);
+    }
+  };
 
   const handlePayment = () => {
     if (cartItems.length === 0) {
@@ -312,12 +412,7 @@ export default function SalesPage() {
         tabs={tabs}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        handleAddTab={() =>
-          setTabs([
-            ...tabs,
-            { id: tabs.length + 1, name: `Hóa đơn ${tabs.length + 1}`, items: [], orderNote: "" },
-          ])
-        }
+        handleAddTab={handleAddTab}
         handleRemoveTab={(id) => setTabs(tabs.filter((t) => t.id !== id && tabs.length > 1))}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
@@ -401,7 +496,7 @@ export default function SalesPage() {
             setInvoiceDiscount={setInvoiceDiscount}
             onPrint={() => console.log("🖨️ In hóa đơn")}
             cartItems={cartItems}
-            onPay={handlePayment}
+            onPay={savePendingOrder}
           />
         </div>
       </div>
@@ -417,4 +512,9 @@ export default function SalesPage() {
     </div>
   );
 }
+
+
+
+
+
 

@@ -160,6 +160,14 @@
   "logout": "Logout"
   },
   "sales": {
+    "addInvoice": "Add invoice",
+    "searchProduct": "Search products (F3)",
+    "scanBarcode": "Scan product barcode...",
+    "barcodeMode": "Barcode mode",
+    "tabPrefix": "Order",
+    "orderNote": "Order note...",
+    "alertEmptyCustomer": "Please enter customer name!",
+    "productNotFound": "Product not found!",
     "address": "Address",
     "invoiceTitle": "SALES INVOICE",
     "date": "Date",
