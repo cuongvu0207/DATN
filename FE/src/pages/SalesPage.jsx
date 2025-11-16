@@ -551,36 +551,45 @@ export default function SalesPage() {
               </div>
             ) : error ? (
               <div className="text-danger text-center mt-5">{error}</div>
-            ) : filteredProducts.length > 0 ? (
-              <div className="position-absolute bg-white shadow rounded-3 p-2" style={{ zIndex: 10, width: 300 }}>
-                {filteredProducts.map((p) => (
-                  <button
-                    key={p.id}
-                    className="btn btn-light text-start w-100 mb-1"
-                    onClick={() => handleAddProduct(p)}
-                  >
-                    {p.name}{" "}
-                    <span className="text-success fw-semibold">{formatCurrency(p.price)}</span>
-                  </button>
-                ))}
-              </div>
-            ) : cartItems.length === 0 ? (
-              <div className="text-center text-muted mt-5">
-                {t("sales.noItems") || "Chưa có sản phẩm trong giỏ hàng"}
-              </div>
             ) : (
-              cartItems.map((it, idx) => (
-                <CartItem
-                  key={it.code}
-                  item={it}
-                  index={idx}
-                  changeQty={changeQty}
-                  removeItem={removeItem}
-                  toggleNote={toggleNote}
-                  setNote={setNote}
-                  setDiscount={setDiscount}
-                />
-              ))
+              <>
+                {filteredProducts.length > 0 && (
+                  <div
+                    className="position-absolute bg-white shadow rounded-3 p-2"
+                    style={{ zIndex: 10, width: 300 }}
+                  >
+                    {filteredProducts.map((p) => (
+                      <button
+                        key={p.id}
+                        className="btn btn-light text-start w-100 mb-1"
+                        onClick={() => handleAddProduct(p)}
+                      >
+                        {p.name}{" "}
+                        <span className="text-success fw-semibold">{formatCurrency(p.price)}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {cartItems.length === 0 ? (
+                  <div className="text-center text-muted mt-5">
+                    {t("sales.noItems") || "Chưa có sản phẩm trong giỏ hàng"}
+                  </div>
+                ) : (
+                  cartItems.map((it, idx) => (
+                    <CartItem
+                      key={it.code}
+                      item={it}
+                      index={idx}
+                      changeQty={changeQty}
+                      removeItem={removeItem}
+                      toggleNote={toggleNote}
+                      setNote={setNote}
+                      setDiscount={setDiscount}
+                    />
+                  ))
+                )}
+              </>
             )}
           </div>
 

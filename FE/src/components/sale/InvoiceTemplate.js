@@ -73,7 +73,7 @@ export function generateInvoiceHTML({
       }</div>
       <div><strong>${_t("sales.date")}:</strong> ${new Date().toLocaleString("vi-VN")}</div>
       <div><strong>${_t("sales.customer")}:</strong> ${
-        selectedCustomer?.fullName || customer || _t("sales.walkInCustomer", "KhÃ¡ch láº»")
+        selectedCustomer?.fullName || customer || _t("sales.walkInCustomer")
       }</div>
       ${
         selectedCustomer?.phoneNumber
@@ -85,10 +85,10 @@ export function generateInvoiceHTML({
       }</div>
       <div><strong>${_t("sales.paymentMethod")}:</strong> ${
         paymentMethod === "cash"
-          ? _t("sales.cash", "Tiá»n máº·t")
+          ? _t("sales.cash")
           : paymentMethod === "bank"
-          ? _t("sales.bank", "Chuyá»ƒn khoáº£n")
-          : _t("sales.qr", "QuÃ©t mÃ£ QR")
+          ? _t("sales.bank")
+          : _t("sales.qr")
       }</div>
     </div>
 
@@ -139,7 +139,7 @@ export function generateInvoiceHTML({
         <div class="mt-4 small text-muted">(${_t("sales.signAndName")})</div>
       </div>
       <div class="col-6 text-center">
-        <div class="fw-semibold">${_t("sales.buyer", "KhÃ¡ch hÃ ng")}</div>
+        <div class="fw-semibold">${_t("sales.buyer")}</div>
         <div class="mt-4 small text-muted">(${_t("sales.signAndName")})</div>
       </div>
     </div>
