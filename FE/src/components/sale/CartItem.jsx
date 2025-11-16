@@ -14,13 +14,28 @@ export default function CartItem({
 }) {
   const { theme } = useTheme();
   const { t } = useTranslation();
+  const themeColorMap = {
+    primary: "#0d6efd",
+    success: "#198754",
+    warning: "#ffc107",
+    danger: "#dc3545",
+    info: "#0dcaf0",
+    secondary: "#6c757d",
+    dark: "#212529",
+  };
+  const themeBorderColor = themeColorMap[theme] || "var(--bs-primary)";
 
   const [editingDiscount, setEditingDiscount] = useState(false);
   const [tempValue, setTempValue] = useState(item.discountValue ?? 0);
   const [mode, setMode] = useState(item.discountMode || "%");
   const popupRef = useRef(null);
+  const [qtyInput, setQtyInput] = useState(String(item.quantity ?? 0));
 
   const total = item.price * item.quantity;
+
+  useEffect(() => {
+    setQtyInput(String(item.quantity ?? 0));
+  }, [item.quantity]);
 
   // ===== Áp dụng giảm giá =====
   const applyDiscount = () => {
@@ -89,13 +104,41 @@ export default function CartItem({
           <div className="d-flex align-items-center" style={{ gap: 8 }}>
             <button className="btn btn-sm btn-light rounded-circle" onClick={() => changeQty(item.code, -1)}>−</button>
             <input
-              type="text"
-              value={item.quantity}
-              readOnly
+              type="number"
+              min="0"
+              step="1"
+              inputMode="numeric"
+              value={qtyInput}
               className={`form-control form-control-sm text-center fw-semibold border-0 ${
                 item.quantity > item.stock ? "text-danger" : "text-dark"
               }`}
-              style={{ width: 50, background: "transparent", boxShadow: "none" }}
+              style={{
+                width: 50,
+                background: "transparent",
+                boxShadow: "none",
+                borderRadius: 0,
+                borderBottom: `2px solid ${themeBorderColor}`,
+                paddingBottom: 2,
+              }}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === "" || /^\d+$/.test(val)) {
+                  setQtyInput(val);
+                }
+              }}
+              onBlur={() => {
+                const parsed = Math.max(0, Number(qtyInput) || 0);
+                setQtyInput(String(parsed));
+                changeQty(item.code, parsed, "set");
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  const parsed = Math.max(0, Number(qtyInput) || 0);
+                  setQtyInput(String(parsed));
+                  changeQty(item.code, parsed, "set");
+                }
+              }}
             />
             <button className="btn btn-sm btn-light rounded-circle" onClick={() => changeQty(item.code, 1)}>+</button>
           </div>
@@ -132,7 +175,12 @@ export default function CartItem({
                     min="0"
                     max={mode === "%" ? "100" : undefined}
                     className="form-control form-control-sm border-0 bg-transparent text-end shadow-none flex-grow-1"
-                    style={{ outline: "none" }}
+                    style={{
+                      outline: "none",
+                      borderRadius: 0,
+                      borderBottom: `2px solid ${themeBorderColor}`,
+                      paddingBottom: 2,
+                    }}
                     value={tempValue}
                     onChange={(e) => setTempValue(e.target.value)}
                     onKeyDown={(e) => {
@@ -160,8 +208,14 @@ export default function CartItem({
                 </div>
               </div>
             ) : (
-              <span className="fw-semibold text-secondary">
-                {discountAmount > 0 ? `–${formatCurrency(discountAmount)}` : "–0"}
+              <span
+                className="fw-semibold text-secondary d-inline-block"
+                style={{
+                  borderBottom: `2px solid ${themeBorderColor}`,
+                  paddingBottom: 2,
+                }}
+              >
+                {discountAmount > 0 ? `−${formatCurrency(discountAmount)}` : "−0"}
               </span>
             )}
           </div>

@@ -21,18 +21,32 @@ export default function InvoiceTable({
   const startIndex = (currentPage - 1) * rowsPerPage;
   const currentRows = invoices.slice(startIndex, startIndex + rowsPerPage);
 
-  // ✅ Kiểm tra chọn tất cả trong trang hiện tại
+  // ? Ki?m tra ch?n t?t c? trong trang hi?n t?i
   const allChecked =
     currentRows.length > 0 &&
     currentRows.every((inv) => selectedInvoices.includes(inv.id));
+  const outerScrollStyle = {
+    borderRadius: 16,
+    overflow: "hidden",
+    paddingRight: 8,
+    paddingBottom: 8,
+    backgroundColor: "#fff",
+  };
+  const innerScrollStyle = {
+    maxHeight: "60vh",
+    overflowX: "auto",
+    overflowY: "auto",
+    borderRadius: 12,
+  };
 
   return (
     <div className="col-lg-10 col-12">
-      <div className={`table-responsive rounded-2 border border-${theme} shadow-sm`}>
-        <table className="table table-hover align-middle mb-0">
-          <thead className={`table-${theme}`}>
-            <tr>
-              <th style={{ width: 40 }}>
+      <div className={`table-responsive rounded-3 shadow-sm`} style={outerScrollStyle}>
+        <div style={innerScrollStyle}>
+          <table className="table table-hover align-middle mb-0">
+            <thead className={`table-${theme}`} style={{ position: "sticky", top: 0, zIndex: 2 }}>
+              <tr>
+                <th style={{ width: 40 }}>
                 <input
                   type="checkbox"
                   className="form-check-input"
@@ -73,9 +87,9 @@ export default function InvoiceTable({
                   <td>
                     <span
                       className={`badge ${
-                        inv.status === "Đã thanh toán"
+                        inv.status === "?? thanh to?n"
                           ? "bg-success"
-                          : inv.status === "Chưa thanh toán"
+                          : inv.status === "Chua thanh to?n"
                           ? "bg-warning text-dark"
                           : "bg-secondary"
                       }`}
@@ -90,40 +104,41 @@ export default function InvoiceTable({
             ) : (
               <tr>
                 <td colSpan={10} className="text-center text-muted py-4">
-                  {t("invoices.noData") || "Không có dữ liệu"}
+                  {t("invoices.noData") || "Kh?ng c? d? li?u"}
                 </td>
               </tr>
             )}
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Pagination control */}
       <div className="d-flex justify-content-between align-items-center mt-3">
-        {/* Số dòng hiển thị */}
+        {/* S? d?ng hi?n th? */}
         <div className="d-flex align-items-center gap-2">
-          <span>{t("invoices.show") || "Hiển thị"}</span>
+          <span>{t("common.show") || "Hi?n th?"}</span>
           <select
             className="form-select form-select-sm"
             style={{ width: 130 }}
-            value={rowsPerPage >= invoices.length ? "all" : rowsPerPage}
+            value={rowsPerPage > 100 ? "all" : rowsPerPage}
             onChange={(e) => {
               const val = e.target.value;
-              if (val === "all") setRowsPerPage(invoices.length);
+              if (val === "all") setRowsPerPage(Number.MAX_SAFE_INTEGER);
               else setRowsPerPage(Number(val));
               setCurrentPage(1);
             }}
           >
-            {[15, 20, 30, 50, 100].map((n) => (
+            {[15, 30, 50, 100].map((n) => (
               <option key={n} value={n}>
-                {n} {t("invoices.rows") || "dòng"}
+                {n} {t("common.rows") || "d?ng"}
               </option>
             ))}
-            <option value="all">{t("invoices.all") || "Tất cả"}</option>
+            <option value="all">{t("common.all") || "T?t c?"}</option>
           </select>
         </div>
 
-        {/* Phân trang */}
+        {/* Ph?n trang */}
         <div className="btn-group">
           <button
             className={`btn btn-outline-${theme}`}
@@ -147,3 +162,8 @@ export default function InvoiceTable({
     </div>
   );
 }
+
+
+
+
+

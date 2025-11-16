@@ -1,4 +1,4 @@
-
+﻿
 import React, { useEffect, useMemo, useState } from "react";
 import MainLayout from "../layouts/MainLayout";
 import { useTheme } from "../context/ThemeContext";
@@ -87,7 +87,7 @@ export default function HomePage() {
       }
       setTopProducts(
         Array.from({ length: 5 }, (_, i) => ({
-          name: `Sản phẩm ${i + 1}`,
+          name: `S?n ph?m ${i + 1}`,
           barcode: `SP${String(1000 + i)}`,
           revenue: Math.round(10_000_000 + Math.random() * 20_000_000),
           qty: Math.round(50 + Math.random() * 300),
@@ -95,7 +95,7 @@ export default function HomePage() {
       );
       setTopCustomers(
         Array.from({ length: 5 }, (_, i) => ({
-          name: `Khách hàng ${i + 1}`,
+          name: `Kh�ch h�ng ${i + 1}`,
           phone: `09${Math.floor(10000000 + Math.random() * 90000000)}`,
           revenue: Math.round(15_000_000 + Math.random() * 25_000_000),
           orders: Math.round(1 + Math.random() * 10),
@@ -106,7 +106,7 @@ export default function HomePage() {
           time: new Date(Date.now() - i * 3600_000).toISOString(),
           user: i % 2 === 0 ? "manager" : "staff01",
           action: i % 3 === 0 ? "CREATE_INVOICE" : i % 3 === 1 ? "IMPORT_STOCK" : "UPDATE_PRICE",
-          detail: `Hoạt động ${i + 1}`,
+          detail: `Ho?t d?ng ${i + 1}`,
         }))
       );
     } finally {
@@ -128,7 +128,7 @@ export default function HomePage() {
         <div className="d-flex justify-content-between align-items-center mb-3">
           <h4 className="fw-bold mb-0">{t("dashboard.title")}</h4>
           <div className="btn-group">
-            {[{k:"day",l:"Ngày"},{k:"week",l:"Tuần"},{k:"month",l:"Tháng"}].map(x => (
+            {[{k:"day",l:"Ng�y"},{k:"week",l:"Tu?n"},{k:"month",l:"Th�ng"}].map(x => (
               <button key={x.k} className={`btn btn-${period===x.k?theme:"outline-"+theme}`} onClick={() => setPeriod(x.k)}>
                 {x.l}
               </button>
@@ -218,9 +218,10 @@ export default function HomePage() {
                     <small className="text-muted">{formatCurrency(p.revenue || 0)}</small>
                   </div>
                 ))}
-                <div className="table-responsive mt-3">
+                <div className="table-responsive rounded-3 mt-3" style={{ borderRadius: 16, overflow: "hidden", paddingRight: 8, paddingBottom: 8, backgroundColor: "#fff" }}>
+                  <div style={{ maxHeight: "60vh", overflowX: "auto", overflowY: "auto", borderRadius: 12 }}>
                   <table className="table table-hover align-middle mb-0">
-                    <thead className="table-light">
+                    <thead className="table-light" style={{ position: "sticky", top: 0, zIndex: 2 }}>
                       <tr>
                         <th>#</th><th>{t("products.name")}</th><th className="text-end">{t("dashboard.revenue")}</th><th className="text-end">SL</th>
                       </tr>
@@ -239,6 +240,7 @@ export default function HomePage() {
                       )}
                     </tbody>
                   </table>
+                  </div>
                 </div>
               </div>
             </div>
@@ -257,9 +259,10 @@ export default function HomePage() {
                     <small className="text-muted">{formatCurrency(c.revenue || 0)}</small>
                   </div>
                 ))}
-                <div className="table-responsive mt-3">
+                <div className="table-responsive rounded-3 mt-3" style={{ borderRadius: 16, overflow: "hidden", paddingRight: 8, paddingBottom: 8, backgroundColor: "#fff" }}>
+                  <div style={{ maxHeight: "60vh", overflowX: "auto", overflowY: "auto", borderRadius: 12 }}>
                   <table className="table table-hover align-middle mb-0">
-                    <thead className="table-light">
+                    <thead className="table-light" style={{ position: "sticky", top: 0, zIndex: 2 }}>
                       <tr>
                         <th>#</th><th>{t("customer.fullName")}</th><th>{t("customer.phoneNumber")}</th><th className="text-end">{t("dashboard.revenue")}</th>
                       </tr>
@@ -278,6 +281,7 @@ export default function HomePage() {
                       )}
                     </tbody>
                   </table>
+                  </div>
                 </div>
               </div>
             </div>
@@ -287,4 +291,9 @@ export default function HomePage() {
     </MainLayout>
   );
 }
+
+
+
+
+
 

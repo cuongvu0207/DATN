@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 
 export default function CustomerTable({
@@ -9,19 +9,29 @@ export default function CustomerTable({
 }) {
   const { t } = useTranslation();
 
+  const outerScrollStyle = {
+    borderRadius: 16,
+    overflow: "hidden",
+    paddingRight: 8,
+    paddingBottom: 8,
+    backgroundColor: "#fff",
+  };
+  const scrollStyle = { maxHeight: "60vh", overflowX: "auto", overflowY: "auto", borderRadius: 12 };
+
   return (
-    <div className={`table-responsive rounded-2 border border-${theme} shadow-sm`}>
-      <table className="table table-hover align-middle mb-0">
-        <thead className={`table-${theme}`}>
+    <div className={`table-responsive rounded-3 shadow-sm`} style={outerScrollStyle}>
+      <div style={scrollStyle}>
+        <table className="table table-hover align-middle mb-0">
+        <thead className={`table-${theme}`} style={{ position: "sticky", top: 0, zIndex: 2 }}>
           <tr>
             <th>#</th>
-            <th>{t("customer.fullName") || "Há» vÃ  tÃªn"}</th>
+            <th>{t("customer.fullName") || "Họ và tên"}</th>
             <th>{t("customer.email") || "Email"}</th>
-            <th>{t("customer.phoneNumber") || "Sá»‘ Ä‘iá»‡n thoáº¡i"}</th>
-            <th>{t("customer.gender") || "Giá»›i tÃ­nh"}</th>
+            <th>{t("customer.phoneNumber") || "Số điện thoại"}</th>
+            <th>{t("customer.gender") || "Giới tính"}</th>
             
-            <th>{t("customer.address") || "Äá»‹a chá»‰"}</th>
-            <th className="text-center">{t("customer.actions") || "HÃ nh Ä‘á»™ng"}</th>
+            <th>{t("customer.address") || "Địa chỉ"}</th>
+            <th className="text-center">{t("customer.actions") || "Hành động"}</th>
           </tr>
         </thead>
 
@@ -30,7 +40,7 @@ export default function CustomerTable({
             <tr>
               <td colSpan="8" className="text-center py-4">
                 <div className="spinner-border text-primary" role="status"></div>
-                <p className="mt-2">{t("common.loading") || "Äang táº£i..."}</p>
+                <p className="mt-2">{t("common.loading") || "Đang tải..."}</p>
               </td>
             </tr>
           ) : customers.length > 0 ? (
@@ -49,7 +59,7 @@ export default function CustomerTable({
                     onClick={() => onDelete(c.id)}
                   >
                     <i className="bi bi-trash me-1"></i>
-                    {t("actions.delete") || "XÃ³a"}
+                    {t("actions.delete") || "Xóa"}
                   </button>
                 </td>
               </tr>
@@ -57,13 +67,19 @@ export default function CustomerTable({
           ) : (
             <tr>
               <td colSpan="8" className="text-center text-muted py-4">
-                {t("customer.noData") || "KhÃ´ng cÃ³ khÃ¡ch hÃ ng nÃ o"}
+                {t("customer.noData") || "Không có khách hàng nào"}
               </td>
             </tr>
           )}
         </tbody>
       </table>
+      </div>
     </div>
+
   );
 }
+
+
+
+
 
