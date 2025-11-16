@@ -18,6 +18,7 @@ const createSalesTab = (id, labelPrefix, overrides = {}) => ({
   orderId: null,
   customerInput: "",
   selectedCustomer: null,
+  customerId: null,
   ...overrides,
 });
 
@@ -190,7 +191,7 @@ export default function SalesPage() {
     setTabs((prev) => {
       const base = replace ? [] : prev;
       const nextIndex = base.length + 1;
-      const newTab = createSalesTab(nextIndex, tabPrefix, { orderId: newOrderId });
+      const newTab = createSalesTab(nextIndex, tabPrefix, { orderId: newOrderId, customerId: null });
       setActiveTab(nextIndex);
       if (newOrderId) {
         draftSnapshotRef.current[newOrderId] = serializeDraftState({
@@ -223,6 +224,7 @@ export default function SalesPage() {
       }
       const mapped = list.map((draft, idx) => {
         const selectedCustomer = mapDraftCustomer(draft);
+        const customerId = selectedCustomer?.id || draft.customerId || null;
         return createSalesTab(idx + 1, tabPrefix, {
           orderId: draft.orderId || null,
           orderNote: draft.orderNote || "",
@@ -231,6 +233,7 @@ export default function SalesPage() {
           ),
           customerInput: selectedCustomer?.fullName || "",
           selectedCustomer,
+          customerId,
         });
       });
       setTabs(mapped);
@@ -239,7 +242,7 @@ export default function SalesPage() {
         const selectedCustomer = mapDraftCustomer(draft);
         acc[draft.orderId] = serializeDraftState({
           orderId: draft.orderId,
-          customerId: selectedCustomer?.id || null,
+          customerId: selectedCustomer?.id || draft.customerId || null,
           paymentMethod: (draft.paymentMethod || "CASH").toUpperCase(),
           orderNote: draft.orderNote || "",
           items: draft.orderItemDTOs || [],
@@ -297,6 +300,32 @@ export default function SalesPage() {
   }, [loadDraftTabs]);
 
   useEffect(() => {
+    if (!customers || customers.length === 0) return;
+    setTabs((prev) => {
+      let changed = false;
+      const updated = prev.map((tab) => {
+        if (!tab.customerId) return tab;
+        if (
+          tab.selectedCustomer &&
+          tab.selectedCustomer.id === tab.customerId &&
+          (tab.selectedCustomer.fullName || tab.selectedCustomer.phoneNumber)
+        ) {
+          return tab;
+        }
+        const found = customers.find((c) => c.id === tab.customerId);
+        if (!found) return tab;
+        changed = true;
+        return {
+          ...tab,
+          selectedCustomer: found,
+          customerInput: found.fullName || tab.customerInput,
+        };
+      });
+      return changed ? updated : prev;
+    });
+  }, [customers, tabs]);
+
+  useEffect(() => {
     const shouldReload = () => Date.now() - lastDraftFetchRef.current > 1000;
     const handleFocus = () => {
       if (shouldReload()) loadDraftTabs();
@@ -321,7 +350,7 @@ export default function SalesPage() {
   const selectedCustomer = currentTab?.selectedCustomer || null;
   const currentOrderId = currentTab?.orderId || null;
   const currentOrderNote = currentTab?.orderNote || "";
-  const currentCustomerId = selectedCustomer?.id || null;
+  const currentCustomerId = selectedCustomer?.id ?? currentTab?.customerId ?? null;
 
   useEffect(() => {
     if (!currentOrderId) return undefined;
@@ -433,7 +462,12 @@ export default function SalesPage() {
     setTabs((prev) =>
       prev.map((tab) =>
         tab.id === activeTab
-          ? { ...tab, selectedCustomer: c, customerInput: c.fullName || "" }
+          ? {
+              ...tab,
+              selectedCustomer: c,
+              customerInput: c.fullName || "",
+              customerId: c.id || null,
+            }
           : tab
       )
     );
@@ -443,7 +477,7 @@ export default function SalesPage() {
     setTabs((prev) =>
       prev.map((tab) =>
         tab.id === activeTab
-          ? { ...tab, selectedCustomer: null, customerInput: "" }
+          ? { ...tab, selectedCustomer: null, customerInput: "", customerId: null }
           : tab
       )
     );
@@ -710,6 +744,7 @@ export default function SalesPage() {
                 orderNote: "",
                 customerInput: "",
                 selectedCustomer: null,
+                customerId: null,
               }
             : tab
         )
@@ -750,6 +785,7 @@ export default function SalesPage() {
               orderNote: "",
               customerInput: "",
               selectedCustomer: null,
+              customerId: null,
             }
           : tab
       )
