@@ -19,6 +19,8 @@ const createSalesTab = (id, labelPrefix, overrides = {}) => ({
   customerInput: "",
   selectedCustomer: null,
   customerId: null,
+  paymentMethod: "cash",
+  invoiceDiscount: 0,
   ...overrides,
 });
 
@@ -74,18 +76,31 @@ const mapCartItemToDraftDTO = (item) => ({
   price: Number(item.price || 0),
 });
 
-const serializeDraftState = ({ orderId, customerId, paymentMethod, orderNote, items }) =>
+const serializeDraftState = ({
+  orderId,
+  customerId,
+  paymentMethod,
+  orderNote,
+  items,
+  invoiceDiscount,
+}) =>
   JSON.stringify({
     orderId: orderId || null,
     customerId: customerId || null,
     paymentMethod,
     orderNote,
+    invoiceDiscount: Number(invoiceDiscount || 0),
     items: items.map((item) => ({
       barcode: item.barcode || item.code,
       quantity: Number(item.quantity || 0),
       price: Number(item.price || 0),
     })),
   });
+const normalizePaymentMethod = (value) => {
+  const val = String(value || "").toLowerCase();
+  if (val === "bank" || val === "qr_code") return val;
+  return "cash";
+};
 
 const mapDraftCustomer = (draft) => {
   const info =
@@ -164,8 +179,6 @@ export default function SalesPage() {
   const [activeTab, setActiveTab] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [barcodeMode, setBarcodeMode] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState("cash");
-  const [invoiceDiscount, setInvoiceDiscount] = useState(0);
 
   /* ====== KHÁCH HÀNG ====== */
   const [customers, setCustomers] = useState([]);
@@ -191,20 +204,26 @@ export default function SalesPage() {
     setTabs((prev) => {
       const base = replace ? [] : prev;
       const nextIndex = base.length + 1;
-      const newTab = createSalesTab(nextIndex, tabPrefix, { orderId: newOrderId, customerId: null });
+      const newTab = createSalesTab(nextIndex, tabPrefix, {
+        orderId: newOrderId,
+        customerId: null,
+        paymentMethod: "cash",
+        invoiceDiscount: 0,
+      });
       setActiveTab(nextIndex);
       if (newOrderId) {
         draftSnapshotRef.current[newOrderId] = serializeDraftState({
           orderId: newOrderId,
           customerId: null,
-          paymentMethod: paymentMethod.toUpperCase(),
+          paymentMethod: "CASH",
           orderNote: "",
           items: [],
+          invoiceDiscount: 0,
         });
       }
       return [...base, newTab];
     });
-  }, [paymentMethod, tabPrefix, token]);
+  }, [tabPrefix, token]);
 
   const loadDraftTabs = useCallback(async () => {
     lastDraftFetchRef.current = Date.now();
@@ -225,6 +244,7 @@ export default function SalesPage() {
       const mapped = list.map((draft, idx) => {
         const selectedCustomer = mapDraftCustomer(draft);
         const customerId = selectedCustomer?.id || draft.customerId || null;
+        const normalizedMethod = normalizePaymentMethod(draft.paymentMethod);
         return createSalesTab(idx + 1, tabPrefix, {
           orderId: draft.orderId || null,
           orderNote: draft.orderNote || "",
@@ -234,6 +254,8 @@ export default function SalesPage() {
           customerInput: selectedCustomer?.fullName || "",
           selectedCustomer,
           customerId,
+          paymentMethod: normalizedMethod,
+          invoiceDiscount: Number(draft.invoiceDiscount || 0),
         });
       });
       setTabs(mapped);
@@ -246,6 +268,7 @@ export default function SalesPage() {
           paymentMethod: (draft.paymentMethod || "CASH").toUpperCase(),
           orderNote: draft.orderNote || "",
           items: draft.orderItemDTOs || [],
+          invoiceDiscount: Number(draft.invoiceDiscount || 0),
         });
         return acc;
       }, {});
@@ -351,6 +374,8 @@ export default function SalesPage() {
   const currentOrderId = currentTab?.orderId || null;
   const currentOrderNote = currentTab?.orderNote || "";
   const currentCustomerId = selectedCustomer?.id ?? currentTab?.customerId ?? null;
+  const paymentMethod = currentTab?.paymentMethod || "cash";
+  const invoiceDiscount = Number(currentTab?.invoiceDiscount || 0);
 
   useEffect(() => {
     if (!currentOrderId) return undefined;
@@ -362,6 +387,7 @@ export default function SalesPage() {
         paymentMethod: paymentMethod.toUpperCase(),
         orderNote: currentOrderNote,
         orderItemDTOs: cartItems.map((item) => mapCartItemToDraftDTO(item)),
+        invoiceDiscount,
       };
       const serialized = serializeDraftState({
         orderId: draftPayload.orderId,
@@ -369,6 +395,7 @@ export default function SalesPage() {
         paymentMethod: draftPayload.paymentMethod,
         orderNote: draftPayload.orderNote,
         items: draftPayload.orderItemDTOs,
+        invoiceDiscount: draftPayload.invoiceDiscount,
       });
       if (draftSnapshotRef.current[currentOrderId] === serialized) {
         return;
@@ -398,6 +425,7 @@ export default function SalesPage() {
     currentOrderNote,
     currentCustomerId,
     paymentMethod,
+    invoiceDiscount,
     token,
   ]);
 
@@ -480,6 +508,20 @@ export default function SalesPage() {
           ? { ...tab, selectedCustomer: null, customerInput: "", customerId: null }
           : tab
       )
+    );
+  };
+
+  const handlePaymentMethodChange = (method) => {
+    const normalized = normalizePaymentMethod(method);
+    setTabs((prev) =>
+      prev.map((tab) => (tab.id === activeTab ? { ...tab, paymentMethod: normalized } : tab))
+    );
+  };
+
+  const handleInvoiceDiscountChange = (value) => {
+    const safeValue = Math.max(0, Number(value) || 0);
+    setTabs((prev) =>
+      prev.map((tab) => (tab.id === activeTab ? { ...tab, invoiceDiscount: safeValue } : tab))
     );
   };
 
@@ -714,6 +756,7 @@ export default function SalesPage() {
           quantity: Number(it.quantity || 0),
           price: Number(it.price || 0),
         })),
+        invoiceDiscount,
       };
 
       const res = await axios.put(`${API_BASE_URL}/order/pending`, payload, {
@@ -745,11 +788,11 @@ export default function SalesPage() {
                 customerInput: "",
                 selectedCustomer: null,
                 customerId: null,
+                invoiceDiscount: 0,
               }
             : tab
         )
       );
-      setInvoiceDiscount(0);
     } catch (err) {
       console.error("Failed to save pending order:", err);
       const msg =
@@ -786,11 +829,11 @@ export default function SalesPage() {
               customerInput: "",
               selectedCustomer: null,
               customerId: null,
+              invoiceDiscount: 0,
             }
           : tab
       )
     );
-    setInvoiceDiscount(0);
   };
 
   /* ====== GIAO DIỆN ====== */
@@ -896,12 +939,12 @@ export default function SalesPage() {
             handleSelectCustomer={handleSelectCustomer}
             totalAmount={totalAmount}
             paymentMethod={paymentMethod}
-            setPaymentMethod={setPaymentMethod}
+            setPaymentMethod={handlePaymentMethodChange}
             onAddCustomerClick={handleOpenCustomerModal}
             selectedCustomer={selectedCustomer}
             onClearCustomer={handleClearCustomer}
             invoiceDiscount={invoiceDiscount}
-            setInvoiceDiscount={setInvoiceDiscount}
+            setInvoiceDiscount={handleInvoiceDiscountChange}
             onPrint={() => console.log(t("sales.printAction", { defaultValue: "Print invoice" }))}
             cartItems={cartItems}
             orderNote={currentTab?.orderNote || ""}
