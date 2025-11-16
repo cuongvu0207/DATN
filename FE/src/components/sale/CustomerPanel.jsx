@@ -78,7 +78,7 @@ export default function CustomerPanel({
         {/* ======= KHÁCH HÀNG ======= */}
         <div className="d-flex justify-content-between align-items-center mb-2">
           <span className="fw-semibold text-dark">{t("sales.customer") || "Khách hàng"}</span>
-          <small className="text-muted">{new Date().toLocaleString("vi-VN")}</small>
+          <span className="text-muted">{new Date().toLocaleString("vi-VN")}</span>
         </div>
 
         {/* Ô tìm khách hàng */}
@@ -125,7 +125,7 @@ export default function CustomerPanel({
                         onClick={() => handleSelect(c)}
                       >
                         <strong>{c.fullName}</strong>{" "}
-                        <small className="text-muted">({c.phoneNumber})</small>
+                        <span className="text-muted">({c.phoneNumber})</span>
                       </div>
                     ))}
                   </div>
@@ -150,12 +150,12 @@ export default function CustomerPanel({
             <div className="d-flex justify-content-between align-items-start gap-3">
               <div>
                 <div className="fw-semibold">{selectedCustomer.fullName}</div>
-                <div className="text-muted small">
+                <div className="text-muted">
                   {selectedCustomer.phoneNumber}
                   {selectedCustomer.email ? ` • ${selectedCustomer.email}` : ""}
                 </div>
                 {selectedCustomer.address && (
-                  <div className="text-muted small">{selectedCustomer.address}</div>
+                  <div className="text-muted">{selectedCustomer.address}</div>
                 )}
                 <span className="badge bg-white border text-secondary mt-2">
                   {selectedCustomer.gender === "female"

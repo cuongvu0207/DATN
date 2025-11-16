@@ -23,7 +23,25 @@ export default function CartItem({
     secondary: "#6c757d",
     dark: "#212529",
   };
+  const hexToRgba = (hex, alpha = 0.3) => {
+    if (typeof hex !== "string" || !hex.startsWith("#")) return hex;
+    let value = hex.slice(1);
+    if (value.length === 3) {
+      value = value
+        .split("")
+        .map((c) => c + c)
+        .join("");
+    }
+    const intVal = Number.parseInt(value, 16);
+    if (Number.isNaN(intVal)) return hex;
+    const r = (intVal >> 16) & 255;
+    const g = (intVal >> 8) & 255;
+    const b = intVal & 255;
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  };
+
   const themeBorderColor = themeColorMap[theme] || "var(--bs-primary)";
+  const themeBorderSoftColor = hexToRgba(themeBorderColor, 0.35);
 
   const [editingDiscount, setEditingDiscount] = useState(false);
   const [tempValue, setTempValue] = useState(item.discountValue ?? 0);
@@ -256,11 +274,16 @@ export default function CartItem({
           <textarea
             ref={noteRef}
             rows={2}
-            className={`form-control form-control-sm border-${theme}`}
+            className="form-control form-control-sm"
             placeholder={t("sales.note") || "Ghi chú sản phẩm..."}
             value={item.note}
             onChange={(e) => setNote(item.code, e.target.value)}
-            style={{ resize: "none", overflow: "hidden" }}
+            style={{
+              resize: "none",
+              overflow: "hidden",
+              borderColor: themeBorderSoftColor,
+              boxShadow: `0 0 0 1px ${themeBorderSoftColor}`,
+            }}
           />
         </div>
       )}

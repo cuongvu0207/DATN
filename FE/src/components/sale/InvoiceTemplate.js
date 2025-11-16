@@ -1,4 +1,4 @@
-﻿// âœ… Máº«u HTML hÃ³a Ä‘Æ¡n A4 â€“ ThÃªm MÃ£ hÃ³a Ä‘Æ¡n & NgÆ°á»i bÃ¡n (láº¥y tá»« ngÆ°á»i Ä‘Äƒng nháº­p)
+﻿
 export function generateInvoiceHTML({
   t,
   selectedCustomer,
@@ -7,14 +7,13 @@ export function generateInvoiceHTML({
   totalAmount,
   invoiceDiscount,
   paymentMethod,
-  invoiceCode, // ðŸ§¾ mÃ£ hÃ³a Ä‘Æ¡n
-  user,        // ðŸ‘¤ thÃ´ng tin ngÆ°á»i Ä‘Äƒng nháº­p (seller)
+  invoiceCode, 
+  user,        
   orderNote,
 }) {
   const totalAfterDiscount = Math.max(totalAmount - (invoiceDiscount || 0), 0);
   const _t = (k, fb) => (typeof t === "function" ? t(k) : null) || fb;
 
-  // map sáº£n pháº©m
   const rows = cartItems
     .map((it, i) => {
       const qty = Number(it.quantity || 0);
@@ -23,7 +22,7 @@ export function generateInvoiceHTML({
       const percent = Number(it.discount || 0);
       const value = Number(it.discountValue || 0);
 
-      // âœ… Giáº£m giÃ¡ tÃ­nh theo tiá»n, khÃ´ng hiá»ƒn thá»‹ %
+
       let discountValue = 0;
       if (mode === "%") {
         discountValue = (price * percent) / 100;
@@ -60,20 +59,20 @@ export function generateInvoiceHTML({
     <!-- Header -->
     <div class="text-center border-bottom pb-2 mb-3">
       <h3 class="fw-bold mb-1">VPOS STORE</h3>
-      <div class="small">${_t("sales.address", "Äá»‹a chá»‰")}: 123 Nguyá»…n TrÃ£i, HÃ  Ná»™i</div>
+      <div class="small">${_t("sales.address")}: 123 Nguyễn Trãi</div>
       <div class="small">Hotline: 0905 123 456</div>
     </div>
 
     <!-- Title -->
-    <h4 class="text-center mb-3 fw-bold">${_t("sales.invoiceTitle", "HÃ“A ÄÆ N BÃN HÃ€NG")}</h4>
+    <h4 class="text-center mb-3 fw-bold">${_t("sales.invoiceTitle")}</h4>
 
     <!-- Meta -->
     <div class="mb-3" style="font-size: 11pt;">
-      <div><strong>${_t("sales.invoiceCode", "MÃ£ hÃ³a Ä‘Æ¡n")}:</strong> ${
+      <div><strong>${_t("sales.invoiceCode")}:</strong> ${
         invoiceCode || "INV-" + new Date().getTime()
       }</div>
-      <div><strong>${_t("sales.date", "NgÃ y")}:</strong> ${new Date().toLocaleString("vi-VN")}</div>
-      <div><strong>${_t("sales.customer", "KhÃ¡ch hÃ ng")}:</strong> ${
+      <div><strong>${_t("sales.date")}:</strong> ${new Date().toLocaleString("vi-VN")}</div>
+      <div><strong>${_t("sales.customer")}:</strong> ${
         selectedCustomer?.fullName || customer || _t("sales.walkInCustomer", "KhÃ¡ch láº»")
       }</div>
       ${
@@ -81,10 +80,10 @@ export function generateInvoiceHTML({
           ? `<div><strong>Phone:</strong> ${selectedCustomer.phoneNumber}</div>`
           : ""
       }
-      <div><strong>${_t("sales.seller", "NgÆ°á»i bÃ¡n")}:</strong> ${
+      <div><strong>${_t("sales.seller")}:</strong> ${
         user?.fullName || user?.username || "sales.staff"
       }</div>
-      <div><strong>${_t("sales.paymentMethod", "PhÆ°Æ¡ng thá»©c thanh toÃ¡n")}:</strong> ${
+      <div><strong>${_t("sales.paymentMethod")}:</strong> ${
         paymentMethod === "cash"
           ? _t("sales.cash", "Tiá»n máº·t")
           : paymentMethod === "bank"
@@ -98,11 +97,11 @@ export function generateInvoiceHTML({
       <thead class="table-light text-center align-middle fw-bold" style="white-space: nowrap;">
         <tr>
           <th style="width:5%;">#</th>
-          <th style="width:45%; white-space: nowrap;">${_t("sales.productName", "TÃªn sáº£n pháº©m")}</th>
-          <th style="width:10%; white-space: nowrap;">${_t("sales.qty", "Sá»‘ lÆ°á»£ng")}</th>
-          <th style="width:15%; white-space: nowrap;">${_t("sales.price", "ÄÆ¡n giÃ¡")}</th>
-          <th style="width:10%; white-space: nowrap;">${_t("sales.discount", "Giáº£m giÃ¡")}</th>
-          <th style="width:15%; white-space: nowrap;">${_t("sales.total", "ThÃ nh tiá»n")}</th>
+          <th style="width:45%; white-space: nowrap;">${_t("sales.productName")}</th>
+          <th style="width:10%; white-space: nowrap;">${_t("sales.qty")}</th>
+          <th style="width:15%; white-space: nowrap;">${_t("sales.price")}</th>
+          <th style="width:10%; white-space: nowrap;">${_t("sales.discount")}</th>
+          <th style="width:15%; white-space: nowrap;">${_t("sales.total")}</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
@@ -110,42 +109,44 @@ export function generateInvoiceHTML({
 
     ${
       orderNote
-        ? `<div class="mt-2 small fst-italic">${orderNote}</div>`
+        ? `<div class="mt-3">
+             <div class="fst-italic">${orderNote}</div>
+           </div>`
         : ""
     }
 
     <!-- Totals -->
     <div class="mt-4" style="font-size: 11pt;">
       <div class="d-flex justify-content-between mb-1">
-        <span class="fw-semibold">${_t("sales.subtotal", "Táº¡m tÃ­nh")}:</span>
+        <span class="fw-semibold">${_t("sales.subtotal")}:</span>
         <span class="fw-semibold">${Number(totalAmount || 0).toLocaleString("vi-VN")}</span>
       </div>
       <div class="d-flex justify-content-between mb-1">
-        <span class="fw-semibold">${_t("sales.discountTotal", "Giáº£m giÃ¡ hÃ³a Ä‘Æ¡n")}:</span>
+        <span class="fw-semibold">${_t("sales.discountTotal")}:</span>
         <span class="fw-semibold">-${Number(invoiceDiscount || 0).toLocaleString("vi-VN")}</span>
       </div>
       <div class="d-flex justify-content-between mt-2 border-top pt-2">
-        <span class="fw-bold fs-6">${_t("sales.total", "ThÃ nh tiá»n")}:</span>
+        <span class="fw-bold fs-6">${_t("sales.total")}:</span>
         <span class="fw-bold fs-6">${Number(totalAfterDiscount || 0).toLocaleString("vi-VN")}</span>
       </div>
-      <div class="fst-italic mt-1">${_t("sales.vatIncluded", "ÄÃ£ bao gá»“m thuáº¿ VAT")}</div>
+      <div class="fst-italic mt-1">${_t("sales.vatIncluded")}</div>
     </div>
 
     <!-- Signatures -->
     <div class="row mt-5">
       <div class="col-6 text-center">
-        <div class="fw-semibold">${_t("sales.seller", "NgÆ°á»i láº­p hÃ³a Ä‘Æ¡n")}</div>
-        <div class="mt-4 small text-muted">(${_t("sales.signAndName", "KÃ½ vÃ  ghi rÃµ há» tÃªn")})</div>
+        <div class="fw-semibold">${_t("sales.seller")}</div>
+        <div class="mt-4 small text-muted">(${_t("sales.signAndName")})</div>
       </div>
       <div class="col-6 text-center">
         <div class="fw-semibold">${_t("sales.buyer", "KhÃ¡ch hÃ ng")}</div>
-        <div class="mt-4 small text-muted">(${_t("sales.signAndName", "KÃ½ vÃ  ghi rÃµ há» tÃªn")})</div>
+        <div class="mt-4 small text-muted">(${_t("sales.signAndName")})</div>
       </div>
     </div>
 
     <!-- Footer -->
     <div class="text-center border-top pt-3 mt-4 fw-semibold">
-      ${_t("sales.thankYou", "Cáº£m Æ¡n quÃ½ khÃ¡ch vÃ  háº¹n gáº·p láº¡i!")}
+      ${_t("sales.thankYou")}
     </div>
   </div>
   `;

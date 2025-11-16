@@ -616,6 +616,7 @@ export default function SalesPage() {
             setInvoiceDiscount={setInvoiceDiscount}
             onPrint={() => console.log("🖨️ In hóa đơn")}
             cartItems={cartItems}
+            orderNote={currentTab?.orderNote || ""}
             onPay={savePendingOrder}
           />
         </div>
