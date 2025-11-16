@@ -55,14 +55,17 @@ export default function ProductListPage() {
     setError("");
     try {
       const { data } = await axiosInstance.get("/inventory/products");
-
       const formatted = (data || []).map((p) => ({
         id: p?.productId?.toString() || "",
         barcode: p?.barcode || "",
         name: p?.productName || t("products.unnamed"),
         category: p?.categoryName || t("products.uncategorized"),
         brand: p?.brandName || "",
-        supplier: "",
+        supplier:
+          p?.supplierName ||
+          p?.supplier?.supplierName ||
+          p?.supplier ||
+          "",
         unit: p?.unit || "",
         price: p?.sellingPrice || 0,
         cost: p?.costOfCapital || 0, // ✅ lấy giá vốn từ BE
@@ -308,46 +311,42 @@ const matchesSupplier =
             suppliers={suppliers}
           />
 
-          {loading ? (
-            <p className="text-center mt-3">{t("common.loadingProducts")}</p>
-          ) : error ? (
-            <p className="text-center text-danger mt-3">{error}</p>
-          ) : (
-            <ProductTable
-              products={filtered}
-              currentPage={currentPage}
-              setCurrentPage={setCurrentPage}
-              rowsPerPage={rowsPerPage}
-              setRowsPerPage={setRowsPerPage}
-              selectedProducts={selectedProducts}
-              onSelectOne={(id) =>
+          <ProductTable
+            products={filtered}
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+            rowsPerPage={rowsPerPage}
+            setRowsPerPage={setRowsPerPage}
+            selectedProducts={selectedProducts}
+            onSelectOne={(id) =>
+              setSelectedProducts((prev) =>
+                prev.includes(id)
+                  ? prev.filter((x) => x !== id)
+                  : [...prev, id]
+              )
+            }
+            onSelectAll={(checked, currentPageItems) => {
+              if (checked) {
+                const allIds = currentPageItems.map((p) => p.id);
+                setSelectedProducts((prev) => [
+                  ...new Set([...prev, ...allIds]),
+                ]);
+              } else {
+                const pageIds = currentPageItems.map((p) => p.id);
                 setSelectedProducts((prev) =>
-                  prev.includes(id)
-                    ? prev.filter((x) => x !== id)
-                    : [...prev, id]
-                )
+                  prev.filter((id) => !pageIds.includes(id))
+                );
               }
-              onSelectAll={(checked, currentPageItems) => {
-                if (checked) {
-                  const allIds = currentPageItems.map((p) => p.id);
-                  setSelectedProducts((prev) => [
-                    ...new Set([...prev, ...allIds]),
-                  ]);
-                } else {
-                  const pageIds = currentPageItems.map((p) => p.id);
-                  setSelectedProducts((prev) =>
-                    prev.filter((id) => !pageIds.includes(id))
-                  );
-                }
-              }}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              editingProduct={editingProduct}
-              setEditingProduct={setEditingProduct}
-              selectedProductId={selectedProductId}
-              setSelectedProductId={setSelectedProductId}
-            />
-          )}
+            }}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            editingProduct={editingProduct}
+            setEditingProduct={setEditingProduct}
+            selectedProductId={selectedProductId}
+            setSelectedProductId={setSelectedProductId}
+            isLoading={loading}
+            fetchError={error}
+          />
         </div>
       </div>
     </MainLayout>

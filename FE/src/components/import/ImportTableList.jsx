@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { formatCurrency } from "../../utils/formatters";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../context/ThemeContext";
@@ -18,9 +18,9 @@ export default function ImportTableList({
     data.length > 0 && data.every((row) => selected.includes(row.id));
 
   return (
-    <div className={`card shadow-sm border border-${theme}`}>
+    <div className="card shadow-sm">
       <table className="table table-hover mb-0 align-middle">
-        <thead className={`table-${theme}`}>
+        <thead className={`table-${theme}`} style={{ position: "sticky", top: 0, zIndex: 2 }}>
           <tr>
             <th style={{ width: 40 }}>
               <input
@@ -98,13 +98,13 @@ export default function ImportTableList({
                 {expandedRow === row.id && (
                   <tr className="bg-light">
                     <td colSpan="7">
-                      <div className="p-3 border-top bg-white rounded-bottom">
+                      <div className="p-3 bg-white rounded-bottom">
                         <h6 className="fw-bold text-primary mb-2">
                           <i className="bi bi-receipt-cutoff me-2"></i>
                           {t("import.details") || "Chi tiết sản phẩm"}
                         </h6>
 
-                        <table className="table table-sm table-bordered align-middle mb-0">
+                        <table className="table table-sm align-middle mb-0">
                           <thead className="table-secondary">
                             <tr>
                               <th>#</th>
@@ -164,3 +164,4 @@ export default function ImportTableList({
     </div>
   );
 }
+

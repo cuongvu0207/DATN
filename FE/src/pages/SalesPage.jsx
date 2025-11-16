@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import Header from "../components/layout/Header";
 import SalesHeaderBar from "../components/sale/SalesHeaderBar";
 import CartItem from "../components/sale/CartItem";
@@ -512,7 +512,6 @@ export default function SalesPage() {
     </div>
   );
 }
-
 
 
 

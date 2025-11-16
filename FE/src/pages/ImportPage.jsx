@@ -112,6 +112,7 @@ export default function ImportListPage() {
   // Phân trang
   const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
   const currentRows = filtered.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+  const rowsSelectValue = rowsPerPage > 100 ? "all" : rowsPerPage;
 
   const [selectedImports, setSelectedImports] = useState([]);
 
@@ -248,15 +249,17 @@ export default function ImportListPage() {
                 <select
                   className="form-select form-select-sm"
                   style={{ width: 130 }}
-                  value={rowsPerPage}
+                  value={rowsSelectValue}
                   onChange={(e) => {
-                    setRowsPerPage(Number(e.target.value));
+                    const val = e.target.value;
+                    setRowsPerPage(val === "all" ? Number.MAX_SAFE_INTEGER : Number(val));
                     setCurrentPage(1);
                   }}
                 >
-                  {[10, 15, 20, 30, 50].map((n) => (
+                  {[15, 30, 50, 100].map((n) => (
                     <option key={n} value={n}>{n} {t("common.rows")}</option>
                   ))}
+                  <option value="all">{t("common.all") || "All"}</option>
                 </select>
               </div>
 

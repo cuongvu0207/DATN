@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+ï»¿import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { API_BASE_URL } from "../services/api";
 import MainLayout from "../layouts/MainLayout";
@@ -54,7 +54,7 @@ export default function StaffPage() {
     }
   };
 
-// ===== Fetch nhân viên =====
+// ===== Fetch nh?n vi?n =====
   const fetchStaff = async () => {
     setLoading(true);
     try {
@@ -64,7 +64,7 @@ export default function StaffPage() {
           Authorization: `Bearer ${token}`,
         },
       });
-      if (!res.ok) throw new Error("Không th? t?i danh sách nhân viên.");
+      if (!res.ok) throw new Error("Kh?ng th? t?i danh s?ch nh?n vi?n.");
       const data = await res.json();
       const formatted = (data || []).map((s, i) => ({
         id: s.userID || i,
@@ -90,7 +90,7 @@ export default function StaffPage() {
     fetchStaff();
   }, []);
 
-  // ===== Thêm nhân viên =====
+  // ===== Th?m nh?n vi?n =====
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -141,7 +141,7 @@ export default function StaffPage() {
       role: "ROLE_USER",
     });
 
-  // ===== Xóa nhân viên =====
+  // ===== X?a nh?n vi?n =====
   const handleDelete = async (id) => {
     if (!window.confirm(t("staff.confirmDelete"))) return;
     try {
@@ -157,7 +157,7 @@ export default function StaffPage() {
     }
   };
 
-  // ===== Tìm ki?m =====
+  // ===== T?m ki?m =====
   const filteredList = staffList.filter((s) => {
     const keyword = (search || "").toLowerCase();
     return (
@@ -210,9 +210,9 @@ export default function StaffPage() {
         {error && <div className="alert alert-danger">{error}</div>}
 
         {/* TABLE (gi?ng ProductTable) */}
-        <div className={`table-responsive rounded-2 border border-${theme} shadow-sm`}>
+        <div className={`table-responsive rounded-3 shadow-sm`}>
           <table className="table table-hover align-middle mb-0">
-            <thead className={`table-${theme}`}>
+            <thead className={`table-${theme}`} style={{ position: "sticky", top: 0, zIndex: 2 }}>
               <tr>
                 <th>#</th>
                 <th>{t("staff.username")}</th>
@@ -286,9 +286,7 @@ export default function StaffPage() {
                 </tr>
               )}
             </tbody>
-          </table>
-        </div>
-      </div>
+          </table></div></div>
 
       {/* MODAL */}
       {showModal && (
@@ -304,12 +302,12 @@ export default function StaffPage() {
                 <div className="modal-body">
                   <div className="row g-3">
                     {[
-                      { name: "username", placeholder: "Tên dang nh?p" },
-                      { name: "fullName", placeholder: "H? và tên" },
+                      { name: "username", placeholder: "T?n dang nh?p" },
+                      { name: "fullName", placeholder: "H? v? t?n" },
                       { name: "email", placeholder: "Email", type: "email" },
                       { name: "password", placeholder: "M?t kh?u", type: "password" },
                       { name: "phoneNumber", placeholder: "S? di?n tho?i" },
-                      { name: "address", placeholder: "Ð?a ch?" },
+                      { name: "address", placeholder: "??a ch?" },
                     ].map((f, i) => (
                       <div className="col-md-4" key={i}>
                         <input
@@ -377,4 +375,11 @@ export default function StaffPage() {
     </MainLayout>
   );
 }
+
+
+
+
+
+
+
 

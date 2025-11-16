@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { API_BASE_URL } from "../services/api";
 import MainLayout from "../layouts/MainLayout";
@@ -108,12 +108,12 @@ export default function SupplierPage() {
         {error && <div className="alert alert-danger">{error}</div>}
 
         {/* BẢNG DANH SÁCH NHÀ CUNG CẤP */}
-        <div className="bg-white border rounded-3 shadow-sm p-3">
+        <div className="bg-white rounded-3 shadow-sm p-3">
           {loading ? (
             <p className="text-center my-3">{t("common.loading") || "Đang tải..."}</p>
           ) : (
-            <table className="table table-hover align-middle">
-              <thead className="table-light">
+            <table className="table table-hover align-middle mb-0">
+              <thead className="table-light" style={{ position: "sticky", top: 0, zIndex: 2 }}>
                 <tr>
                   <th>#</th>
                   <th>{t("supplier.name") || "Tên nhà cung cấp"}</th>
@@ -194,3 +194,5 @@ export default function SupplierPage() {
     </MainLayout>
   );
 }
+
+

@@ -30,12 +30,20 @@ export default function CartItem({
   const [mode, setMode] = useState(item.discountMode || "%");
   const popupRef = useRef(null);
   const [qtyInput, setQtyInput] = useState(String(item.quantity ?? 0));
+  const noteRef = useRef(null);
 
   const total = item.price * item.quantity;
 
   useEffect(() => {
     setQtyInput(String(item.quantity ?? 0));
   }, [item.quantity]);
+
+  useEffect(() => {
+    if (noteRef.current) {
+      noteRef.current.style.height = "auto";
+      noteRef.current.style.height = `${noteRef.current.scrollHeight}px`;
+    }
+  }, [item.note, item.showNote]);
 
   // ===== Áp dụng giảm giá =====
   const applyDiscount = () => {
@@ -89,13 +97,20 @@ export default function CartItem({
     <div className={`bg-white rounded-4 border border-${theme} border-opacity-25 mb-2 p-2`}>
       <div className="d-flex align-items-center justify-content-between" style={{ minHeight: 50 }}>
         {/* BÊN TRÁI */}
-        <div className="d-flex align-items-center flex-grow-1" style={{ gap: 10 }}>
-          <span className="text-secondary small">{index + 1}</span>
-          <button className="btn btn-sm p-0 text-danger border-0" onClick={() => removeItem(item.code)}>
-            <i className="bi bi-trash" />
-          </button>
-          <strong>{item.code}</strong>
-          <span>{item.name}</span>
+        <div className="flex-grow-1">
+          <div className="d-flex align-items-center" style={{ gap: 10 }}>
+            <span className="text-secondary small">{index + 1}</span>
+            <button className="btn btn-sm p-0 text-danger border-0" onClick={() => removeItem(item.code)}>
+              <i className="bi bi-trash" />
+            </button>
+            <strong>{item.code}</strong>
+            <span>{item.name}</span>
+          </div>
+          {item.note && !item.showNote && (
+            <div className="text-secondary small fst-italic mt-1 ps-5">
+              {item.note}
+            </div>
+          )}
         </div>
 
         {/* BÊN PHẢI */}
@@ -104,12 +119,10 @@ export default function CartItem({
           <div className="d-flex align-items-center" style={{ gap: 8 }}>
             <button className="btn btn-sm btn-light rounded-circle" onClick={() => changeQty(item.code, -1)}>−</button>
             <input
-              type="number"
-              min="0"
-              step="1"
+              type="text"
               inputMode="numeric"
               value={qtyInput}
-              className={`form-control form-control-sm text-center fw-semibold border-0 ${
+              className={`form-control form-control-sm text-center fw-semibold border-0 border-bottom border-2 ${
                 item.quantity > item.stock ? "text-danger" : "text-dark"
               }`}
               style={{
@@ -117,9 +130,10 @@ export default function CartItem({
                 background: "transparent",
                 boxShadow: "none",
                 borderRadius: 0,
-                borderBottom: `2px solid ${themeBorderColor}`,
+                borderBottomColor: themeBorderColor,
                 paddingBottom: 2,
               }}
+              onFocus={(e) => e.target.select()}
               onChange={(e) => {
                 const val = e.target.value;
                 if (val === "" || /^\d+$/.test(val)) {
@@ -174,12 +188,14 @@ export default function CartItem({
                     type="number"
                     min="0"
                     max={mode === "%" ? "100" : undefined}
-                    className="form-control form-control-sm border-0 bg-transparent text-end shadow-none flex-grow-1"
+                    className="form-control form-control-sm border-0 border-bottom border-2 bg-transparent text-end shadow-none flex-grow-1"
                     style={{
                       outline: "none",
                       borderRadius: 0,
-                      borderBottom: `2px solid ${themeBorderColor}`,
+                      borderBottomColor: themeBorderColor,
                       paddingBottom: 2,
+                      WebkitAppearance: "none",
+                      MozAppearance: "textfield",
                     }}
                     value={tempValue}
                     onChange={(e) => setTempValue(e.target.value)}
@@ -209,9 +225,9 @@ export default function CartItem({
               </div>
             ) : (
               <span
-                className="fw-semibold text-secondary d-inline-block"
+                className="fw-semibold text-secondary d-inline-block border-bottom border-2"
                 style={{
-                  borderBottom: `2px solid ${themeBorderColor}`,
+                  borderBottomColor: themeBorderColor,
                   paddingBottom: 2,
                 }}
               >
@@ -225,20 +241,26 @@ export default function CartItem({
             {formatCurrency(totalAfterDiscount)}
           </strong>
 
-          <button className={`btn btn-sm border-0 text-${theme}`} onClick={() => toggleNote(item.code)}>
-            <i className="bi bi-three-dots-vertical" />
+          <button
+            className={`btn btn-sm border-0 text-${theme}`}
+            onClick={() => toggleNote(item.code)}
+            title={t("sales.note") || "Ghi chú"}
+          >
+            <i className="bi bi-pencil-square" />
           </button>
         </div>
       </div>
 
       {item.showNote && (
         <div className="mt-2">
-          <input
-            type="text"
+          <textarea
+            ref={noteRef}
+            rows={2}
             className={`form-control form-control-sm border-${theme}`}
             placeholder={t("sales.note") || "Ghi chú sản phẩm..."}
             value={item.note}
             onChange={(e) => setNote(item.code, e.target.value)}
+            style={{ resize: "none", overflow: "hidden" }}
           />
         </div>
       )}

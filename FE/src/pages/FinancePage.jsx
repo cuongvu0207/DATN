@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import MainLayout from "../layouts/MainLayout";
 import { useTheme } from "../context/ThemeContext";
@@ -60,7 +60,7 @@ export default function FinancePage() {
         invoicesCount: Number(data?.invoicesCount || 0),
       });
     } catch (err) {
-      // Giữ UI hoạt động dù BE chưa sẵn: không coi là fatal
+      // Gi? UI ho?t d?ng d? BE chua s?n: kh?ng coi l? fatal
       console.warn("Finance summary fetch failed", err);
     }
   };
@@ -85,7 +85,7 @@ export default function FinancePage() {
     } catch (err) {
       console.warn("Finance transactions fetch failed", err);
       setTransactions([]);
-      // Không setError để không chặn màn hình; chỉ hiển thị rỗng
+      // Kh?ng setError d? kh?ng ch?n m?n h?nh; ch? hi?n th? r?ng
     } finally {
       setLoading(false);
     }
@@ -110,6 +110,7 @@ export default function FinancePage() {
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
   const currentRows = filtered.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+  const rowsSelectValue = rowsPerPage > 100 ? "all" : rowsPerPage;
 
   const exportCSV = () => {
     const rows = [
@@ -134,12 +135,12 @@ export default function FinancePage() {
   };
 
   return (
-    <MainLayout>
+    <Mainlayout>
       <div className="container-fluid py-3">
         {/* Header */}
         <div className="row align-items-center gy-2 mb-3">
           <div className="col-12 col-md-3">
-            <h4 className="fw-bold mb-0">{t("finance.title") || "Tài chính - Kế toán"}</h4>
+            <h4 className="fw-bold mb-0">{t("finance.title") || "T?i ch?nh - K? to?n"}</h4>
           </div>
           <div className="col-12 col-md-5">
             <div className="row g-2">
@@ -163,12 +164,12 @@ export default function FinancePage() {
           </div>
           <div className="col-12 col-md-4 d-flex justify-content-end gap-2 flex-wrap">
             <div className="btn-group">
-              <button className={`btn btn-outline-${theme}`} onClick={() => { quickRange(7); setStartDisplay(formatters.date.toDisplay(new Date(Date.now()-6*86400000).toISOString().slice(0,10))); setEndDisplay(formatters.date.toDisplay(todayISO)); }}>7 ngày</button>
-              <button className={`btn btn-outline-${theme}`} onClick={() => { quickRange(30); setStartDisplay(formatters.date.toDisplay(new Date(Date.now()-29*86400000).toISOString().slice(0,10))); setEndDisplay(formatters.date.toDisplay(todayISO)); }}>30 ngày</button>
-              <button className={`btn btn-outline-${theme}`} onClick={() => { quickRange(90); setStartDisplay(formatters.date.toDisplay(new Date(Date.now()-89*86400000).toISOString().slice(0,10))); setEndDisplay(formatters.date.toDisplay(todayISO)); }}>90 ngày</button>
+              <button className={`btn btn-outline-${theme}`} onClick={() => { quickRange(7); setStartDisplay(formatters.date.toDisplay(new Date(Date.now()-6*86400000).toISOString().slice(0,10))); setEndDisplay(formatters.date.toDisplay(todayISO)); }}>7 ng?y</button>
+              <button className={`btn btn-outline-${theme}`} onClick={() => { quickRange(30); setStartDisplay(formatters.date.toDisplay(new Date(Date.now()-29*86400000).toISOString().slice(0,10))); setEndDisplay(formatters.date.toDisplay(todayISO)); }}>30 ng?y</button>
+              <button className={`btn btn-outline-${theme}`} onClick={() => { quickRange(90); setStartDisplay(formatters.date.toDisplay(new Date(Date.now()-89*86400000).toISOString().slice(0,10))); setEndDisplay(formatters.date.toDisplay(todayISO)); }}>90 ng?y</button>
             </div>
             <button className={`btn btn-${theme} text-white`} onClick={exportCSV}>
-              <i className="bi bi-download me-1" /> {t("finance.export") || "Xuất CSV"}
+              <i className="bi bi-download me-1" /> {t("finance.export") || "Xu?t CSV"}
             </button>
           </div>
         </div>
@@ -181,17 +182,17 @@ export default function FinancePage() {
             icon: "bi-graph-up",
             className: "text-success",
           },{
-            label: t("finance.cost") || "Chi phí",
+            label: t("finance.cost") || "Chi ph?",
             value: formatCurrency(summary.cost),
             icon: "bi-cash-stack",
             className: "text-danger",
           },{
-            label: t("finance.profit") || "Lợi nhuận",
+            label: t("finance.profit") || "L?i nhu?n",
             value: formatCurrency(summary.profit),
             icon: "bi-wallet2",
             className: "text-primary",
           },{
-            label: t("finance.invoices") || "Số hóa đơn",
+            label: t("finance.invoices") || "S? h?a don",
             value: summary.invoicesCount,
             icon: "bi-receipt",
             className: "text-secondary",
@@ -220,7 +221,7 @@ export default function FinancePage() {
               <input
                 type="text"
                 className="form-control"
-                placeholder={t("finance.searchPlaceholder") || "Tìm theo mã/đối tác/ghi chú"}
+                placeholder={t("finance.searchPlaceholder") || "T?m theo m?/d?i t?c/ghi ch?"}
                 value={query}
                 onChange={(e) => { setQuery(e.target.value); setCurrentPage(1); }}
               />
@@ -232,17 +233,20 @@ export default function FinancePage() {
         </div>
 
         {/* Transactions Table */}
-        <div className="table-responsive border rounded-3 shadow-sm">
+        <div
+          className="table-responsive rounded-3 shadow-sm" style={{ borderRadius: 16, overflow: "hidden", paddingRight: 8, paddingBottom: 8, backgroundColor: "#fff" }}
+        >
+          <div style={{ maxHeight: "60vh", overflowX: "auto", overflowY: "auto", borderRadius: 12 }}>
           <table className="table table-hover align-middle mb-0">
-            <thead className={`table-${theme}`}>
+            <thead className={`table-${theme}`} style={{ position: "sticky", top: 0, zIndex: 2 }}>
               <tr>
                 <th>#</th>
-                <th>{t("finance.date") || "Ngày"}</th>
-                <th>{t("finance.type") || "Loại"}</th>
-                <th>{t("finance.code") || "Mã chứng từ"}</th>
-                <th>{t("finance.partner") || "Đối tác"}</th>
-                <th className="text-end">{t("finance.amount") || "Số tiền"}</th>
-                <th>{t("finance.note") || "Ghi chú"}</th>
+                <th>{t("finance.date") || "Ng?y"}</th>
+                <th>{t("finance.type") || "Lo?i"}</th>
+                <th>{t("finance.code") || "M? ch?ng t?"}</th>
+                <th>{t("finance.partner") || "??i t?c"}</th>
+                <th className="text-end">{t("finance.amount") || "S? ti?n"}</th>
+                <th>{t("finance.note") || "Ghi ch?"}</th>
               </tr>
             </thead>
             <tbody>
@@ -271,27 +275,33 @@ export default function FinancePage() {
               ) : (
                 <tr>
                   <td colSpan={7} className="text-center text-muted py-4">
-                    {t("finance.noData") || "Không có dữ liệu"}
+                    {t("finance.noData") || "Kh?ng c? d? li?u"}
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
+          </div>
         </div>
 
         {/* Pagination */}
         <div className="d-flex justify-content-between align-items-center mt-3">
           <div className="d-flex align-items-center gap-2">
-            <span>{t("finance.show") || "Hiển thị"}</span>
+            <span>{t("common.show") || "Hi?n th?"}</span>
             <select
               className="form-select form-select-sm"
               style={{ width: 130 }}
-              value={rowsPerPage}
-              onChange={(e) => { setRowsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+              value={rowsSelectValue}
+              onChange={(e) => {
+                const val = e.target.value;
+                setRowsPerPage(val === "all" ? Number.MAX_SAFE_INTEGER : Number(val));
+                setCurrentPage(1);
+              }}
             >
-              {[10, 15, 20, 30, 50].map((n) => (
-                <option key={n} value={n}>{n} {t("finance.rows") || "dòng"}</option>
+              {[15, 30, 50, 100].map((n) => (
+                <option key={n} value={n}>{n} {t("common.rows") || "d?ng"}</option>
               ))}
+              <option value="all">{t("common.all") || "All"}</option>
             </select>
           </div>
 
@@ -306,6 +316,13 @@ export default function FinancePage() {
           </div>
         </div>
       </div>
-    </MainLayout>
+    </Mainlayout>
   );
 }
+
+
+
+
+
+
+

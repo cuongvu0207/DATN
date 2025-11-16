@@ -15,7 +15,14 @@
     "gender": "Giới tính",
     "address": "Địa chỉ",
     "actions": "Hành động",
-    "noData": "Không có khách hàng nào"
+    "noData": "Không có khách hàng nào",
+    "edit": "Chỉnh sửa khách hàng",
+    "updateSuccess": "Đã cập nhật khách hàng thành công!",
+    "updateError": "Không thể cập nhật khách hàng.",
+    "phoneRequired": "Vui lòng nhập số điện thoại!",
+    "genderMale": "Nam",
+    "genderFemale": "Nữ",
+    "genderUnknown": "Chưa xác định"
   },
   "login": {
     "title": "VPOS",
@@ -29,11 +36,11 @@
     "loading": "Đang xử lý..."
   },
   "common": {
-    "delete" : "Xoá",
-    "edit" : "Chỉnh sửa",
-    "cancel" : "Huỷ",
-    "save" : "Lưu",
-    "all" :"Tất cả",
+    "delete": "Xoá",
+    "edit": "Chỉnh sửa",
+    "cancel": "Huỷ",
+    "save": "Lưu",
+    "all": "Tất cả",
     "active": "Hoạt động",
     "inactive": "Không hoạt động",
     "yes": "Có",
@@ -41,7 +48,8 @@
     "search": "Tìm kiếm...",
     "loading": "Đang tải...",
     "noData": "Không có dữ liệu để hiển thị",
-    "undefined": "Chưa xác định"
+    "undefined": "Chưa xác định",
+    "clear": "Bỏ chọn"
   },
   "menu": {
     "overview": "Tổng quan",
@@ -51,15 +59,12 @@
     "staff": "Nhân viên",
     "finace": "Tài chính và kế toán",
     "sales": "Bán hàng",
-
     "productList": "Danh sách hàng hoá",
     "priceSetup": "Thiết lập giá",
     "supplier": "Nhà cung cấp",
     "importGoods": "Nhập hàng",
-
     "invoice": "Hoá đơn",
     "returns": "Trả hàng",
-
     "groups": {
       "products": "Hàng hoá",
       "import": "Nhập hàng"
@@ -90,8 +95,8 @@
   "products": {
     "title": "Hàng hóa",
     "group": "Nhóm hàng",
-    "category" : "Danh mục ",
-    "brand" : "Thương hiệu",
+    "category": "Danh mục ",
+    "brand": "Thương hiệu",
     "groupPlaceholder": "Chọn nhóm hàng",
     "stock": "Tồn kho",
     "expectedOut": "Dự kiến hết hàng",
@@ -114,15 +119,15 @@
     "costOfCapital": "Giá vốn",
     "quantityInStock": "Tồn kho",
     "expectedOutOfStock": "Dự kiến hết hàng",
-    "editProduct" : "Sửa sản phẩm",
-    "printBarcode" : "In mã vạch",
-    "rows" : "Hàng",
-    "showAll" : "Tất cả",
-    "show" : "Hiển thị",
-    "barcode" : "Mã vạch",
-    "unit" : "Đơn vị",
-    "description" : "Mô tả",
-    "addNewProduct" : "Thêm sản phẩm mới",
+    "editProduct": "Sửa sản phẩm",
+    "printBarcode": "In mã vạch",
+    "rows": "Hàng",
+    "showAll": "Tất cả",
+    "show": "Hiển thị",
+    "barcode": "Mã vạch",
+    "unit": "Đơn vị",
+    "description": "Mô tả",
+    "addNewProduct": "Thêm sản phẩm mới",
     "noProducts": "Chưa có sản phẩm nào. Vui lòng thêm sản phẩm.",
     "loadFail": "Không thể tải danh sách sản phẩm!",
     "placeholder": {
@@ -157,10 +162,10 @@
     "createNewCategory": "Tạo danh mục mới",
     "createNewBrand": "Tạo thương hiệu mới",
     "addToStock": "Thêm vào tồn kho",
-    "status":"Trạng thái",
-    "active":"Hoạt động",
-    "inactive":"Không hoạt động",
-    "createdDate":"Ngày tạo"
+    "status": "Trạng thái",
+    "active": "Hoạt động",
+    "inactive": "Không hoạt động",
+    "createdDate": "Ngày tạo"
   },
   "actions": {
     "apply": "Áp dụng",
@@ -173,12 +178,12 @@
     "color": "Chủ đề"
   },
   "account": {
-  "profile": "Thông tin tài khoản",
-  "logout": "Đăng xuất"
+    "profile": "Thông tin tài khoản",
+    "logout": "Đăng xuất"
   },
   "sales": {
     "addInvoice": "Thêm hóa đơn",
-    "searchProduct": "Tìm sản phẩm (F3)",
+    "searchProduct": "Tìm sản phẩm ",
     "scanBarcode": "Quét mã sản phẩm...",
     "barcodeMode": "Chế độ mã vạch",
     "tabPrefix": "Hóa đơn",
@@ -194,23 +199,22 @@
     "cash": "Tiền mặt",
     "bank": "Chuyển khoản",
     "qr": "Quét mã QR",
-
     "productName": "Tên sản phẩm",
     "qty": "Số lượng",
     "price": "Đơn giá",
     "discount": "Giảm giá",
     "total": "Thành tiền",
-
     "subtotal": "Tạm tính",
     "discountTotal": "Giảm giá hóa đơn",
     "vatIncluded": "Đã bao gồm thuế VAT",
     "thankYou": "Cảm ơn quý khách và hẹn gặp lại!",
-
     "seller": "Người lập hóa đơn",
     "buyer": "Khách hàng",
     "signAndName": "Ký và ghi rõ họ tên",
-
-    "noItems": "Chưa có sản phẩm để in!"
+    "noItems": "Chưa có sản phẩm để in!",
+    "print": "In hóa đơn",
+    "payNow": "Thanh toán",
+    "enterCustomer": "Nhập khách hàng..."
   },
   "supplier": {
     "supplierName": "Tên nhà cung cấp",
@@ -279,7 +283,5 @@
     "display": "Hiển thị",
     "rows": "hàng",
     "all": "Tất cả"
-    
-
   }
 }

@@ -1,16 +1,16 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import { useTheme } from "../context/ThemeContext";
 import { useTranslation } from "react-i18next";
 import MainLayout from "../layouts/MainLayout"; // added
 // using native date input for quick filtering
 
 /**
- * Trang quản lý hóa đơn bán hàng - hỗ trợ:
+ * Trang qu?n l� h�a don b�n h�ng - h? tr?:
  * - i18n qua react-i18next (t(key, fallback))
  * - theme (table-dark / table-light) qua useTheme()
- * - tìm kiếm, lọc trạng thái, mở drawer xem chi tiết
+ * - t�m ki?m, l?c tr?ng th�i, m? drawer xem chi ti?t
  *
- * TODO: thay mock bằng API thực tế (fetch / axios)
+ * TODO: thay mock b?ng API th?c t? (fetch / axios)
  */
 
 export default function SalesInvoicesPage() {
@@ -23,32 +23,33 @@ export default function SalesInvoicesPage() {
   const [selected, setSelected] = useState(null);
   const [showDetail, setShowDetail] = useState(false);
 
-  const [rowsPerPage, setRowsPerPage] = useState(15);
+const [rowsPerPage, setRowsPerPage] = useState(15);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedInvoices, setSelectedInvoices] = useState([]);
+  const rowsSelectValue = rowsPerPage > 100 ? "all" : rowsPerPage;
 
   useEffect(() => {
     const mock = [
       {
         id: "INV-001",
-        customer: "Nguyễn Văn A",
+        customer: "Nguy?n Van A",
         total: 1250000,
-        status: "Đã thanh toán",
+        status: "�� thanh to�n",
         createdAt: new Date().toISOString(),
-        note: "Giao hàng nhanh",
+        note: "Giao h�ng nhanh",
         items: [
-          { name: "Sản phẩm 1", qty: 2, price: 250000 },
-          { name: "Sản phẩm 2", qty: 1, price: 750000 },
+          { name: "S?n ph?m 1", qty: 2, price: 250000 },
+          { name: "S?n ph?m 2", qty: 1, price: 750000 },
         ],
       },
       {
         id: "INV-002",
-        customer: "Công ty B",
+        customer: "C�ng ty B",
         total: 560000,
-        status: "Chưa thanh toán",
+        status: "Chua thanh to�n",
         createdAt: new Date().toISOString(),
         note: "",
-        items: [{ name: "Sản phẩm 3", qty: 7, price: 80000 }],
+        items: [{ name: "S?n ph?m 3", qty: 7, price: 80000 }],
       },
     ];
     setInvoices(mock);
@@ -111,7 +112,7 @@ export default function SalesInvoicesPage() {
         <div>
           <h4 className="mb-0">
             <i className="bi bi-receipt me-2 text-primary" />
-            {t("sales.invoices", "Hóa đơn")}
+            {t("sales.invoices", "H�a don")}
           </h4>
         </div>
 
@@ -121,7 +122,7 @@ export default function SalesInvoicesPage() {
               <input
                 type="text"
                 className="form-control"
-                placeholder={t("search.placeholder", "Tìm theo mã hoặc khách hàng")}
+                placeholder={t("search.placeholder", "T�m theo m� ho?c kh�ch h�ng")}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
@@ -132,10 +133,10 @@ export default function SalesInvoicesPage() {
           </div>
 
           <button className="btn btn-sm btn-success" onClick={onAdd}>
-            <i className="bi bi-plus-lg me-1" /> {t("create.new", "Tạo mới")}
+            <i className="bi bi-plus-lg me-1" /> {t("create.new", "T?o m?i")}
           </button>
           <button className="btn btn-sm btn-outline-success" onClick={onExport}>
-            <i className="bi bi-file-earmark-excel me-1" /> {t("export", "Xuất file")}
+            <i className="bi bi-file-earmark-excel me-1" /> {t("export", "Xu?t file")}
           </button>
           <button className="btn btn-sm btn-outline-secondary" onClick={onPrint}>
             <i className="bi bi-printer me-1" /> {t("print", "In")}
@@ -159,10 +160,10 @@ export default function SalesInvoicesPage() {
         <div className="row g-3 mt-1">
           <div className="col-md-3">
             <div className="card card-body mb-3">
-              <div className="mb-2"><strong>{t("filter.title", "Bộ lọc")}</strong></div>
+              <div className="mb-2"><strong>{t("filter.title", "B? l?c")}</strong></div>
 
               <div className="mb-2">
-                <label className="form-label small m-0">{t("invoice.status", "Trạng thái")}</label>
+                <label className="form-label small m-0">{t("invoice.status", "Tr?ng th�i")}</label>
                 <select
                   className="form-select form-select-sm"
                   value={statusFilter}
@@ -171,147 +172,84 @@ export default function SalesInvoicesPage() {
                     setCurrentPage(1);
                   }}
                 >
-                  <option value="all">{t("filter.all", "Tất cả")}</option>
-                  <option value="Đã thanh toán">{t("filter.paid", "Đã thanh toán")}</option>
-                  <option value="Chưa thanh toán">{t("filter.unpaid", "Chưa thanh toán")}</option>
+                  <option value="all">{t("filter.all", "T?t c?")}</option>
+                  <option value="�� thanh to�n">{t("filter.paid", "�� thanh to�n")}</option>
+                  <option value="Chua thanh to�n">{t("filter.unpaid", "Chua thanh to�n")}</option>
                 </select>
               </div>
 
               <div className="mb-2">
-                <label className="form-label small m-0">{t("invoice.date", "Ngày")}</label>
+                <label className="form-label small m-0">{t("invoice.date", "Ng�y")}</label>
                 <input type="date" className="form-control form-control-sm" onChange={(e) => { /* TODO: hook filter */ }} />
               </div>
 
               <div className="mb-2">
-                <label className="form-label small m-0">{t("invoice.customer", "Khách hàng")}</label>
-                <input type="text" className="form-control form-control-sm" placeholder={t("search.placeholder", "Tìm theo khách hàng")} onChange={(e) => setQuery(e.target.value)} />
+                <label className="form-label small m-0">{t("invoice.customer", "Kh�ch h�ng")}</label>
+                <input type="text" className="form-control form-control-sm" placeholder={t("search.placeholder", "T�m theo kh�ch h�ng")} onChange={(e) => setQuery(e.target.value)} />
               </div>
             </div>
           </div>
 
           <div className="col-md-9">
-            <div className="table-responsive">
-              <table className={`table table-sm table-hover table-bordered ${tableThemeClass} align-middle mb-0`}>
-                <thead>
-                  <tr>
-                    <th style={{ width: 36 }}>
-                      <input
-                        type="checkbox"
-                        checked={currentItems.length > 0 && currentItems.every(i => selectedInvoices.includes(i.id))}
-                        onChange={(e) => handleSelectAll(e.target.checked, currentItems)}
-                      />
-                    </th>
-                    <th style={{ width: 48 }}>#</th>
-                    <th>{t("invoice.id", "Mã")}</th>
-                    <th>{t("invoice.customer", "Khách hàng")}</th>
-                    <th>{t("invoice.date", "Ngày")}</th>
-                    <th className="text-end">{t("invoice.total", "Tổng")}</th>
-                    <th>{t("invoice.status", "Trạng thái")}</th>
-                    <th>{t("actions", "Hành động")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.length === 0 ? (
+            <div className="table-responsive rounded-3" style={{ borderRadius: 16, overflow: "hidden", paddingRight: 8, paddingBottom: 8, backgroundColor: "#fff" }}>
+              <div style={{ maxHeight: "60vh", overflowX: "auto", overflowY: "auto", borderRadius: 12 }}>
+                <table className={`table table-sm table-hover ${tableThemeClass} align-middle mb-0`}>
+                  <thead style={{ position: "sticky", top: 0, zIndex: 2 }}>
                     <tr>
-                      <td colSpan="8" className="text-center text-muted py-4">{t("noData", "Không có dữ liệu")}</td>
-                    </tr>
-                  ) : (
-                    currentItems.map((inv, idx) => (
-                      <tr key={inv.id}>
-                        <td>
-                          <input type="checkbox" checked={selectedInvoices.includes(inv.id)} onChange={() => handleSelectOne(inv.id)} />
-                        </td>
-                        <td>{start + idx + 1}</td>
-                        <td className="text-primary fw-semibold">{inv.id}</td>
-                        <td>{inv.customer}</td>
-                        <td>{fmtDate(inv.createdAt)}</td>
-                        <td className="text-end text-success fw-bold">{fmtCurrency(inv.total)}</td>
-                        <td>
-                          <span className={`badge ${inv.status === "Đã thanh toán" ? "bg-success-subtle text-success border border-success" : "bg-warning-subtle text-warning border border-warning"}`}>
-                            {inv.status}
-                          </span>
-                        </td>
-                        <td>
-                          <div className="btn-group btn-group-sm">
-                            <button className="btn btn-outline-primary" onClick={() => openDetail(inv)}><i className="bi bi-eye" /></button>
-                            <button className="btn btn-outline-success"><i className="bi bi-pencil" /></button>
-                            <button className="btn btn-outline-danger"><i className="bi bi-trash" /></button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="d-flex justify-content-between align-items-center mt-2">
-              <div className="small text-muted">
-                {filtered.length === 0 ? 0 : start + 1}-{Math.min(start + rowsPerPage, filtered.length)} / {filtered.length}
-              </div>
-              <div className="d-flex gap-2">
-                <select className="form-select form-select-sm" style={{ width: 80 }} value={rowsPerPage} onChange={(e) => { setRowsPerPage(Number(e.target.value)); setCurrentPage(1); }}>
-                  <option value={10}>10</option>
-                  <option value={15}>15</option>
-                  <option value={25}>25</option>
-                </select>
-                <button className="btn btn-sm btn-outline-secondary" disabled={currentPage === 1} onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}>Prev</button>
-                <button className="btn btn-sm btn-outline-secondary" disabled={start + rowsPerPage >= filtered.length} onClick={() => setCurrentPage((p) => p + 1)}>Next</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {showDetail && selected && (
-          <div
-            className="position-fixed top-0 end-0 h-100 bg-white shadow-lg border-start"
-            style={{ width: 520, zIndex: 1050, animation: "slideInRight 0.3s ease" }}
-          >
-            <div className={`d-flex justify-content-between align-items-center border-bottom px-3 py-3 bg-${theme} bg-opacity-10`}>
-              <h5 className="mb-0">#{selected.id} — {selected.customer}</h5>
-              <div>
-                <button className="btn btn-sm btn-outline-secondary" onClick={closeDetail}>
-                  {t("close", "Đóng")}
-                </button>
-              </div>
-            </div>
-
-            <div className="p-3 overflow-auto" style={{ height: "calc(100% - 60px)" }}>
-              <div className="mb-2">
-                <div className="text-muted small">{t("invoice.date", "Ngày")}</div>
-                <div>{new Date(selected.createdAt).toLocaleString("vi-VN")}</div>
-              </div>
-              <div className="mb-2">
-                <div className="text-muted small">{t("invoice.note", "Ghi chú")}</div>
-                <div>{selected.note || "-"}</div>
-              </div>
-
-              <div className="mb-3">
-                <div className="text-muted small">{t("invoice.items", "Hàng hóa")}</div>
-                <table className="table table-sm mb-0">
-                  <thead>
-                    <tr>
-                      <th className="text-start">{t("invoice.itemName", "Tên")}</th>
-                      <th>SL</th>
-                      <th className="text-end">{t("invoice.price", "Giá")}</th>
-                      <th className="text-end">{t("invoice.subtotal", "Thành tiền")}</th>
+                      <th style={{ width: 36 }}>
+                        <input
+                          type="checkbox"
+                          checked={currentItems.length > 0 && currentItems.every(i => selectedInvoices.includes(i.id))}
+                          onChange={(e) => handleSelectAll(e.target.checked, currentItems)}
+                        />
+                      </th>
+                      <th style={{ width: 48 }}>#</th>
+                      <th>{t("invoice.id", "Mã")}</th>
+                      <th>{t("invoice.customer", "Khách hàng")}</th>
+                      <th>{t("invoice.date", "Ngày")}</th>
+                      <th className="text-end">{t("invoice.total", "Tổng")}</th>
+                      <th>{t("invoice.status", "Trạng thái")}</th>
+                      <th>{t("actions", "Hành động")}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {selected.items?.map((it, i) => (
-                      <tr key={i}>
-                        <td className="text-start">{it.name}</td>
-                        <td className="text-center">{it.qty}</td>
-                        <td className="text-end">{fmtCurrency(it.price)}</td>
-                        <td className="text-end text-success">{fmtCurrency(it.qty * it.price)}</td>
+                    {filtered.length === 0 ? (
+                      <tr>
+                        <td colSpan="8" className="text-center text-muted py-4">{t("noData", "Không có dữ liệu")}</td>
                       </tr>
-                    ))}
+                    ) : (
+                      currentItems.map((inv, idx) => (
+                        <tr key={inv.id}>
+                          <td>
+                            <input type="checkbox" checked={selectedInvoices.includes(inv.id)} onChange={() => handleSelectOne(inv.id)} />
+                          </td>
+                          <td>{start + idx + 1}</td>
+                          <td className="text-primary fw-semibold">{inv.id}</td>
+                          <td>{inv.customer}</td>
+                          <td>{fmtDate(inv.createdAt)}</td>
+                          <td className="text-end text-success fw-bold">{fmtCurrency(inv.total)}</td>
+                          <td>
+                            <span className={`badge ${inv.status === "Đã thanh toán" ? "bg-success-subtle text-success border border-success" : "bg-warning-subtle text-warning border border-warning"}`}>
+                              {inv.status}
+                            </span>
+                          </td>
+                          <td>
+                            <div className="btn-group btn-group-sm">
+                              <button className="btn btn-outline-primary" onClick={() => openDetail(inv)}><i className="bi bi-eye" /></button>
+                              <button className="btn btn-outline-success"><i className="bi bi-pencil" /></button>
+                              <button className="btn btn-outline-danger"><i className="bi bi-trash" /></button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
+            </div>
 
               <div className="d-flex justify-content-between align-items-center border-top pt-2">
-                <div className="fw-semibold">{t("invoice.total", "Tổng")}</div>
+                <div className="fw-semibold">{t("invoice.total", "T?ng")}</div>
                 <div className="text-success fw-bold">{fmtCurrency(selected.total)}</div>
               </div>
             </div>
@@ -328,5 +266,11 @@ export default function SalesInvoicesPage() {
     </MainLayout>
   );
 }
+
+
+
+
+
+
 
 

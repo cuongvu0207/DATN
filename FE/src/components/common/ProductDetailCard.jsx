@@ -77,10 +77,6 @@ export default function ProductDetailCard({ product, onDelete, onEdit }) {
               <span className="text-muted">{t("products.category")}: </span>
               <span className="fw-semibold">{product.category}</span>
             </div>
-            <div className="col-md-4">
-              <span className="text-muted">{t("products.supplier")}: </span>
-              <span className="fw-semibold">{product.supplier}</span>
-            </div>
           </div>
         </div>
       </div>

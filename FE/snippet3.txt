@@ -1,0 +1,9 @@
+orderNote={currentTab?.orderNote || ""}
+            cartItems={cartItems}
+            onPay={savePendingOrder}
+          />
+        </div>
+      </div>
+
+      {/* Modal khÃ¡ch hÃng */}
+      <Customer

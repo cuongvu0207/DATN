@@ -10,6 +10,7 @@ export const printInvoice = ({
   totalAmount,
   invoiceDiscount,
   paymentMethod,
+  orderNote,
 }) => {
   try {
     // 🧩 Kiểm tra dữ liệu
@@ -27,6 +28,7 @@ export const printInvoice = ({
       totalAmount,
       invoiceDiscount,
       paymentMethod,
+      orderNote,
     });
 
     // 🧱 Tạo khối in ảo trong DOM

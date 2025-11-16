@@ -37,7 +37,8 @@ export default function ProductTable({
 
   return (
     <div className="col-lg-10 col-12">
-      <div className={`table-responsive rounded-2 border border-${theme} shadow-sm`}>
+      <div className={`table-responsive rounded-3 shadow-sm`}>
+        <div className="table-scroll" style={{ maxHeight: "60vh", overflowX: "auto", overflowY: "auto" }}>
         <table className="table table-hover align-middle mb-0">
           <thead className={`table-${theme}`}>
             <tr>
@@ -49,7 +50,7 @@ export default function ProductTable({
                   onChange={(e) => onSelectAll(e.target.checked, currentRows)}
                 />
               </th>
-              <th>STT</th>
+              <th>#</th>
               <th>{t("products.barcode") || "Mã vạch"}</th>
               <th>{t("products.productName") || "Tên sản phẩm"}</th>
               <th>{t("products.category") || "Danh mục"}</th>
@@ -173,6 +174,7 @@ export default function ProductTable({
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Pagination control */}
