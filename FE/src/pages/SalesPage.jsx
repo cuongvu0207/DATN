@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect, useCallback } from "react";
 import Header from "../components/layout/Header";
 import SalesHeaderBar from "../components/sale/SalesHeaderBar";
 import CartItem from "../components/sale/CartItem";
@@ -10,9 +10,38 @@ import axios from "axios";
 import { API_BASE_URL } from "../services/api";
 import { formatCurrency } from "../utils/formatters";
 
+const createSalesTab = (id, labelPrefix, overrides = {}) => ({
+  id,
+  name: `${labelPrefix} ${id}`,
+  items: [],
+  orderNote: "",
+  orderId: null,
+  customerInput: "",
+  selectedCustomer: null,
+  ...overrides,
+});
+
+const EMPTY_CUSTOMER_FORM = {
+  fullName: "",
+  phoneNumber: "",
+  email: "",
+  address: "",
+  gender: "male",
+};
+
+const getEmptyCustomerForm = () => ({ ...EMPTY_CUSTOMER_FORM });
+
+const normalizeGender = (value) => {
+  const raw = String(value ?? "").trim().toLowerCase();
+  if (["1", "nam", "male", "m", "true"].includes(raw)) return "male";
+  if (["0", "nu", "female", "f", "false"].includes(raw)) return "female";
+  return "unknown";
+};
+
 export default function SalesPage() {
   const { theme } = useTheme();
   const { t } = useTranslation();
+  const tabPrefix = t("sales.tabPrefix") || "Order";
   const token = localStorage.getItem("accessToken");
 
   /* ====== SẢN PHẨM TỪ DATABASE ====== */
@@ -58,7 +87,7 @@ export default function SalesPage() {
   }, [token]);
 
   /* ====== STATE HOÁ ĐƠN ====== */
-  const [tabs, setTabs] = useState([    { id: 1, name: `${t("sales.tabPrefix") || "Order"} 1`, items: [], orderNote: "", orderId: null },  ]);
+  const [tabs, setTabs] = useState(() => [createSalesTab(1, tabPrefix)]);
   const [activeTab, setActiveTab] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [barcodeMode, setBarcodeMode] = useState(false);
@@ -66,18 +95,45 @@ export default function SalesPage() {
   const [invoiceDiscount, setInvoiceDiscount] = useState(0);
 
   /* ====== KHÁCH HÀNG ====== */
-  const [customers, setCustomers] = useState(() => {
-    const saved = localStorage.getItem("customers");
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [customer, setCustomer] = useState("");
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [customers, setCustomers] = useState([]);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
-  const [newCustomer, setNewCustomer] = useState({ name: "", phone: "" });
+  const [newCustomer, setNewCustomer] = useState(() => getEmptyCustomerForm());
+  const [savingCustomer, setSavingCustomer] = useState(false);
+
+  const fetchCustomers = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/customer`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const formatted = (res.data || []).map((c) => ({
+        id: c.id,
+        fullName: c.fullName || c.name || "",
+        phoneNumber: c.phoneNumber || c.phone || "",
+        email: c.email || "",
+        address: c.address || "",
+        gender: normalizeGender(c.gender),
+      }));
+      setCustomers(formatted);
+      return formatted;
+    } catch (err) {
+      console.error("Failed to fetch customers", err);
+      return [];
+    }
+  }, [token]);
 
   useEffect(() => {
-    localStorage.setItem("customers", JSON.stringify(customers));
-  }, [customers]);
+    fetchCustomers();
+  }, [fetchCustomers]);
+
+  const handleCloseCustomerModal = () => {
+    setShowCustomerModal(false);
+    setNewCustomer(getEmptyCustomerForm());
+  };
+
+  const handleOpenCustomerModal = () => {
+    setNewCustomer(getEmptyCustomerForm());
+    setShowCustomerModal(true);
+  };
 
   // Ensure the initial tab has a server draft orderId
   useEffect(() => {
@@ -101,40 +157,97 @@ export default function SalesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /* ====== THÔNG TIN TAB HIỆN TẠI ====== */
+  const currentTab = tabs.find((t) => t.id === activeTab);
+  const cartItems = currentTab?.items || [];
+  const customer = currentTab?.customerInput || "";
+  const selectedCustomer = currentTab?.selectedCustomer || null;
+
   const filteredCustomers =
     customer.trim() === ""
       ? []
-      : customers.filter(
-          (c) =>
-            c.name.toLowerCase().includes(customer.toLowerCase()) ||
-            c.phone.includes(customer)
-        );
+      : customers.filter((c) => {
+          const keyword = customer.trim().toLowerCase();
+          const name = (c.fullName || "").toLowerCase();
+          const phone = c.phoneNumber || "";
+          return name.includes(keyword) || phone.includes(customer.trim());
+        });
 
-  const handleSelectCustomer = (c) => {
-    setSelectedCustomer(c);
-    setCustomer(c.name);
+  const setCustomerInput = (value) => {
+    setTabs((prev) =>
+      prev.map((tab) =>
+        tab.id === activeTab ? { ...tab, customerInput: value } : tab
+      )
+    );
   };
 
-  const handleAddCustomer = () => {
-    if (!newCustomer.name.trim()) {
+  const handleSelectCustomer = (c) => {
+    setTabs((prev) =>
+      prev.map((tab) =>
+        tab.id === activeTab
+          ? { ...tab, selectedCustomer: c, customerInput: c.fullName || "" }
+          : tab
+      )
+    );
+  };
+
+  const handleClearCustomer = () => {
+    setTabs((prev) =>
+      prev.map((tab) =>
+        tab.id === activeTab
+          ? { ...tab, selectedCustomer: null, customerInput: "" }
+          : tab
+      )
+    );
+  };
+
+  const handleAddCustomer = async () => {
+    if (!newCustomer.fullName.trim()) {
       alert(t("sales.alertEmptyCustomer") || "⚠️ Vui lòng nhập tên khách hàng!");
       return;
     }
-    const newCus = {
-      id: Date.now(),
-      name: newCustomer.name.trim(),
-      phone: newCustomer.phone.trim(),
-    };
-    setCustomers([...customers, newCus]);
-    setSelectedCustomer(newCus);
-    setCustomer(newCus.name);
-    setShowCustomerModal(false);
-    setNewCustomer({ name: "", phone: "" });
+    if (!newCustomer.phoneNumber.trim()) {
+      alert(t("customer.phoneRequired") || "⚠️ Vui lòng nhập số điện thoại!");
+      return;
+    }
+    setSavingCustomer(true);
+    try {
+      const payload = {
+        name: newCustomer.fullName.trim(),
+        phone: newCustomer.phoneNumber.trim(),
+        email: newCustomer.email.trim(),
+        address: newCustomer.address.trim(),
+        gender: newCustomer.gender === "female" ? 0 : 1,
+      };
+      await axios.post(`${API_BASE_URL}/customer`, payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      const updated = await fetchCustomers();
+      const fallbackCustomer = {
+        id: Date.now(),
+        fullName: newCustomer.fullName.trim(),
+        phoneNumber: newCustomer.phoneNumber.trim(),
+        email: newCustomer.email.trim(),
+        address: newCustomer.address.trim(),
+        gender: newCustomer.gender,
+      };
+      const created = updated.find((c) => c.phoneNumber === payload.phone);
+      if (!created) {
+        setCustomers((prev) => [...prev, fallbackCustomer]);
+      }
+      const resolved = created || fallbackCustomer;
+      handleSelectCustomer(resolved);
+      handleCloseCustomerModal();
+    } catch (err) {
+      console.error("Failed to add customer", err);
+      alert(t("customer.addError") || "⚠️ Không thể lưu khách hàng mới!");
+    } finally {
+      setSavingCustomer(false);
+    }
   };
-
-  /* ====== GIỎ HÀNG ====== */
-  const currentTab = tabs.find((t) => t.id === activeTab);
-  const cartItems = currentTab?.items || [];
 
   const handleAddProduct = (p) => {
     setTabs((prev) =>
@@ -312,13 +425,7 @@ export default function SalesPage() {
     console.log("Cashier:", cashier);
     console.log("Status:", status);
 
-    const newTab = {
-      id: nextIndex,
-      name: `${t("sales.tabPrefix") || "Order"} ${nextIndex}`,
-      items: [],
-      orderNote: "",
-      orderId: newOrderId,
-    };
+    const newTab = createSalesTab(nextIndex, tabPrefix, { orderId: newOrderId });
     setTabs((prev) => [...prev, newTab]);
     setActiveTab(nextIndex);
   };
@@ -360,11 +467,17 @@ export default function SalesPage() {
       // Reset giỏ hàng sau khi lưu
       setTabs((prev) =>
         prev.map((tab) =>
-          tab.id === activeTab ? { ...tab, items: [], orderNote: "" } : tab
+          tab.id === activeTab
+            ? {
+                ...tab,
+                items: [],
+                orderNote: "",
+                customerInput: "",
+                selectedCustomer: null,
+              }
+            : tab
         )
       );
-      setCustomer("");
-      setSelectedCustomer(null);
       setInvoiceDiscount(0);
     } catch (err) {
       console.error("Lỗi lưu đơn PENDING:", err);
@@ -381,17 +494,23 @@ export default function SalesPage() {
 
     alert(
       `✅ Thanh toán thành công!\nKhách hàng: ${
-        selectedCustomer?.name || customer || "Khách lẻ"
+        selectedCustomer?.fullName || customer || "Khách lẻ"
       }\nTổng tiền: ${formatCurrency(finalTotal)}`
     );
 
     setTabs((prev) =>
       prev.map((tab) =>
-        tab.id === activeTab ? { ...tab, items: [], orderNote: "" } : tab
+        tab.id === activeTab
+          ? {
+              ...tab,
+              items: [],
+              orderNote: "",
+              customerInput: "",
+              selectedCustomer: null,
+            }
+          : tab
       )
     );
-    setCustomer("");
-    setSelectedCustomer(null);
     setInvoiceDiscount(0);
   };
 
@@ -484,14 +603,15 @@ export default function SalesPage() {
         <div className="col-lg-4 col-md-5 p-2 d-flex flex-column">
           <CustomerPanel
             customer={customer}
-            setCustomer={setCustomer}
+            setCustomer={setCustomerInput}
             filteredCustomers={filteredCustomers}
             handleSelectCustomer={handleSelectCustomer}
             totalAmount={totalAmount}
             paymentMethod={paymentMethod}
             setPaymentMethod={setPaymentMethod}
-            onAddCustomerClick={() => setShowCustomerModal(true)}
+            onAddCustomerClick={handleOpenCustomerModal}
             selectedCustomer={selectedCustomer}
+            onClearCustomer={handleClearCustomer}
             invoiceDiscount={invoiceDiscount}
             setInvoiceDiscount={setInvoiceDiscount}
             onPrint={() => console.log("🖨️ In hóa đơn")}
@@ -504,10 +624,11 @@ export default function SalesPage() {
       {/* Modal khách hàng */}
       <CustomerModal
         show={showCustomerModal}
-        onClose={() => setShowCustomerModal(false)}
+        onClose={handleCloseCustomerModal}
         newCustomer={newCustomer}
         setNewCustomer={setNewCustomer}
         handleAddCustomer={handleAddCustomer}
+        saving={savingCustomer}
       />
     </div>
   );

@@ -54,7 +54,7 @@ export default function ProductTable({
               <th>{t("products.barcode") || "Mã vạch"}</th>
               <th>{t("products.productName") || "Tên sản phẩm"}</th>
               <th>{t("products.category") || "Danh mục"}</th>
-              <th>{t("products.brand") || "Thương hiệu"}</th> {/* ✅ Thêm cột mới */}
+              <th>{t("products.brand") || "Thương hiệu"}</th> 
               <th>{t("products.unit") || "Đơn vị"}</th>
               <th>{t("products.sellingPrice") || "Giá bán"}</th>
               <th>{t("products.costOfCapital") || "Giá vốn"}</th>
