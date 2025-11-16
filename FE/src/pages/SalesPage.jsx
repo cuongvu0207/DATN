@@ -443,6 +443,10 @@ export default function SalesPage() {
 
     try {
       const payload = {
+        orderId: currentTab?.orderId || null,
+        customerId: selectedCustomer?.id || null,
+        paymentMethod: paymentMethod.toUpperCase(),
+        orderNote: currentTab?.orderNote || "",
         orderItemDTOs: cartItems.map((it) => ({
           productName: it.name,
           barcode: it.code,
