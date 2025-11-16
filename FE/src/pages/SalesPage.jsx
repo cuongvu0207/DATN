@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from "react";
+﻿import React, { useState, useEffect, useCallback, useRef } from "react";
 import Header from "../components/layout/Header";
 import SalesHeaderBar from "../components/sale/SalesHeaderBar";
 import CartItem from "../components/sale/CartItem";
@@ -38,10 +38,82 @@ const normalizeGender = (value) => {
   return "unknown";
 };
 
+const mapDraftItemToCart = (item, idx = 0) => {
+  const quantity = Number(item.quantity || 0);
+  const price = Number(item.price || 0);
+  const discountMode = item.discountMode || "%";
+  const discountValue = Number(item.discountValue || 0);
+  const discountPct =
+    discountMode === "%"
+      ? Number(item.discount || 0)
+      : price > 0
+      ? Math.min(100, Math.max(0, (discountValue / price) * 100))
+      : 0;
+
+  const stockValue = Number(item.stock);
+  return {
+    code: item.barcode || `SKU-${String(idx + 1).padStart(4, "0")}`,
+    name: item.productName || `Item ${idx + 1}`,
+    price,
+    quantity,
+    total: Number(item.total || quantity * price),
+    discount: discountPct,
+    discountMode,
+    discountValue,
+    note: item.note || "",
+    showNote: Boolean(item.note),
+    stock: Number.isFinite(stockValue) ? stockValue : 999999,
+  };
+};
+
+const mapCartItemToDraftDTO = (item) => ({
+  productName: item.name,
+  barcode: item.code,
+  quantity: Number(item.quantity || 0),
+  price: Number(item.price || 0),
+});
+
+const serializeDraftState = ({ orderId, customerId, paymentMethod, orderNote, items }) =>
+  JSON.stringify({
+    orderId: orderId || null,
+    customerId: customerId || null,
+    paymentMethod,
+    orderNote,
+    items: items.map((item) => ({
+      barcode: item.barcode || item.code,
+      quantity: Number(item.quantity || 0),
+      price: Number(item.price || 0),
+    })),
+  });
+
+const mapDraftCustomer = (draft) => {
+  const info =
+    draft.customer ||
+    draft.customerInfo ||
+    draft.customerData ||
+    {};
+  const id = draft.customerId || info.id || info.customerId || null;
+  const fullName = info.fullName || info.name || info.customerName || draft.customerName || "";
+  const phoneNumber = info.phoneNumber || info.phone || "";
+  const email = info.email || "";
+  const address = info.address || "";
+  const gender = normalizeGender(info.gender);
+
+  if (!id && !fullName) return null;
+  return {
+    id,
+    fullName,
+    phoneNumber,
+    email,
+    address,
+    gender,
+  };
+};
+
 export default function SalesPage() {
   const { theme } = useTheme();
   const { t } = useTranslation();
-  const tabPrefix = t("sales.tabPrefix") || "Order";
+  const tabPrefix = t("sales.tabPrefix", { defaultValue: "Order" });
   const token = localStorage.getItem("accessToken");
 
   /* ====== SẢN PHẨM TỪ DATABASE ====== */
@@ -78,7 +150,7 @@ export default function SalesPage() {
         setProductList(formatted);
       } catch (err) {
         console.error(err);
-        setError("❌ Không thể tải danh sách sản phẩm!");
+        setError(t("sales.productsLoadError", { defaultValue: "Unable to load product list." }));
       } finally {
         setLoading(false);
       }
@@ -99,6 +171,91 @@ export default function SalesPage() {
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [newCustomer, setNewCustomer] = useState(() => getEmptyCustomerForm());
   const [savingCustomer, setSavingCustomer] = useState(false);
+  const draftSyncRef = useRef(null);
+  const draftSnapshotRef = useRef({});
+  const lastDraftFetchRef = useRef(0);
+
+  const createDraftTab = useCallback(async ({ replace = false } = {}) => {
+    let newOrderId = null;
+    try {
+      const res = await axios.post(
+        `${API_BASE_URL}/order/draft`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      newOrderId = res?.data?.orderId || null;
+    } catch (err) {
+      console.error("Failed to create draft order", err);
+    }
+    setTabs((prev) => {
+      const base = replace ? [] : prev;
+      const nextIndex = base.length + 1;
+      const newTab = createSalesTab(nextIndex, tabPrefix, { orderId: newOrderId });
+      setActiveTab(nextIndex);
+      if (newOrderId) {
+        draftSnapshotRef.current[newOrderId] = serializeDraftState({
+          orderId: newOrderId,
+          customerId: null,
+          paymentMethod: paymentMethod.toUpperCase(),
+          orderNote: "",
+          items: [],
+        });
+      }
+      return [...base, newTab];
+    });
+  }, [paymentMethod, tabPrefix, token]);
+
+  const loadDraftTabs = useCallback(async () => {
+    lastDraftFetchRef.current = Date.now();
+    try {
+      const res = await axios.get(`${API_BASE_URL}/order/drafts/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const payload = res?.data;
+      const list = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.content)
+        ? payload.content
+        : [];
+      if (list.length === 0) {
+        await createDraftTab({ replace: true });
+        return;
+      }
+      const mapped = list.map((draft, idx) => {
+        const selectedCustomer = mapDraftCustomer(draft);
+        return createSalesTab(idx + 1, tabPrefix, {
+          orderId: draft.orderId || null,
+          orderNote: draft.orderNote || "",
+          items: (draft.orderItemDTOs || []).map((it, itemIdx) =>
+            mapDraftItemToCart(it, itemIdx)
+          ),
+          customerInput: selectedCustomer?.fullName || "",
+          selectedCustomer,
+        });
+      });
+      setTabs(mapped);
+      draftSnapshotRef.current = list.reduce((acc, draft) => {
+        if (!draft.orderId) return acc;
+        const selectedCustomer = mapDraftCustomer(draft);
+        acc[draft.orderId] = serializeDraftState({
+          orderId: draft.orderId,
+          customerId: selectedCustomer?.id || null,
+          paymentMethod: (draft.paymentMethod || "CASH").toUpperCase(),
+          orderNote: draft.orderNote || "",
+          items: draft.orderItemDTOs || [],
+        });
+        return acc;
+      }, {});
+      setActiveTab(1);
+    } catch (err) {
+      console.error("Failed to fetch draft orders", err);
+      setTabs((prev) => {
+        if (prev.length > 0) return prev;
+        return [createSalesTab(1, tabPrefix)];
+      });
+      setActiveTab(1);
+    }
+  }, [tabPrefix, token, createDraftTab]);
 
   const fetchCustomers = useCallback(async () => {
     try {
@@ -135,33 +292,124 @@ export default function SalesPage() {
     setShowCustomerModal(true);
   };
 
-  // Ensure the initial tab has a server draft orderId
   useEffect(() => {
-    const ensureFirstDraft = async () => {
-      if (!tabs[0]?.orderId) {
-        try {
-          const res = await axios.post(`${API_BASE_URL}/order/draft`, {}, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          const oid = res?.data?.orderId || null;
-          if (oid) {
-            setTabs((prev) => prev.map((t) => (t.id === 1 ? { ...t, orderId: oid } : t)));
-          }
-        } catch (e) {
-          console.error('Failed to create initial draft order:', e);
-        }
+    loadDraftTabs();
+  }, [loadDraftTabs]);
+
+  useEffect(() => {
+    const shouldReload = () => Date.now() - lastDraftFetchRef.current > 1000;
+    const handleFocus = () => {
+      if (shouldReload()) loadDraftTabs();
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible" && shouldReload()) {
+        loadDraftTabs();
       }
     };
-    ensureFirstDraft();
-    // run once on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [loadDraftTabs]);
 
   /* ====== THÔNG TIN TAB HIỆN TẠI ====== */
   const currentTab = tabs.find((t) => t.id === activeTab);
   const cartItems = currentTab?.items || [];
   const customer = currentTab?.customerInput || "";
   const selectedCustomer = currentTab?.selectedCustomer || null;
+  const currentOrderId = currentTab?.orderId || null;
+  const currentOrderNote = currentTab?.orderNote || "";
+  const currentCustomerId = selectedCustomer?.id || null;
+
+  useEffect(() => {
+    if (!currentOrderId) return undefined;
+    if (draftSyncRef.current) clearTimeout(draftSyncRef.current);
+    draftSyncRef.current = setTimeout(() => {
+      const draftPayload = {
+        orderId: currentOrderId,
+        customerId: currentCustomerId,
+        paymentMethod: paymentMethod.toUpperCase(),
+        orderNote: currentOrderNote,
+        orderItemDTOs: cartItems.map((item) => mapCartItemToDraftDTO(item)),
+      };
+      const serialized = serializeDraftState({
+        orderId: draftPayload.orderId,
+        customerId: draftPayload.customerId,
+        paymentMethod: draftPayload.paymentMethod,
+        orderNote: draftPayload.orderNote,
+        items: draftPayload.orderItemDTOs,
+      });
+      if (draftSnapshotRef.current[currentOrderId] === serialized) {
+        return;
+      }
+      axios
+        .put(`${API_BASE_URL}/order/draft`, draftPayload, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        })
+        .then(() => {
+          draftSnapshotRef.current[currentOrderId] = serialized;
+        })
+        .catch((err) => {
+          console.error("Failed to sync draft order", err);
+        });
+    }, 600);
+    return () => {
+      if (draftSyncRef.current) {
+        clearTimeout(draftSyncRef.current);
+      }
+    };
+  }, [
+    cartItems,
+    currentOrderId,
+    currentOrderNote,
+    currentCustomerId,
+    paymentMethod,
+    token,
+  ]);
+
+  const handleRemoveTab = async (id) => {
+    if (tabs.length <= 1) {
+      alert(t("sales.needOneTab", { defaultValue: "You need at least one active order." }));
+      return;
+    }
+    const tabToRemove = tabs.find((tab) => tab.id === id);
+    if (tabToRemove?.orderId) {
+      try {
+        await axios.delete(`${API_BASE_URL}/order/draft/${tabToRemove.orderId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } catch (err) {
+        console.error("Failed to delete draft order", err);
+      }
+      delete draftSnapshotRef.current[tabToRemove.orderId];
+    }
+
+    const normalized = tabs
+      .filter((tab) => tab.id !== id)
+      .map((tab, idx) => ({
+        ...tab,
+        id: idx + 1,
+        name: `${tabPrefix} ${idx + 1}`,
+      }));
+
+    if (normalized.length === 0) {
+      const fallback = createSalesTab(1, tabPrefix);
+      setTabs([fallback]);
+      setActiveTab(1);
+    } else {
+      setTabs(normalized);
+      if (activeTab === id) {
+        setActiveTab(Math.max(1, id - 1));
+      } else if (activeTab > id) {
+        setActiveTab(activeTab - 1);
+      }
+    }
+  };
 
   const filteredCustomers =
     customer.trim() === ""
@@ -203,11 +451,11 @@ export default function SalesPage() {
 
   const handleAddCustomer = async () => {
     if (!newCustomer.fullName.trim()) {
-      alert(t("sales.alertEmptyCustomer") || "⚠️ Vui lòng nhập tên khách hàng!");
+      alert(t("sales.alertEmptyCustomer", { defaultValue: "Please enter customer name." }));
       return;
     }
     if (!newCustomer.phoneNumber.trim()) {
-      alert(t("customer.phoneRequired") || "⚠️ Vui lòng nhập số điện thoại!");
+      alert(t("customer.phoneRequired", { defaultValue: "Please enter phone number." }));
       return;
     }
     setSavingCustomer(true);
@@ -243,7 +491,7 @@ export default function SalesPage() {
       handleCloseCustomerModal();
     } catch (err) {
       console.error("Failed to add customer", err);
-      alert(t("customer.addError") || "⚠️ Không thể lưu khách hàng mới!");
+      alert(t("customer.addError", { defaultValue: "Unable to save customer." }));
     } finally {
       setSavingCustomer(false);
     }
@@ -300,7 +548,7 @@ export default function SalesPage() {
     if (found) {
       handleAddProduct(found);
     } else {
-      alert(t("sales.productNotFound") || "⚠️ Không tìm thấy sản phẩm!");
+      alert(t("sales.productNotFound", { defaultValue: "Product not found." }));
     }
   };
 
@@ -405,29 +653,8 @@ export default function SalesPage() {
   };
 
   
-  // Create a draft order on server and open a new tab
   const handleAddTab = async () => {
-    const nextIndex = tabs.length + 1;
-    let newOrderId = null;
-    let cashier = null;
-    let status = null;
-    try {
-      const res = await axios.post(`${API_BASE_URL}/order/draft`, {}, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      newOrderId = res?.data?.orderId || null;
-      cashier = res?.data?.cashierId || null;
-      status = res?.data?.status || null;
-    } catch (e) {
-      console.error("Failed to create draft order:", e);
-    }
-    console.log("New draft order ID:", newOrderId);
-    console.log("Cashier:", cashier);
-    console.log("Status:", status);
-
-    const newTab = createSalesTab(nextIndex, tabPrefix, { orderId: newOrderId });
-    setTabs((prev) => [...prev, newTab]);
-    setActiveTab(nextIndex);
+    await createDraftTab();
   };
   
   /* ====== THANH TOÁN ====== */
@@ -437,16 +664,16 @@ export default function SalesPage() {
   // Gọi API lưu đơn ở trạng thái PENDING
   const savePendingOrder = async () => {
     if (cartItems.length === 0) {
-      alert("Chưa có sản phẩm nào trong giỏ hàng!");
+      alert(t("sales.cartEmpty", { defaultValue: "No items in the cart." }));
       return;
     }
 
     try {
       const payload = {
-        orderId: currentTab?.orderId || null,
-        customerId: selectedCustomer?.id || null,
+        orderId: currentOrderId,
+        customerId: currentCustomerId,
         paymentMethod: paymentMethod.toUpperCase(),
-        orderNote: currentTab?.orderNote || "",
+        orderNote: currentOrderNote,
         orderItemDTOs: cartItems.map((it) => ({
           productName: it.name,
           barcode: it.code,
@@ -464,9 +691,14 @@ export default function SalesPage() {
 
       const data = res?.data || {};
       const total = data.totalPrice ?? finalTotal;
-      const oid = data.orderId || "(chưa có mã)";
+      const oid = data.orderId || t("sales.orderCodeMissing", { defaultValue: "(no code)" });
 
-      alert(`Đã lưu đơn PENDING.\nMã đơn: ${oid}\nTổng tiền: ${formatCurrency(total)}`);
+      const pendingMessage = t("sales.pendingSaved", {
+        defaultValue: "Saved draft order.\nOrder code: {{orderId}}\nTotal: {{total}}",
+        orderId: oid,
+        total: formatCurrency(total),
+      });
+      alert(pendingMessage);
 
       // Reset giỏ hàng sau khi lưu
       setTabs((prev) =>
@@ -484,23 +716,30 @@ export default function SalesPage() {
       );
       setInvoiceDiscount(0);
     } catch (err) {
-      console.error("Lỗi lưu đơn PENDING:", err);
-      const msg = err?.response?.data?.message || "Không thể lưu đơn. Vui lòng thử lại.";
+      console.error("Failed to save pending order:", err);
+      const msg =
+        err?.response?.data?.message ||
+        t("sales.pendingSaveFailed", { defaultValue: "Unable to save draft order. Please try again." });
       alert(msg);
     }
   };
 
   const handlePayment = () => {
     if (cartItems.length === 0) {
-      alert("🛒 Chưa có sản phẩm nào trong giỏ hàng!");
+      alert(t("sales.cartEmpty", { defaultValue: "No items in the cart." }));
       return;
     }
 
-    alert(
-      `✅ Thanh toán thành công!\nKhách hàng: ${
-        selectedCustomer?.fullName || customer || "Khách lẻ"
-      }\nTổng tiền: ${formatCurrency(finalTotal)}`
-    );
+    const customerName =
+      selectedCustomer?.fullName ||
+      customer ||
+      t("sales.walkInCustomer", { defaultValue: "Walk-in customer" });
+    const paymentMessage = t("sales.paymentSuccess", {
+      defaultValue: "Payment successful!\nCustomer: {{customer}}\nTotal: {{total}}",
+      customer: customerName,
+      total: formatCurrency(finalTotal),
+    });
+    alert(paymentMessage);
 
     setTabs((prev) =>
       prev.map((tab) =>
@@ -536,7 +775,7 @@ export default function SalesPage() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         handleAddTab={handleAddTab}
-        handleRemoveTab={(id) => setTabs(tabs.filter((t) => t.id !== id && tabs.length > 1))}
+        handleRemoveTab={handleRemoveTab}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         barcodeMode={barcodeMode}
@@ -551,7 +790,7 @@ export default function SalesPage() {
             {loading ? (
               <div className="text-center text-muted mt-5">
                 <div className="spinner-border text-primary" />
-                <p>Đang tải sản phẩm...</p>
+                <p>{t("sales.loadingProducts", { defaultValue: "Loading products..." })}</p>
               </div>
             ) : error ? (
               <div className="text-danger text-center mt-5">{error}</div>
@@ -577,7 +816,7 @@ export default function SalesPage() {
 
                 {cartItems.length === 0 ? (
                   <div className="text-center text-muted mt-5">
-                    {t("sales.noItems") || "Chưa có sản phẩm trong giỏ hàng"}
+                    {t("sales.noItems", { defaultValue: "No items in the cart" })}
                   </div>
                 ) : (
                   cartItems.map((it, idx) => (
@@ -604,7 +843,7 @@ export default function SalesPage() {
               <input
                 type="text"
                 className="form-control border-0 shadow-none"
-                placeholder={t("sales.orderNote") || "Ghi chú đơn hàng..."}
+                placeholder={t("sales.orderNote", { defaultValue: "Order note..." })}
                 value={currentTab?.orderNote || ""}
                 onChange={(e) => setOrderNote(e.target.value)}
               />
@@ -627,7 +866,7 @@ export default function SalesPage() {
             onClearCustomer={handleClearCustomer}
             invoiceDiscount={invoiceDiscount}
             setInvoiceDiscount={setInvoiceDiscount}
-            onPrint={() => console.log("🖨️ In hóa đơn")}
+            onPrint={() => console.log(t("sales.printAction", { defaultValue: "Print invoice" }))}
             cartItems={cartItems}
             orderNote={currentTab?.orderNote || ""}
             onPay={savePendingOrder}
