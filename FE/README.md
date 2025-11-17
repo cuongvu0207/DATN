@@ -1,10 +1,37 @@
 # DATN FE QLBH – POS Frontend
 
-Ứng dụng bán hàng (POS) cho đồ án tốt nghiệp, được xây dựng bằng React + Vite. Tài liệu này giúp bạn hiểu toàn bộ dự án: kiến trúc, cách cài đặt, cấu trúc thư mục, cách kết nối backend, cũng như danh sách API hoàn chỉnh.
+Ứng dụng quản lý bán hàng chuyên cho **cửa hàng tạp hoá / văn phòng phẩm**. Mục tiêu là cung cấp cho thu ngân một POS đa hoá đơn, đồng thời hỗ trợ quản lý sản phẩm, khách hàng, nhà cung cấp, nhập hàng và nhân sự. Dự án xây dựng bằng React + Vite. README này mô tả đầy đủ kiến trúc, nghiệp vụ, cấu hình và API.
 
 ---
 
-## 1. Công nghệ sử dụng
+## 1. Nghiệp vụ chính
+
+### 1.1 Bán lẻ tạp hoá/văn phòng phẩm
+- Thu ngân có thể mở nhiều **hoá đơn tạm** song song (khách chờ thanh toán).
+- Mỗi tab lưu riêng: danh sách mặt hàng (có barcode, đơn vị, giảm giá từng dòng), ghi chú, khách hàng, phương thức thanh toán, giảm giá hoá đơn.
+- Hỗ trợ tìm nhanh sản phẩm theo tên, mã; quét barcode hoặc thêm thủ công.
+- Cho phép ghi chú đơn hàng, ghi chú từng sản phẩm (nhu cầu bọc sách, đóng gói…).
+- Với văn phòng phẩm, nhiều sản phẩm có **đơn vị khác nhau** (hộp, cái, bộ), hệ thống hiển thị rõ tồn kho.
+
+### 1.2 Quản lý khách hàng
+- Lưu thông tin khách mua sỉ, khách thân thiết (tên, số điện thoại, địa chỉ, email, giới tính).
+- POS cho phép chọn khách đã có hoặc thêm nhanh khách mới ngay tại quầy.
+- Danh sách khách đồng bộ với backend để tái sử dụng ở các hệ thống khác (CRM, báo cáo công nợ).
+
+### 1.3 Nhà cung cấp – nhập hàng
+- Theo dõi nhà cung cấp (cả cửa hàng tạp hoá và NPP văn phòng phẩm).
+- Xử lý đơn nhập, nhập kho, đối chiếu tồn kho.
+
+### 1.4 Nhân sự – phân quyền
+- Quản lý danh sách nhân viên, phân quyền truy cập cho thu ngân, quản lý cửa hàng…
+
+### 1.5 Thiết kế hướng đến thực tế cửa hàng nhỏ
+- **Chốt đơn linh hoạt**: các phương thức thanh toán “Tiền mặt / Chuyển khoản / Quét mã QR”.
+- **Theo dõi tồn kho**: thông tin giá vốn, giá bán, số lượng thực tế.
+- **Tự động phục hồi hoá đơn**: khi tạm thời chuyển sang màn hình khác hoặc log out, quay lại vẫn có các draft trước đó.
+- **In hoá đơn** dạng PDF/A4 (có thể tùy chỉnh để in mini POS).
+
+## 2. Công nghệ sử dụng
 
 | Thành phần          | Công nghệ                                                       |
 |---------------------|-----------------------------------------------------------------|
@@ -20,7 +47,7 @@ POS hỗ trợ nhiều tab hoá đơn, tìm kiếm sản phẩm, quét barcode, 
 
 ---
 
-## 2. Chuẩn bị môi trường
+## 3. Chuẩn bị môi trường
 
 - Node.js 18 trở lên
 - npm 9 trở lên (hoặc pnpm/yarn)
@@ -28,7 +55,7 @@ POS hỗ trợ nhiều tab hoá đơn, tìm kiếm sản phẩm, quét barcode, 
 
 ---
 
-## 3. Cài đặt & chạy
+## 4. Cài đặt & chạy
 
 ```bash
 git clone <repo-url> DATN_FE_QLBH_FE
@@ -45,7 +72,7 @@ npm run preview      # chạy thử sau build
 npm run lint         # kiểm tra ESLint
 ```
 
-### 3.1 Cấu hình kết nối backend
+### 4.1 Cấu hình kết nối backend
 
 File `src/services/api.js` chứa `API_BASE_URL`:
 
@@ -56,7 +83,7 @@ export const API_BASE_URL = "http://192.168.1.208:8080/api";
 - Sửa giá trị này để trỏ vào môi trường BE bạn muốn.
 - Token đăng nhập được lưu trong `localStorage` với key `accessToken`. Axios tự động đọc token khi gọi API.
 
-### 3.2 FE ↔ BE hoạt động thế nào?
+### 4.2 FE ↔ BE hoạt động thế nào?
 
 1. Người dùng đăng nhập (`/auth/login`) → lưu token.
 2. Các trang protected nằm trong `ProtectedRoute`, chỉ render khi token hợp lệ.
@@ -69,7 +96,7 @@ export const API_BASE_URL = "http://192.168.1.208:8080/api";
 
 ---
 
-## 4. Cấu trúc thư mục
+## 5. Cấu trúc thư mục
 
 ```
 src/
@@ -86,11 +113,11 @@ src/
 
 ---
 
-## 5. Danh sách API
+## 6. Danh sách API
 
 > **Lưu ý:** FE kỳ vọng draft trả kèm `orderItemDTOs`, `orderNote`, `customerId`, `invoiceDiscount`, `paymentMethod`. Nếu backend trả thiếu, POS không thể khôi phục chính xác.
 
-### 5.1 Auth & Nhân sự
+### 6.1 Auth & Nhân sự
 
 | Endpoint                         | Method | Mô tả                                 |
 |----------------------------------|--------|---------------------------------------|
@@ -101,7 +128,7 @@ src/
 | `/auth/users/create` *(tùy BE)*  | POST   | Tạo nhân viên                         |
 | `/auth/users/{id}`               | DELETE | Xoá nhân viên                         |
 
-### 5.2 Khách hàng
+### 6.2 Khách hàng
 
 | Endpoint                     | Method | Mô tả                        |
 |------------------------------|--------|------------------------------|
@@ -110,7 +137,7 @@ src/
 | `/customer/{id}`             | PUT    | Sửa khách                    |
 | `/customer/{id}`             | DELETE | Xoá khách                    |
 
-### 5.3 Sản phẩm & tồn kho
+### 6.3 Sản phẩm & tồn kho
 
 | Endpoint                                   | Method | Ghi chú                                   |
 |--------------------------------------------|--------|-------------------------------------------|
@@ -125,7 +152,7 @@ src/
 | `/inventory/import-product`                | GET    | Danh sách phiếu nhập                      |
 | `/inventory/import-product`                | POST   | Tạo phiếu nhập                            |
 
-### 5.4 Draft / Order
+### 6.4 Draft / Order
 
 | Endpoint                  | Method | Mô tả                                                                 |
 |---------------------------|--------|------------------------------------------------------------------------|
@@ -135,7 +162,7 @@ src/
 | `/order/draft/{orderId}`  | DELETE | Xoá draft                                                              |
 | `/order/pending`          | PUT    | Lưu đơn pending (giữ nguyên trạng thái trên server)                    |
 
-### 5.5 Các API khác
+### 6.5 Các API khác
 
 - `/finance/...` – trang FinancePage.
 - `/home/analytics/...` – Dashboard/ HomePage.
@@ -145,7 +172,7 @@ src/
 
 ---
 
-## 6. Các điểm cần nhớ khi phát triển
+## 7. Các điểm cần nhớ khi phát triển
 
 1. **i18n**: tất cả text hiển thị phải dùng `t("key", { defaultValue })`.
 2. **State tab độc lập**: mỗi tab có `items`, `orderNote`, `customerId`, `paymentMethod`, `invoiceDiscount` riêng. Không share state toàn cục.
@@ -155,7 +182,7 @@ src/
 
 ---
 
-## 7. Quy trình đóng góp
+## 8. Quy trình đóng góp
 
 1. Fork hoặc tạo branch mới.
 2. Thực hiện thay đổi trong `src/`.
