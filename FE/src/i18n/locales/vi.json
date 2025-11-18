@@ -1,4 +1,4 @@
-{
+﻿{
   "customer": {
     "title": "Khách hàng",
     "searchPlaceholder": "Tìm kiếm khách hàng...",
@@ -49,7 +49,11 @@
     "loading": "Đang tải...",
     "noData": "Không có dữ liệu để hiển thị",
     "undefined": "Chưa xác định",
-    "clear": "Bỏ chọn"
+    "clear": "Bỏ chọn",
+    "close": "Đóng",
+    "confirm": "Xác nhận",
+    "rows": "hàng",
+    "show": "Hiển thị"
   },
   "menu": {
     "overview": "Tổng quan",
@@ -93,6 +97,22 @@
     "next30days": "30 ngày tới"
   },
   "products": {
+    "bulkUpload" :{
+      "title": "Tải hàng loạt sản phẩm",
+      "subtitle": "Nhập nhiều sản phẩm cùng lúc",
+      "description": "Tải lên nhiều sản phẩm cùng lúc bằng cách sử dụng file Excel hoặc Google Sheets.",
+      "downloadTemplate": "Tải file mẫu",
+      "uploadFile": "Tải file lên",
+      "selectFile": "Chọn file",
+      "filePlaceholder": "Kéo thả file vào đây hoặc nhấn để chọn file",
+      "uploading": "Đang tải lên...",
+      "uploadSuccess": "✅ Tải lên thành công!",
+      "uploadFail": "❌ Tải lên thất bại!",
+      "invalidFile": "❌ File không hợp lệ! Vui lòng kiểm tra lại.",
+      "note": "Lưu ý: Vui lòng sử dụng file mẫu để đảm bảo định dạng đúng.",
+      "sheetTitle": "Tải lên từ google sheet",
+      "sheetPlaceholder": "Nhập đường link google sheet..."
+    },
     "title": "Hàng hóa",
     "group": "Nhóm hàng",
     "category": "Danh mục ",
@@ -130,6 +150,8 @@
     "addNewProduct": "Thêm sản phẩm mới",
     "noProducts": "Chưa có sản phẩm nào. Vui lòng thêm sản phẩm.",
     "loadFail": "Không thể tải danh sách sản phẩm!",
+    "importFromFile": "Nhập từ file",
+    "downloadTemplate": "Tải file mẫu",
     "placeholder": {
       "code": "Nhập mã hàng...",
       "name": "Nhập tên hàng...",
@@ -257,13 +279,62 @@
     "selectsupplier": "Chọn nhà cung cấp",
     "searchPlaceholder": "Tìm theo mã phiếu nhập, nhà cung cấp",
     "noProducts": "Chưa có sản phẩm nào. Vui lòng thêm sản phẩm trước.",
-    "importFile": "Nhập từ File"
+    "importFile": "Nhập từ File",
+    "newImport": "Tạo phiếu nhập mới",
+    "loadFail": "Không thể tải danh sách phiếu nhập!",
+    "addSuccess": "✅ Tạo phiếu nhập thành công!",
+    "addRow": "Thêm dòng",
+    "date": "Ngày",
+    "code": "Mã phiếu nhập",
+    "saveDraft": "Lưu nháp",
+    "completeImport": "Hoàn tất nhập hàng",
+    "complete": "Hoàn tất",
+    "cancel": "Hủy",
+    "defaultUnit": "Cai",
+    "notePlaceholder": "Nhap ghi chu...",
+    "confirmDelete": "Ban co chac muon xoa san pham nay khong?",
+    "errors": {
+      "loadProducts": "Khong the tai danh sach san pham.",
+      "loadSuppliers": "Khong the tai danh sach nha cung cap.",
+      "readFile": "Khong the doc file.",
+      "submit": "Gui phieu nhap that bai."
+    },
+    "logs": {
+      "payload": "Noi dung gui len may chu:"
+    },
+    "alerts": {
+      "selectFile": "Vui long chon file truoc khi nhap.",
+      "importSuccess": "Nhap file thanh cong!",
+      "importFailed": "Khong the nhap file. Vui long kiem tra dinh dang va thu lai.",
+      "requireSupplier": "Vui long chon nha cung cap truoc khi luu.",
+      "emptyItems": "Danh sach san pham dang trong.",
+      "completed": "Phieu nhap da hoan thanh!",
+      "savedDraft": "Phieu nhap da duoc luu tam!",
+      "submitFail": "Gui phieu nhap that bai!",
+      "addProductSuccess": "Da them san pham moi!"
+    },
+    "templateHeaders": {
+      "barcode": "Ma hang",
+      "name": "Ten hang",
+      "unit": "Don vi",
+      "quantity": "So luong",
+      "price": "Gia nhap",
+      "discount": "Giam gia"
+    },
+    "templateSample": {
+      "barcode": "MH001",
+      "name": "San pham A",
+      "unit": "Cai",
+      "quantity": "10",
+      "price": "15000",
+      "discount": "0"
+    }
   },
   "importProducts": {
     "title": "Phiếu nhập hàng",
     "barcode": "Mã vạch",
     "name": "Tên sản phẩm",
-    "unit": "Đơn vị tính",
+    "unit": "Đơn vị",
     "stock": "Số lượng",
     "cost": "Đơn giá",
     "discount": "Giảm giá",

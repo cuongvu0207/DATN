@@ -2,6 +2,7 @@ import React from "react";
 import { formatCurrency } from "../../utils/formatters";
 import { useTheme } from "../../context/ThemeContext";
 import { useTranslation } from "react-i18next";
+import TablePagination from "../common/TablePagination";
 
 export default function InvoiceTable({
   invoices,
@@ -17,9 +18,9 @@ export default function InvoiceTable({
   const { theme } = useTheme();
 
   // --- Pagination ---
-  const totalPages = Math.max(1, Math.ceil(invoices.length / rowsPerPage));
   const startIndex = (currentPage - 1) * rowsPerPage;
   const currentRows = invoices.slice(startIndex, startIndex + rowsPerPage);
+  const rowsSelectValue = rowsPerPage > 100 ? "all" : rowsPerPage;
 
   // ? Ki?m tra ch?n t?t c? trong trang hi?n t?i
   const allChecked =
@@ -37,6 +38,12 @@ export default function InvoiceTable({
     overflowX: "auto",
     overflowY: "auto",
     borderRadius: 12,
+  };
+
+  const handleRowsPerPageChange = (value) => {
+    const nextValue = value === "all" ? Number.MAX_SAFE_INTEGER : Number(value);
+    setRowsPerPage(nextValue);
+    setCurrentPage(1);
   };
 
   return (
@@ -113,52 +120,15 @@ export default function InvoiceTable({
         </div>
       </div>
 
-      {/* Pagination control */}
-      <div className="d-flex justify-content-between align-items-center mt-3">
-        {/* S? d?ng hi?n th? */}
-        <div className="d-flex align-items-center gap-2">
-          <span>{t("common.show") || "Hi?n th?"}</span>
-          <select
-            className="form-select form-select-sm"
-            style={{ width: 130 }}
-            value={rowsPerPage > 100 ? "all" : rowsPerPage}
-            onChange={(e) => {
-              const val = e.target.value;
-              if (val === "all") setRowsPerPage(Number.MAX_SAFE_INTEGER);
-              else setRowsPerPage(Number(val));
-              setCurrentPage(1);
-            }}
-          >
-            {[15, 30, 50, 100].map((n) => (
-              <option key={n} value={n}>
-                {n} {t("common.rows") || "d?ng"}
-              </option>
-            ))}
-            <option value="all">{t("common.all") || "T?t c?"}</option>
-          </select>
-        </div>
-
-        {/* Ph?n trang */}
-        <div className="btn-group">
-          <button
-            className={`btn btn-outline-${theme}`}
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-          >
-            &lt;
-          </button>
-          <span className={`btn btn-${theme} text-white fw-bold`}>
-            {currentPage}
-          </span>
-          <button
-            className={`btn btn-outline-${theme}`}
-            disabled={currentPage === totalPages}
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-          >
-            &gt;
-          </button>
-        </div>
-      </div>
+      <TablePagination
+        currentPage={currentPage}
+        totalItems={invoices.length}
+        rowsPerPage={rowsPerPage}
+        rowsPerPageOptions={[15, 30, 50, 100]}
+        rowsPerPageValue={rowsSelectValue}
+        onPageChange={setCurrentPage}
+        onRowsPerPageChange={handleRowsPerPageChange}
+      />
     </div>
   );
 }

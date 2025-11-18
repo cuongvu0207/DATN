@@ -5,6 +5,7 @@ import { useTheme } from "../context/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { API_BASE_URL } from "../services/api";
 import { formatCurrency, formatters } from "../utils/formatters";
+import TablePagination from "../components/common/TablePagination";
 // use native browser date input
 
 export default function FinancePage() {
@@ -108,9 +109,13 @@ export default function FinancePage() {
     );
   });
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
   const currentRows = filtered.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
   const rowsSelectValue = rowsPerPage > 100 ? "all" : rowsPerPage;
+
+  const handleRowsPerPageChange = (value) => {
+    setRowsPerPage(value === "all" ? Number.MAX_SAFE_INTEGER : Number(value));
+    setCurrentPage(1);
+  };
 
   const exportCSV = () => {
     const rows = [
@@ -284,37 +289,15 @@ export default function FinancePage() {
           </div>
         </div>
 
-        {/* Pagination */}
-        <div className="d-flex justify-content-between align-items-center mt-3">
-          <div className="d-flex align-items-center gap-2">
-            <span>{t("common.show") || "Hi?n th?"}</span>
-            <select
-              className="form-select form-select-sm"
-              style={{ width: 130 }}
-              value={rowsSelectValue}
-              onChange={(e) => {
-                const val = e.target.value;
-                setRowsPerPage(val === "all" ? Number.MAX_SAFE_INTEGER : Number(val));
-                setCurrentPage(1);
-              }}
-            >
-              {[15, 30, 50, 100].map((n) => (
-                <option key={n} value={n}>{n} {t("common.rows") || "d?ng"}</option>
-              ))}
-              <option value="all">{t("common.all") || "All"}</option>
-            </select>
-          </div>
-
-          <div className="btn-group">
-            <button className={`btn btn-outline-${theme}`} disabled={currentPage === 1} onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}>
-              &lt;
-            </button>
-            <span className={`btn btn-${theme} text-white fw-bold`}>{currentPage}</span>
-            <button className={`btn btn-outline-${theme}`} disabled={currentPage === totalPages} onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}>
-              &gt;
-            </button>
-          </div>
-        </div>
+        <TablePagination
+          currentPage={currentPage}
+          totalItems={filtered.length}
+          rowsPerPage={rowsPerPage}
+          rowsPerPageOptions={[15, 30, 50, 100]}
+          rowsPerPageValue={rowsSelectValue}
+          onPageChange={setCurrentPage}
+          onRowsPerPageChange={handleRowsPerPageChange}
+        />
       </div>
     </Mainlayout>
   );

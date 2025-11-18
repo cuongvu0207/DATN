@@ -6,7 +6,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import * as XLSX from "xlsx";
 
-/* === Import các component con === */
+/* === Import child components === */
 import ImportHeader from "../components/import/ImportHeader";
 import ImportTable from "../components/import/ImportTable";
 import ImportFileModal from "../components/import/ImportFileModal";
@@ -20,12 +20,16 @@ export default function ImportDetailPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { state } = useLocation();
+  const defaultUnitLabel = t("import.defaultUnit");
+  const loadProductsErrorMessage = t("import.errors.loadProducts");
+  const loadSuppliersErrorMessage = t("import.errors.loadSuppliers");
+  const payloadLogMessage = t("import.logs.payload");
 
   /* === STATE === */
-  const [productList, setProductList] = useState([]); // ✅ Lấy từ API
+  const [productList, setProductList] = useState([]); // Data fetched from API
   const [supplier, setSupplier] = useState("");
   const [note, setNote] = useState("");
-  const [status, setStatus] = useState("Phiếu tạm");
+  const [status, setStatus] = useState(t("import.draft"));
   const [total, setTotal] = useState(0);
   const [discount, setDiscount] = useState(0);
   const [items, setItems] = useState([]);
@@ -36,10 +40,11 @@ export default function ImportDetailPage() {
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showAddSupplier, setShowAddSupplier] = useState(false);
   const [suppliers, setSuppliers] = useState([]);
+  const [importFile, setImportFile] = useState(null);
 
   const token = localStorage.getItem("accessToken");
 
-  /* === Load dữ liệu sản phẩm thật từ BE === */
+  /* === Load product data from backend === */
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -56,18 +61,18 @@ export default function ImportDetailPage() {
           selling_price: p.sellingPrice,
           product_name: p.productName,
           quantity_in_stock: p.quantityInStock,
-          unit: p.unit || "Cái",
+          unit: p.unit || defaultUnitLabel,
         }));
 
         setProductList(formatted);
       } catch (error) {
-        console.error("❌ Lỗi tải danh sách sản phẩm:", error);
+        console.error(loadProductsErrorMessage, error);
       }
     };
 
     fetchProducts();
-  }, [token]);
-  /* === Load danh sách nhà cung cấp thật từ BE === */
+  }, [token, defaultUnitLabel, loadProductsErrorMessage]);
+  /* === Load supplier data from backend === */
   useEffect(() => {
     const fetchSuppliers = async () => {
       try {
@@ -78,13 +83,13 @@ export default function ImportDetailPage() {
         });
         setSuppliers(res.data || []);
       } catch (error) {
-        console.error("❌ Lỗi tải danh sách nhà cung cấp:", error);
+        console.error(loadSuppliersErrorMessage, error);
       }
     };
 
     fetchSuppliers();
-  }, [token]);
-  /* === Load dữ liệu khi chỉnh sửa phiếu === */
+  }, [token, loadSuppliersErrorMessage]);
+  /* === Populate state when editing === */
   useEffect(() => {
     if (state?.importData) {
       const { importData } = state;
@@ -95,13 +100,13 @@ export default function ImportDetailPage() {
     }
   }, [state]);
 
-  /* === Tính tổng tiền === */
+  /* === Calculate total === */
   const recalcTotal = (data) => {
     const sum = data.reduce((acc, i) => acc + (i.subtotal || 0), 0);
     setTotal(sum);
   };
 
-  /* === Thêm sản phẩm === */
+  /* === Add product === */
   const handleAddProduct = (product) => {
     const exists = items.find((i) => i.product_id === product.product_id);
     if (exists) {
@@ -131,7 +136,7 @@ export default function ImportDetailPage() {
     recalcTotal(updated);
   };
 
-  /* === Tìm kiếm sản phẩm === */
+  /* === Search products === */
   const handleChangeSearch = (e) => {
     const value = e.target.value.trim();
     setSearchValue(value);
@@ -164,7 +169,7 @@ export default function ImportDetailPage() {
     setSearchResults(filtered);
   };
 
-  /* === Cập nhật giá trị trong bảng === */
+  /* === Update table values === */
   const updateItem = (index, field, value) => {
     const updated = [...items];
     updated[index][field] = value;
@@ -176,128 +181,253 @@ export default function ImportDetailPage() {
     recalcTotal(updated);
   };
 
-  /* === Xóa sản phẩm === */
+  /* === Delete product === */
   const handleDeleteItem = (index) => {
-    if (!window.confirm(t("import.confirmDelete") || "Bạn có chắc muốn xóa sản phẩm này không?"))
+    if (!window.confirm(t("import.confirmDelete")))
       return;
     const updated = items.filter((_, i) => i !== index);
     setItems(updated);
     recalcTotal(updated);
   };
 
-  /* === Đọc file Excel / CSV === */
-  const handleImportFile = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    const ext = file.name.split(".").pop().toLowerCase();
-
-    reader.onload = (evt) => {
-      let data = [];
-
-      if (ext === "csv") {
-        const text = evt.target.result;
-        const rows = text.replace(/\r\n/g, "\n").split("\n").filter((r) => r.trim() !== "");
-        const header = rows[0].split(",").map((h) => h.trim());
-        const body = rows.slice(1);
-        data = body.map((r) => {
-          const values = r.split(",");
-          const obj = {};
-          header.forEach((h, idx) => (obj[h] = values[idx]?.trim() || ""));
-          return obj;
-        });
-      } else if (ext === "xlsx" || ext === "xls") {
-        const workbook = XLSX.read(evt.target.result, { type: "binary" });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        data = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+  /* === Parse Excel / CSV file === */
+  const parseImportFile = (file) =>
+    new Promise((resolve, reject) => {
+      if (!file) {
+        resolve([]);
+        return;
       }
+      const reader = new FileReader();
+      const ext = file.name.split(".").pop().toLowerCase();
 
-      const formatted = data.map((r, idx) => ({
-        barcode: r["Mã vạch"] || r["Barcode"] || `00000${idx + 1}`,
-        product_name: r["Tên sản phẩm"] || "Không tên",
-        unit: r["Đơn vị tính"] || r["ĐVT"] || "Cái",
-        quantity: Number(r["Số lượng"]) || 1,
-        importPrice: Number(r["Đơn giá"]) || Number(r["Giá nhập"]) || 0,
-        discount: Number(r["Giảm giá"]) || 0,
-        subtotal:
-          (Number(r["Số lượng"]) || 1) * (Number(r["Đơn giá"]) || 0) -
-          (Number(r["Giảm giá"]) || 0),
-      }));
+      reader.onload = (evt) => {
+        try {
+          let data = [];
 
+          if (ext === "csv") {
+            const textContent = evt.target.result;
+            const rows = textContent
+              .replace(/\r\n/g, "\n")
+              .split("\n")
+              .filter((r) => r.trim() !== "");
+            if (rows.length === 0) {
+              resolve([]);
+              return;
+            }
+            const header = rows[0].split(",").map((h) => h.trim());
+            const body = rows.slice(1);
+            data = body.map((r) => {
+              const values = r.split(",");
+              const obj = {};
+              header.forEach((h, idx) => (obj[h] = values[idx]?.trim() || ""));
+              return obj;
+            });
+          } else if (ext === "xlsx" || ext === "xls") {
+            const workbook = XLSX.read(evt.target.result, { type: "binary" });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            data = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+          } else {
+            reject(new Error("Unsupported file format"));
+            return;
+          }
+
+          const headerKeys = {
+            barcode: [
+              t("import.templateHeaders.barcode"),
+              "Ma hang",
+              "Ma vach",
+              "Barcode",
+              "Product Code",
+            ],
+            name: [
+              t("import.templateHeaders.name"),
+              "Ten hang",
+              "Ten san pham",
+              "Product Name",
+            ],
+            unit: [
+              t("import.templateHeaders.unit"),
+              "Don vi",
+              "Don vi tinh",
+              "DVT",
+              "Unit",
+            ],
+            quantity: [
+              t("import.templateHeaders.quantity"),
+              "So luong",
+              "Quantity",
+            ],
+            price: [
+              t("import.templateHeaders.price"),
+              "Gia nhap",
+              "Don gia",
+              "Import Price",
+              "Price",
+            ],
+            discount: [
+              t("import.templateHeaders.discount"),
+              "Giam gia",
+              "Discount",
+            ],
+          };
+
+          const pickValue = (row, keys, fallback = "") => {
+            for (const key of keys) {
+              if (row[key] !== undefined && row[key] !== "") {
+                return row[key];
+              }
+            }
+            return fallback;
+          };
+
+          const formatted = data.map((r, idx) => {
+            const quantityValue = Number(pickValue(r, headerKeys.quantity, 1)) || 1;
+            const priceValue = Number(pickValue(r, headerKeys.price, 0)) || 0;
+            const discountValue = Number(pickValue(r, headerKeys.discount, 0)) || 0;
+
+            return {
+              barcode: pickValue(r, headerKeys.barcode, `00000${idx + 1}`),
+              product_name: pickValue(r, headerKeys.name, t("import.unnamedProduct")),
+              unit: pickValue(r, headerKeys.unit, defaultUnitLabel),
+              quantity: quantityValue,
+              importPrice: priceValue,
+              discount: discountValue,
+              subtotal: quantityValue * priceValue - discountValue,
+            };
+          });
+
+          resolve(formatted);
+        } catch (error) {
+          reject(error);
+        }
+      };
+
+      reader.onerror = () => reject(new Error(t("import.errors.readFile")));
+
+      if (ext === "csv") reader.readAsText(file, "UTF-8");
+      else reader.readAsBinaryString(file);
+    });
+
+  const handleConfirmImportFile = async () => {
+    if (!importFile) {
+      alert(t("import.alerts.selectFile"));
+      return;
+    }
+    try {
+      const formatted = await parseImportFile(importFile);
       const merged = [...items, ...formatted];
       setItems(merged);
       recalcTotal(merged);
-      alert("✅ Nhập dữ liệu từ file Excel thành công!");
-    };
-
-    if (ext === "csv") reader.readAsText(file, "UTF-8");
-    else reader.readAsBinaryString(file);
+      setImportFile(null);
+      setShowImportPopup(false);
+      alert(t("import.alerts.importSuccess"));
+    } catch (error) {
+      console.error("Import file failed:", error);
+      console.error(t("import.errors.readFile"), error);
+    }
   };
 
- /* === Gửi dữ liệu lưu phiếu === */
-const sendImportData = async (isComplete) => {
-  try {
-    if (!supplier) {
-      alert("⚠️ Vui lòng chọn nhà cung cấp trước khi lưu!");
-      return;
-    }
-    if (items.length === 0) {
-      alert("⚠️ Danh sách sản phẩm trống!");
-      return;
-    }
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0] || null;
+    setImportFile(file);
+  };
 
-    const payload = {
-      supplierId: Number(supplier),
-      complete: isComplete,
-      note,
-      details: items.map((item) => ({
-        barcode: item.barcode,
-        productName: item.product_name,
-        unit: item.unit || "Cái",
-        quantity: Number(item.quantity),
-        price: Number(item.importPrice),
-        discount: Number(item.discount),
-      })),
-    };
-
-    console.log("📦 Payload gửi lên BE:", payload);
-
-    const res = await axios.post(`${API_BASE_URL}/inventory/import-product`, payload, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
+  const handleDownloadTemplate = () => {
+    const rows = [
+      [
+        t("import.templateHeaders.barcode"),
+        t("import.templateHeaders.name"),
+        t("import.templateHeaders.unit"),
+        t("import.templateHeaders.quantity"),
+        t("import.templateHeaders.price"),
+        t("import.templateHeaders.discount"),
+      ],
+      [
+        t("import.templateSample.barcode"),
+        t("import.templateSample.name"),
+        t("import.templateSample.unit"),
+        t("import.templateSample.quantity"),
+        t("import.templateSample.price"),
+        t("import.templateSample.discount"),
+      ],
+    ];
+    const worksheet = XLSX.utils.aoa_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Template");
+    const wbout = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([wbout], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
-
-    if (isComplete) {
-      alert("✅ Phiếu nhập đã hoàn thành!");
-    } else {
-      alert("💾 Phiếu đã lưu tạm!");
-    }
-
-    navigate("/products/import");
-  } catch (error) {
-    console.error("❌ Lỗi khi gửi phiếu nhập:", error);
-    alert("❌ Gửi phiếu nhập thất bại!");
-  }
-};
-
-const handleAddRow = () => {
-  const newItem = {
-    barcode: "",
-    product_name: "",
-    unit: "Cái",
-    quantity: 1,
-    importPrice: 0,
-    discount: 0,
-    subtotal: 0,
+    const url = URL.createObjectURL(blob);
+    const tempLink = document.createElement("a");
+    tempLink.href = url;
+    tempLink.download = "import_template.xlsx";
+    tempLink.click();
+    URL.revokeObjectURL(url);
   };
-  const updated = [...items, newItem];
-  setItems(updated);
-};
+  /* === Submit import data === */
+  const sendImportData = async (isComplete) => {
+    try {
+      if (!supplier) {
+        alert(t("import.alerts.requireSupplier"));
+        return;
+      }
+      if (items.length === 0) {
+        alert(t("import.alerts.emptyItems"));
+        return;
+      }
 
-/* === Nút lưu và hoàn thành === */
+      const payload = {
+        supplierId: Number(supplier),
+        complete: isComplete,
+        note,
+        details: items.map((item) => ({
+          barcode: item.barcode,
+          productName: item.product_name,
+          unit: item.unit || defaultUnitLabel,
+          quantity: Number(item.quantity),
+          price: Number(item.importPrice),
+          discount: Number(item.discount),
+        })),
+      };
+
+      console.log(payloadLogMessage, payload);
+
+      await axios.post(`${API_BASE_URL}/inventory/import-product`, payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (isComplete) {
+        alert(t("import.alerts.completed"));
+      } else {
+        alert(t("import.alerts.savedDraft"));
+      }
+
+      navigate("/products/import");
+    } catch (error) {
+      console.error(t("import.errors.submit"), error);
+      alert(t("import.alerts.submitFail"));
+    }
+  };
+
+  const handleAddRow = () => {
+    const newItem = {
+      barcode: "",
+      product_name: "",
+      unit: defaultUnitLabel,
+      quantity: 1,
+      importPrice: 0,
+      discount: 0,
+      subtotal: 0,
+    };
+    const updated = [...items, newItem];
+    setItems(updated);
+  };
+
+/* === Save and complete buttons === */
 const handleSave = () => sendImportData(false);
 const handleComplete = () => sendImportData(true);
 
@@ -334,7 +464,7 @@ const handleComplete = () => sendImportData(true);
               <div className="card-body">
                 <div className="d-flex align-items-center justify-content-between mb-1">
                   <label className="form-label fw-semibold mb-0">
-                    {t("import.supplier") || "Nhà cung cấp"}
+                    {t("import.supplier")}
                   </label>
                   <button
                     type="button"
@@ -368,22 +498,22 @@ const handleComplete = () => sendImportData(true);
 
 
                 <label className="form-label mb-1 mt-2">
-                  {t("import.note") || "Ghi chú"}
+                  {t("import.note")}
                 </label>
                 <textarea
                   className="form-control"
                   rows="2"
-                  placeholder="Nhập ghi chú..."
+                  placeholder={t("import.notePlaceholder")}
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                 ></textarea>
 
                 <div className="d-flex justify-content-between mt-4">
                   <button className={`btn btn-outline-${theme} w-50 me-2`} onClick={handleSave}>
-                    <i className="bi bi-lock me-1"></i> {t("import.saveTemp") || "Lưu tạm"}
+                    <i className="bi bi-lock me-1"></i> {t("import.saveDraft")}
                   </button>
                   <button className={`btn btn-${theme} text-white w-50`} onClick={handleComplete}>
-                    <i className="bi bi-check2-circle me-1"></i> {t("import.complete") || "Hoàn thành"}
+                    <i className="bi bi-check2-circle me-1"></i> {t("import.complete")}
                   </button>
                 </div>
               </div>
@@ -394,8 +524,14 @@ const handleComplete = () => sendImportData(true);
         {showImportPopup && (
           <ImportFileModal
             theme={theme}
-            handleImportFile={handleImportFile}
-            onClose={() => setShowImportPopup(false)}
+            onFileChange={handleFileChange}
+            onConfirm={handleConfirmImportFile}
+            onDownloadTemplate={handleDownloadTemplate}
+            hasFile={!!importFile}
+            onClose={() => {
+              setShowImportPopup(false);
+              setImportFile(null);
+            }}
           />
         )}
 
@@ -408,16 +544,14 @@ const handleComplete = () => sendImportData(true);
                 barcode: newProduct.barcode,
                 product_name: newProduct.name,
                 importPrice: Number(newProduct.cost),
-                unit: "Cái",
-                quantity: 1,
+                unit: defaultUnitLabel,
                 discount: 0,
                 subtotal: Number(newProduct.cost),
               };
               const updated = [...items, newItem];
               setItems(updated);
               recalcTotal(updated);
-              setShowAddProduct(false);
-              alert("✅ Đã thêm sản phẩm mới!");
+              alert(t("import.alerts.addProductSuccess"));
             }}
           />
         )}
@@ -435,7 +569,7 @@ const handleComplete = () => sendImportData(true);
                 <div className={`modal-header bg-${theme} text-white py-2 px-3`}>
                   <h6 className="modal-title m-0">
                     <i className="bi bi-building-add me-2"></i>
-                    {t("supplier.addTitle") || "Thêm nhà cung cấp mới"}
+                    {t("supplier.addTitle")}
                   </h6>
                   <button
                     type="button"
@@ -460,3 +594,8 @@ const handleComplete = () => sendImportData(true);
     </MainLayout>
   );
 }
+
+
+
+
+

@@ -3,6 +3,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { useTranslation } from "react-i18next";
 import ProductDetailCard from "../common/ProductDetailCard";
 import EditProductDetailCard from "../common/EditProductDetailCard";
+import TablePagination from "../common/TablePagination";
 import { formatCurrency } from "../../utils/formatters";
 
 
@@ -29,11 +30,21 @@ export default function ProductTable({
   const totalPages = Math.max(1, Math.ceil(products.length / rowsPerPage));
   const startIndex = (currentPage - 1) * rowsPerPage;
   const currentRows = products.slice(startIndex, startIndex + rowsPerPage);
+  const rowsSelectValue = rowsPerPage >= products.length ? "all" : rowsPerPage;
 
   // ✅ Kiểm tra xem có chọn hết trang hiện tại chưa
   const allChecked =
     currentRows.length > 0 &&
     currentRows.every((p) => selectedProducts.includes(p.id));
+
+  const handleRowsPerPageChange = (value) => {
+    if (value === "all") {
+      setRowsPerPage(products.length || 1);
+    } else {
+      setRowsPerPage(Number(value));
+    }
+    setCurrentPage(1);
+  };
 
   return (
     <div className="col-lg-10 col-12">
@@ -177,52 +188,15 @@ export default function ProductTable({
         </div>
       </div>
 
-      {/* Pagination control */}
-      <div className="d-flex justify-content-between align-items-center mt-3">
-        {/* Số dòng hiển thị */}
-        <div className="d-flex align-items-center gap-2">
-          <span>{t("products.show") || "Hiển thị"}</span>
-          <select
-            className="form-select form-select-sm"
-            style={{ width: 130 }}
-            value={rowsPerPage >= products.length ? "all" : rowsPerPage}
-            onChange={(e) => {
-              const val = e.target.value;
-              if (val === "all") setRowsPerPage(products.length);
-              else setRowsPerPage(Number(val));
-              setCurrentPage(1);
-            }}
-          >
-            {[15, 20, 30, 50, 100].map((n) => (
-              <option key={n} value={n}>
-                {n} {t("products.rows") || "dòng"}
-              </option>
-            ))}
-            <option value="all">{t("products.all") || "Tất cả"}</option>
-          </select>
-        </div>
-
-        {/* Phân trang */}
-        <div className="btn-group">
-          <button
-            className={`btn btn-outline-${theme}`}
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-          >
-            &lt;
-          </button>
-          <span className={`btn btn-${theme} text-white fw-bold`}>
-            {currentPage}
-          </span>
-          <button
-            className={`btn btn-outline-${theme}`}
-            disabled={currentPage === totalPages}
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-          >
-            &gt;
-          </button>
-        </div>
-      </div>
+      <TablePagination
+        currentPage={currentPage}
+        totalItems={products.length}
+        rowsPerPage={rowsPerPage}
+        rowsPerPageOptions={[15, 20, 30, 50, 100]}
+        rowsPerPageValue={rowsSelectValue}
+        onPageChange={setCurrentPage}
+        onRowsPerPageChange={handleRowsPerPageChange}
+      />
     </div>
   );
 }

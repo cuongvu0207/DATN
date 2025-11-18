@@ -6,6 +6,7 @@ export default function ProductHeaderBar({
   query,
   setQuery,
   onAdd,
+  onImport,
   onExport,
   onPrint,
 }) {
@@ -19,19 +20,20 @@ export default function ProductHeaderBar({
       </div>
 
       <div className="col-12 col-md-5 col-lg-5">
-        <div
-          className={`input-group border border-${theme} rounded-3 align-items-center`}
-          style={{ height: 40 }}
-        >
-          <span
-            className={`input-group-text bg-white border-0 text-${theme}`}
-            style={{ borderRight: `1px solid var(--bs-${theme})`, height: "100%" }}
-          >
-            <i className="bi bi-search"></i>
-          </span>
+        <div className="position-relative">
+          <i
+            className={`bi bi-search position-absolute top-50 start-0 translate-middle-y ps-3 text-${theme}`}
+          />
           <input
             type="text"
-            className="form-control border-0 shadow-none"
+            className="form-control ps-5"
+            style={{
+              height: 40,
+              paddingLeft: 45,
+              border: "1px solid #ced4da",
+              boxShadow: "none",
+              outline: "none",
+            }}
             placeholder={t("products.searchPlaceholder") || "Search by code, name"}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -47,6 +49,17 @@ export default function ProductHeaderBar({
           <i className="bi bi-plus-lg"></i>
           <span className="ms-1 d-none d-sm-inline">{t("products.create")}</span>
         </button>
+        {onImport && (
+          <button
+            className={`btn btn-outline-${theme} d-flex align-items-center fw-semibold rounded-3 px-3`}
+            onClick={onImport}
+          >
+            <i className="bi bi-upload" />
+            <span className="ms-1 d-none d-md-inline">
+              {t("products.importFromFile") || "Nhap tu file"}
+            </span>
+          </button>
+        )}
         <button
           className={`btn btn-outline-${theme} d-flex align-items-center fw-semibold rounded-3 px-3`}
           onClick={onExport}

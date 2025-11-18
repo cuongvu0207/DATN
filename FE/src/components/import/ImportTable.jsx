@@ -6,17 +6,17 @@ export default function ImportTable({ theme, items, updateItem, total, onDeleteI
   const { t } = useTranslation();
 
   return (
-    <div className={`border border-${theme} rounded-3 shadow-sm bg-white`}>
-      <table className="table table-bordered align-middle text-center mb-0">
+    <div className="rounded-3 shadow-sm bg-white" style={{ overflow: "hidden" }}>
+      <table className="table align-middle text-center mb-0 border-0">
         <thead className={`table-${theme}`}>
           <tr>
-            <th>STT</th>
+            <th>#</th>
             <th>{t("importProducts.barcode") || "Mã vạch"}</th>
             <th>{t("importProducts.name") || "Tên sản phẩm"}</th>
             <th>{t("importProducts.unit") || "Đơn vị tính"}</th>
             <th>{t("importProducts.stock") || "Số lượng"}</th>
             <th>{t("importProducts.cost") || "Đơn giá"}</th>
-            <th>{t("importProducts.discount") || "Giảm giá"}</th>
+            <th>{t("importProducts.discount") || "Giảm giá (%)"}</th>
             <th>{t("importProducts.total") || "Thành tiền"}</th>
             <th></th>
           </tr>
@@ -82,13 +82,16 @@ export default function ImportTable({ theme, items, updateItem, total, onDeleteI
 
                 {/* Giảm giá */}
                 <td>
-                  <input
-                    type="number"
-                    min="0"
-                    className="form-control form-control-sm text-end"
-                    value={item.discount}
-                    onChange={(e) => updateItem(idx, "discount", e.target.value)}
-                  />
+                  <div className="input-group input-group-sm">
+                    <input
+                      type="number"
+                      min="0"
+                      className="form-control text-end"
+                      value={item.discount}
+                      onChange={(e) => updateItem(idx, "discount", e.target.value)}
+                    />
+                    <span className="input-group-text">%</span>
+                  </div>
                 </td>
 
                 {/* Thành tiền */}
@@ -119,8 +122,8 @@ export default function ImportTable({ theme, items, updateItem, total, onDeleteI
         </tbody>
       </table>
 
-      {/* Nút thêm dòng */}
-      <div className="d-flex justify-content-start ps-3 py-2 border-top">
+      {/* Tác vụ và tổng tiền */}
+      <div className="d-flex justify-content-between align-items-center border-top px-3 py-2 flex-wrap gap-3">
         <button
           className={`btn btn-outline-${theme} btn-sm d-flex align-items-center`}
           onClick={onAddRow}
@@ -128,12 +131,11 @@ export default function ImportTable({ theme, items, updateItem, total, onDeleteI
           <i className="bi bi-plus-circle me-1"></i>
           {t("import.addRow") || "Thêm dòng sản phẩm"}
         </button>
-      </div>
 
-      {/* Tổng tiền hàng */}
-      <div className="d-flex justify-content-end align-items-center mt-3 pe-3">
-        <h6 className="fw-bold me-3">{t("import.total") || "Tổng tiền hàng:"}</h6>
-        <h5 className="text-success">{formatCurrency(total)}</h5>
+        <div className="d-flex align-items-center">
+          <h6 className="fw-bold me-3 mb-0">{t("import.total") || "Tổng tiền hàng:"}</h6>
+          <h5 className="text-success mb-0">{formatCurrency(total)}</h5>
+        </div>
       </div>
     </div>
   );

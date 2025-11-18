@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Header from "../components/layout/Header";
 import SalesHeaderBar from "../components/sale/SalesHeaderBar";
 import CartItem from "../components/sale/CartItem";
@@ -132,7 +132,7 @@ export default function SalesPage() {
   const tabPrefix = t("sales.tabPrefix", { defaultValue: "Order" });
   const token = localStorage.getItem("accessToken");
 
-  /* ====== SẢN PHẨM TỪ DATABASE ====== */
+  /* ====== S?N PH?M T? DATABASE ====== */
   const [productList, setProductList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -146,7 +146,7 @@ export default function SalesPage() {
           headers: { Authorization: `Bearer ${token}` },
         });
   
-        // ✅ Chuẩn hóa đúng với dữ liệu thực tế của bạn
+        // ? Chu?n h�a d�ng v?i d? li?u th?c t? c?a b?n
         const formatted = (res.data || []).map((p) => ({
           id: p.productId,
           code: p.barcode || `SP${String(p.productId).padStart(6, "0")}`,
@@ -174,13 +174,13 @@ export default function SalesPage() {
     fetchProducts();
   }, [token]);
 
-  /* ====== STATE HOÁ ĐƠN ====== */
+  /* ====== STATE HO� �ON ====== */
   const [tabs, setTabs] = useState(() => [createSalesTab(1, tabPrefix)]);
   const [activeTab, setActiveTab] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [barcodeMode, setBarcodeMode] = useState(false);
 
-  /* ====== KHÁCH HÀNG ====== */
+  /* ====== KH�CH H�NG ====== */
   const [customers, setCustomers] = useState([]);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [newCustomer, setNewCustomer] = useState(() => getEmptyCustomerForm());
@@ -366,7 +366,7 @@ export default function SalesPage() {
     };
   }, [loadDraftTabs]);
 
-  /* ====== THÔNG TIN TAB HIỆN TẠI ====== */
+  /* ====== TH�NG TIN TAB HI?N T?I ====== */
   const currentTab = tabs.find((t) => t.id === activeTab);
   const cartItems = currentTab?.items || [];
   const customer = currentTab?.customerInput || "";
@@ -431,7 +431,7 @@ export default function SalesPage() {
 
   const handleRemoveTab = async (id) => {
     if (tabs.length <= 1) {
-      alert(t("sales.needOneTab", { defaultValue: "You need at least one active order." }));
+      alert(t("sales.needOneTab"));
       return;
     }
     const tabToRemove = tabs.find((tab) => tab.id === id);
@@ -527,11 +527,11 @@ export default function SalesPage() {
 
   const handleAddCustomer = async () => {
     if (!newCustomer.fullName.trim()) {
-      alert(t("sales.alertEmptyCustomer", { defaultValue: "Please enter customer name." }));
+      alert(t("sales.alertEmptyCustomer"));
       return;
     }
     if (!newCustomer.phoneNumber.trim()) {
-      alert(t("customer.phoneRequired", { defaultValue: "Please enter phone number." }));
+      alert(t("customer.phoneRequired"));
       return;
     }
     setSavingCustomer(true);
@@ -567,7 +567,7 @@ export default function SalesPage() {
       handleCloseCustomerModal();
     } catch (err) {
       console.error("Failed to add customer", err);
-      alert(t("customer.addError", { defaultValue: "Unable to save customer." }));
+      alert(t("customer.addError"));
     } finally {
       setSavingCustomer(false);
     }
@@ -616,7 +616,7 @@ export default function SalesPage() {
     setSearchQuery("");
   };
 
-  /* ====== QUÉT BARCODE ====== */
+  /* ====== QU�T BARCODE ====== */
   const handleScanProduct = (code) => {
     const found = productList.find(
       (p) => p.code?.toLowerCase() === code.trim().toLowerCase()
@@ -624,11 +624,11 @@ export default function SalesPage() {
     if (found) {
       handleAddProduct(found);
     } else {
-      alert(t("sales.productNotFound", { defaultValue: "Product not found." }));
+      alert(t("sales.productNotFound"));
     }
   };
 
-  /* ====== GIẢM GIÁ, SỐ LƯỢNG, XÓA, GHI CHÚ ====== */
+  /* ====== GI?M GI�, S? LU?NG, X�A, GHI CH� ====== */
   const setDiscount = (code, { discount, discountValue, discountMode }) => {
     setTabs((prev) =>
       prev.map((tab) =>
@@ -733,14 +733,14 @@ export default function SalesPage() {
     await createDraftTab();
   };
   
-  /* ====== THANH TOÁN ====== */
+  /* ====== THANH TO�N ====== */
   const totalAmount = cartItems.reduce((s, it) => s + (it.total ?? 0), 0);
   const finalTotal = Math.max(totalAmount - invoiceDiscount, 0);
 
-  // Gọi API lưu đơn ở trạng thái PENDING
+  // G?i API luu don ? tr?ng th�i PENDING
   const savePendingOrder = async () => {
     if (cartItems.length === 0) {
-      alert(t("sales.cartEmpty", { defaultValue: "No items in the cart." }));
+      alert(t("sales.cartEmpty"));
       return;
     }
 
@@ -768,16 +768,12 @@ export default function SalesPage() {
 
       const data = res?.data || {};
       const total = data.totalPrice ?? finalTotal;
-      const oid = data.orderId || t("sales.orderCodeMissing", { defaultValue: "(no code)" });
+      const oid = data.orderId || t("sales.orderCodeMissing");
 
-      const pendingMessage = t("sales.pendingSaved", {
-        defaultValue: "Saved draft order.\nOrder code: {{orderId}}\nTotal: {{total}}",
-        orderId: oid,
-        total: formatCurrency(total),
-      });
+      const pendingMessage = t("sales.pendingSaved", { orderId: oid, total: formatCurrency(total) });
       alert(pendingMessage);
 
-      // Reset giỏ hàng sau khi lưu
+      // Reset gi? h�ng sau khi luu
       setTabs((prev) =>
         prev.map((tab) =>
           tab.id === activeTab
@@ -795,28 +791,19 @@ export default function SalesPage() {
       );
     } catch (err) {
       console.error("Failed to save pending order:", err);
-      const msg =
-        err?.response?.data?.message ||
-        t("sales.pendingSaveFailed", { defaultValue: "Unable to save draft order. Please try again." });
+      const msg = err?.response?.data?.message || t("sales.pendingSaveFailed");
       alert(msg);
     }
   };
 
   const handlePayment = () => {
     if (cartItems.length === 0) {
-      alert(t("sales.cartEmpty", { defaultValue: "No items in the cart." }));
+      alert(t("sales.cartEmpty"));
       return;
     }
 
-    const customerName =
-      selectedCustomer?.fullName ||
-      customer ||
-      t("sales.walkInCustomer", { defaultValue: "Walk-in customer" });
-    const paymentMessage = t("sales.paymentSuccess", {
-      defaultValue: "Payment successful!\nCustomer: {{customer}}\nTotal: {{total}}",
-      customer: customerName,
-      total: formatCurrency(finalTotal),
-    });
+    const customerName = selectedCustomer?.fullName || customer || t("sales.walkInCustomer");
+    const paymentMessage = t("sales.paymentSuccess", { customer: customerName, total: formatCurrency(finalTotal) });
     alert(paymentMessage);
 
     setTabs((prev) =>
@@ -836,7 +823,7 @@ export default function SalesPage() {
     );
   };
 
-  /* ====== GIAO DIỆN ====== */
+  /* ====== GIAO DI?N ====== */
   const filteredProducts =
     searchQuery.trim() === "" || barcodeMode
       ? []
@@ -863,7 +850,7 @@ export default function SalesPage() {
       />
 
       <div className="row gx-1 gy-1 m-0" style={{ height: "calc(100vh - 110px)" }}>
-        {/* === TRÁI: GIỎ HÀNG === */}
+        {/* === TR�I: GI? H�NG === */}
         <div className="col-lg-8 col-md-7 p-2 d-flex flex-column">
           <div className="flex-grow-1 overflow-auto position-relative">
             {loading ? (
@@ -915,7 +902,7 @@ export default function SalesPage() {
             )}
           </div>
 
-          {/* Ghi chú hóa đơn */}
+          {/* Ghi ch� h�a don */}
           <div className={`rounded-4 border border-${theme} border-opacity-25 bg-white p-3 mt-2`}>
             <div className="d-flex align-items-center">
               <i className="bi bi-pencil text-muted me-2" />
@@ -930,7 +917,7 @@ export default function SalesPage() {
           </div>
         </div>
 
-        {/* === PHẢI: KHÁCH HÀNG === */}
+        {/* === PH?I: KH�CH H�NG === */}
         <div className="col-lg-4 col-md-5 p-2 d-flex flex-column">
           <CustomerPanel
             customer={customer}
@@ -953,7 +940,7 @@ export default function SalesPage() {
         </div>
       </div>
 
-      {/* Modal khách hàng */}
+      {/* Modal kh�ch h�ng */}
       <CustomerModal
         show={showCustomerModal}
         onClose={handleCloseCustomerModal}
@@ -965,6 +952,8 @@ export default function SalesPage() {
     </div>
   );
 }
+
+
 
 
 

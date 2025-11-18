@@ -158,14 +158,14 @@ export default function AddProductCard({ onCancel, onSave }) {
         onClick={onCancel}
       >
         <div
-          className={`bg-white border border-${theme} border-3 rounded-4 shadow-lg p-4`}
+          className="bg-white rounded-4 shadow-lg p-4"
           style={{ width: "90%", maxWidth: "950px", maxHeight: "90%", overflowY: "auto" }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           <div className="d-flex justify-content-between align-items-center mb-3">
             <h5 className={`fw-bold text-${theme} m-0`}>
-              {t("products.addProduct") || "Thêm hàng hoá"}
+              {t("products.addProduct") || "Thêm hàng hóa"}
             </h5>
             <button type="button" className="btn-close" onClick={onCancel}></button>
           </div>

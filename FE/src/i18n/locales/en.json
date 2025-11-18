@@ -138,6 +138,13 @@
     "noBrand": "No brand available. Please add brands first.",
     "noProducts": "No products available. Please add products.",
     "loadFail": "Failed to load product list!",
+    "noDataToExport": "No products available to export.",
+    "addError": "Unable to add product.",
+    "updateSuccess": "Product updated successfully!",
+    "updateError": "Unable to update product!",
+    "deleteError": "Unable to delete product!",
+    "selectToExport": "Please select products to export.",
+    "selectToPrint": "Please select products to print.",
     "placeholder": {
       "code": "Enter product code...",
       "name": "Enter product name...",
@@ -231,7 +238,15 @@
     "noItems": "No items to print!",
     "print": "Print",
     "payNow": "Pay Now",
-    "enterCustomer": "Enter customer..."
+    "enterCustomer": "Enter customer...",
+    "needOneTab": "You need at least one active order.",
+    "cartEmpty": "No items in the cart.",
+    "orderCodeMissing": "(no code)",
+    "pendingSaved": "Saved draft order.\nOrder code: {{orderId}}\nTotal: {{total}}",
+    "pendingSaveFailed": "Unable to save draft order. Please try again.",
+    "paymentSuccess": "Payment successful!\nCustomer: {{customer}}\nTotal: {{total}}",
+    "printError": "An error occurred while generating the invoice. Please try again.",
+    "printErrorLog": "Failed to print invoice"
   },
   "supplier": {
     "supplierName": "Supplier Name",
@@ -247,6 +262,28 @@
       "email": "Enter contact email...",
       "address": "Enter address...",
       "note": "Additional notes (optional)..."
+    }
+  },
+  "category": {
+    "categoryName": "Category Name",
+    "description": "Description",
+    "enterName": "Please enter category name!",
+    "addSuccess": "Category added successfully!",
+    "addFail": "Unable to add category!",
+    "placeholder": {
+      "name": "Enter category name...",
+      "description": "Enter category description..."
+    }
+  },
+  "brand": {
+    "brandName": "Brand Name",
+    "description": "Description",
+    "enterName": "Please enter brand name!",
+    "addSuccess": "Brand added successfully!",
+    "addFail": "Unable to add brand!",
+    "placeholder": {
+      "name": "Enter brand name...",
+      "description": "Enter brand description..."
     }
   },
   "import": {
@@ -274,7 +311,49 @@
     "noProducts": "No products available. Please add products first.",
     "total": "Total",
     "selectsupplier": "Select Supplier",
-    "importFile": "Import File"
+    "importFile": "Import File",
+    "saveDraft": "Save Draft",
+    "complete": "Complete",
+    "defaultUnit": "Piece",
+    "notePlaceholder": "Enter note...",
+    "confirmDelete": "Are you sure you want to remove this product?",
+    "errors": {
+      "loadProducts": "Failed to load product list.",
+      "loadSuppliers": "Failed to load supplier list.",
+      "readFile": "Unable to read file.",
+      "submit": "Failed to submit import receipt."
+    },
+    "logs": {
+      "payload": "Payload sent to backend:"
+    },
+    "alerts": {
+      "selectFile": "Please select a file before importing.",
+      "importSuccess": "File imported successfully!",
+      "importFailed": "Unable to import file. Please verify the format and try again.",
+      "requireSupplier": "Please select a supplier before saving.",
+      "emptyItems": "The product list is empty.",
+      "completed": "Import receipt completed!",
+      "savedDraft": "Import receipt saved as draft!",
+      "submitFail": "Failed to submit import receipt!",
+      "addProductSuccess": "New product added!",
+      "exportInfo": "Export file feature is coming soon."
+    },
+    "templateHeaders": {
+      "barcode": "Product Code",
+      "name": "Product Name",
+      "unit": "Unit",
+      "quantity": "Quantity",
+      "price": "Import Price",
+      "discount": "Discount"
+    },
+    "templateSample": {
+      "barcode": "CODE001",
+      "name": "Sample Product",
+      "unit": "Piece",
+      "quantity": "10",
+      "price": "15000",
+      "discount": "0"
+    }
   },
   "importProducts": {
     "title": "Import Products",
@@ -298,5 +377,16 @@
     "loadFail": "Failed to load import receipts!",
     "empty": "No data available",
     "display": "Display"
+  },
+  "prices": {
+    "loadFail": "Failed to load products.",
+    "noChange": "No changes detected.",
+    "confirmUpdate": "Confirm updating price/discount for this product?",
+    "updateSuccess": "Updated successfully!",
+    "updateFail": "Unable to update. Please try again."
+  },
+  "invoices": {
+    "selectToExport": "Please select invoices to export.",
+    "selectToPrint": "Please select invoices to print."
   }
 }

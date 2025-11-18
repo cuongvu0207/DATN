@@ -10,6 +10,7 @@ export default function ImportTableList({
   onSelectAll,
   onExpand, // callback khi click dòng để xổ chi tiết
   expandedRow,
+  emptyMessage = "",
 }) {
   const { t } = useTranslation();
   const { theme } = useTheme();
@@ -42,7 +43,7 @@ export default function ImportTableList({
           {data.length === 0 ? (
             <tr>
               <td colSpan="7" className="text-center text-muted py-3">
-                {t("import.noData") || "Không có dữ liệu"}
+                {emptyMessage || t("import.noData") || "Không có dữ liệu"}
               </td>
             </tr>
           ) : (
@@ -150,17 +151,6 @@ export default function ImportTableList({
         </tbody>
       </table>
 
-      {/* --- Footer --- */}
-      <div className="d-flex justify-content-between align-items-center p-2 border-top small text-muted">
-        <span>
-          {t("import.showing") || "Hiển thị"} {data.length}{" "}
-          {t("import.rows") || "dòng"}
-        </span>
-        <span>
-          1–{data.length} {t("import.of") || "trong"} {data.length}{" "}
-          {t("import.transactions") || "phiếu nhập"}
-        </span>
-      </div>
     </div>
   );
 }

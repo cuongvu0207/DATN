@@ -1,7 +1,14 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-export default function ImportFileModal({ theme, handleImportFile, onClose }) {
+export default function ImportFileModal({
+  theme,
+  onFileChange,
+  onConfirm,
+  onDownloadTemplate,
+  hasFile = false,
+  onClose,
+}) {
   const { t } = useTranslation();
 
   return (
@@ -20,7 +27,7 @@ export default function ImportFileModal({ theme, handleImportFile, onClose }) {
           </button>
         </div>
 
-        <p className="text-muted small mb-1">📘 {t("import.fileFormat") || "Định dạng:"}</p>
+        <p className="text-muted small mb-1">{t("import.fileFormat") || "Định dạng:"}</p>
         <pre className="bg-light p-2 rounded small mb-3">
           Mã hàng, Tên hàng, ĐVT, Số lượng, Giá nhập, Giảm giá
         </pre>
@@ -29,13 +36,24 @@ export default function ImportFileModal({ theme, handleImportFile, onClose }) {
           type="file"
           accept=".csv, .xlsx, .xls"
           className="form-control mb-3"
-          onChange={handleImportFile}
+          onChange={onFileChange}
         />
 
-        <div className="text-end">
-          <button className={`btn btn-${theme} text-white`} onClick={onClose}>
-            <i className="bi bi-check2 me-1"></i> {t("import.done") || "Hoàn tất"}
+        <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <button className="btn btn-outline-secondary" onClick={onDownloadTemplate}>
+            <i className="bi bi-download me-1"></i>
+            {t("import.downloadTemplate") || "Tải file mẫu"}
           </button>
+
+          <div className="text-end">
+            <button
+              className={`btn btn-${theme} text-white`}
+              onClick={onConfirm}
+              disabled={!hasFile}
+            >
+              <i className="bi bi-check2 me-1"></i> {t("import.done") || "Hoàn tất"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

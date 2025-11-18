@@ -5,7 +5,7 @@ export function exportProductsToExcel(products, t) {
   console.log("Exporting products:", products);
 
   if (!products || products.length === 0) {
-    alert(t?.("products.noData") || "Không có dữ liệu để xuất");
+    alert(t?.("products.noDataToExport") ?? "");
     return;
   }
 
