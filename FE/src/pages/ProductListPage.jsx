@@ -8,6 +8,7 @@ import ProductHeaderBar from "../components/product/ProductHeaderBar";
 import ProductFilterPanel from "../components/product/ProductFilterPanel";
 import ProductTable from "../components/product/ProductTable";
 import AddProductCard from "../components/common/AddProductCard";
+import ProductBulkUploadModal from "../components/product/ProductBulkUploadModal";
 
 export default function ProductListPage() {
   const { t } = useTranslation();
@@ -31,6 +32,9 @@ export default function ProductListPage() {
   const [editingProduct, setEditingProduct] = useState(null);
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [addingProduct, setAddingProduct] = useState(false);
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [bulkStatus, setBulkStatus] = useState(null);
 
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
@@ -68,11 +72,15 @@ export default function ProductListPage() {
           "",
         unit: p?.unit || "",
         price: p?.sellingPrice || 0,
-        cost: p?.costOfCapital || 0, // ✅ lấy giá vốn từ BE
+        cost: p?.costOfCapital || 0,
         stock: p?.quantityInStock || 0,
+
+        statusBoolean: p?.isActive ?? true,
+
         status: p?.isActive
-      ? t("products.active") || "Đang kinh doanh"
-      : t("products.inactive") || "Ngừng kinh doanh",
+          ? t("products.active")
+          : t("products.inactive"),
+
         createdAt: p?.lastUpdated
           ? new Date(p.lastUpdated).toLocaleDateString("vi-VN")
           : "",
@@ -81,7 +89,6 @@ export default function ProductListPage() {
 
       setProducts(formatted);
 
-      // ✅ cập nhật các filter
       setCategories([...new Set(formatted.map((p) => p.category).filter(Boolean))]);
       setBrands([...new Set(formatted.map((p) => p.brand).filter(Boolean))]);
       setSuppliers([...new Set(formatted.map((p) => p.supplier).filter(Boolean))]);
@@ -98,48 +105,85 @@ export default function ProductListPage() {
   }, []);
 
   /* ==============================
+      🔹 BATCH IMPORT
+     ============================== */
+  const handleOpenBulkModal = () => {
+    setBulkStatus(null);
+    setShowBulkModal(true);
+  };
+
+  const handleCloseBulkModal = () => {
+    setShowBulkModal(false);
+    setBulkProcessing(false);
+  };
+
+  const handleBulkFileSelect = (file) => {
+    if (!file) return;
+    setBulkProcessing(true);
+    setBulkStatus(null);
+
+    setTimeout(() => {
+      setBulkProcessing(false);
+      setBulkStatus({
+        type: "success",
+        message:
+          t("products.bulkUpload.fileQueued", { name: file.name }) ||
+          `Đã nhận file ${file.name}`,
+      });
+    }, 600);
+  };
+
+  const handleSheetImport = (sheetUrl) => {
+    if (!sheetUrl) return;
+    setBulkProcessing(true);
+    setBulkStatus(null);
+
+    setTimeout(() => {
+      setBulkProcessing(false);
+      setBulkStatus({
+        type: "success",
+        message: t("products.bulkUpload.sheetQueued") || "Đã nhận Google Sheet!",
+      });
+    }, 800);
+  };
+
+  /* ==============================
       🔹 THÊM SẢN PHẨM
      ============================== */
-     const handleAddNew = async (newProduct) => {
-      try {
-        const formData = new FormData();
-  
-        // ✅ Các trường trùng ProductRequest.java
-        formData.append("productName", newProduct.name);
-        formData.append("unit", newProduct.unit || "");
-        formData.append("barcode", newProduct.barcode);
-        formData.append("sellingPrice", newProduct.price);
-        formData.append("costOfCapital", newProduct.cost || 0);
-        formData.append("quantityInStock", newProduct.stock);
-        formData.append("isActive", true);
-  
-        // ⚙️ BE cần categoryId (không phải categoryName)
-        // Nếu AddProductCard đang lưu categoryName, bạn cần đổi nó sang ID khi chọn
-        // Tạm thời, nếu chưa có, ta gán 1 mặc định
-        formData.append("categoryId", newProduct.categoryId || 1);
-        formData.append("brandId", newProduct.brandId || 1);
-  
-        // ✅ Ảnh (MultipartFile)
-        if (newProduct.imageFile) {
-          formData.append("file", newProduct.imageFile);
-        }
-  
-        // ✅ Gửi multipart
-        await axios.post(`${API_BASE_URL}/inventory/products`, formData, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        });
-  
-        alert(t("products.addSuccess") || "Thêm sản phẩm thành công!");
-        setAddingProduct(false);
-        fetchProducts();
-      } catch (err) {
-        console.error("❌ Lỗi thêm sản phẩm:", err);
-        alert(t("products.addError") || "Không thể thêm sản phẩm!");
+  const handleAddNew = async (newProduct) => {
+    try {
+      const formData = new FormData();
+
+      formData.append("productName", newProduct.name);
+      formData.append("unit", newProduct.unit || "");
+      formData.append("barcode", newProduct.barcode);
+      formData.append("sellingPrice", newProduct.price);
+      formData.append("costOfCapital", newProduct.cost || 0);
+      formData.append("quantityInStock", newProduct.stock);
+      formData.append("isActive", true);
+
+      formData.append("categoryId", newProduct.categoryId || 1);
+      formData.append("brandId", newProduct.brandId || 1);
+
+      if (newProduct.imageFile) {
+        formData.append("file", newProduct.imageFile);
       }
-    };
+
+      await axios.post(`${API_BASE_URL}/inventory/products`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      alert(t("products.addSuccess"));
+      setAddingProduct(false);
+      fetchProducts();
+    } catch (err) {
+      console.error("❌ Lỗi thêm sản phẩm:", err);
+      alert(t("products.addError"));
+    }
+  };
 
   /* ==============================
       🔹 SỬA SẢN PHẨM
@@ -156,34 +200,53 @@ export default function ProductListPage() {
         sellingPrice: updated.price,
         quantityInStock: updated.stock,
         costOfCapital: updated.cost,
-        isActive: updated.status === "Đang kinh doanh",
+        isActive: updated.statusBoolean,
       });
-      alert(t("products.updateSuccess") || "Cập nhật thành công!");
+      alert(t("products.updateSuccess"));
       setEditingProduct(null);
       fetchProducts();
     } catch (err) {
       console.error("❌ Lỗi cập nhật:", err);
-      alert(t("products.updateError") || "Không thể cập nhật sản phẩm!");
+      alert(t("products.updateError"));
     }
   };
 
   /* ==============================
-      🔹 XOÁ SẢN PHẨM
+      🔹 KÍCH HOẠT / VÔ HIỆU HOÁ
      ============================== */
-  const handleDelete = async (id) => {
-    if (!window.confirm(t("common.confirmDelete") || "Bạn có chắc muốn xoá?")) return;
-    try {
-      await axiosInstance.delete(`/inventory/products/${id}`);
-      alert(t("products.deleteSuccess") || "Đã xoá sản phẩm thành công!");
-      fetchProducts();
-    } catch (err) {
-      console.error("❌ Lỗi xoá sản phẩm:", err);
-      alert(t("products.deleteError") || "Không thể xoá sản phẩm!");
-    }
-  };
+     const handleToggleActive = async (product) => {
+      try {
+        await axiosInstance.put(`/inventory/products/${product.id}`, {
+          productId: product.id,
+          productName: product.name,
+          categoryId: product.categoryId || null,
+          brandId: product.brandId || null,
+          unit: product.unit,
+          barcode: product.barcode,
+          sellingPrice: product.price,
+          quantityInStock: product.stock,
+          costOfCapital: product.cost,
+    
+          // 🔥 Toggle trạng thái
+          isActive: !product.statusBoolean,
+        });
+    
+        alert(
+          !product.statusBoolean
+            ? t("products.activated") || "Đã kích hoạt!"
+            : t("products.deactivated") || "Đã vô hiệu hóa!"
+        );
+    
+        fetchProducts();
+      } catch (err) {
+        console.error("❌ Toggle Error:", err);
+        alert(t("products.updateError") || "Không thể cập nhật sản phẩm!");
+      }
+    };
+    
 
   /* ==============================
-      🔹 BỘ LỌC & TÌM KIẾM
+      🔹 LỌC + TÌM KIẾM
      ============================== */
   const handleFilterChange = (field, value) => {
     setFilters((prev) => ({ ...prev, [field]: value }));
@@ -193,19 +256,19 @@ export default function ProductListPage() {
   const filtered = products.filter((p) => {
     const queryLower = (query || "").toLowerCase();
     const matchesQuery =
-      (p.name?.toLowerCase?.() || "").includes(queryLower) ||
-      (p.id?.toLowerCase?.() || "").includes(queryLower) ||
-      (p.barcode?.toLowerCase?.() || "").includes(queryLower);
+      p.name.toLowerCase().includes(queryLower) ||
+      p.barcode.toLowerCase().includes(queryLower) ||
+      p.id.toLowerCase().includes(queryLower);
 
-// ✅ Nếu filter đang ở mặc định ("", "Tất cả" hoặc null) thì bỏ qua
-const matchesCategory =
-  !filters.category || filters.category === "all" || p.category === filters.category;
+    const matchesCategory =
+      !filters.category || filters.category === "all" || p.category === filters.category;
 
-const matchesBrand =
-  !filters.brand || filters.brand === "all" || p.brand === filters.brand;
+    const matchesBrand =
+      !filters.brand || filters.brand === "all" || p.brand === filters.brand;
 
-const matchesSupplier =
-  !filters.supplier || filters.supplier === "all" || p.supplier === filters.supplier;
+    const matchesSupplier =
+      !filters.supplier || filters.supplier === "all" || p.supplier === filters.supplier;
+
     const matchesStock =
       filters.stock === "all"
         ? true
@@ -284,17 +347,16 @@ const matchesSupplier =
           query={query}
           setQuery={setQuery}
           onAdd={() => setAddingProduct(true)}
+          onImport={handleOpenBulkModal}
           onExport={handleExportSelected}
           onPrint={handlePrintBarcode}
         />
 
         {addingProduct && (
-          <div className="border border-primary rounded-3 mb-3 p-3 shadow-sm bg-body-tertiary">
-            <AddProductCard
-              onCancel={() => setAddingProduct(false)}
-              onSave={handleAddNew}
-            />
-          </div>
+          <AddProductCard
+            onCancel={() => setAddingProduct(false)}
+            onSave={handleAddNew}
+          />
         )}
 
         <div className="row g-3 mt-1">
@@ -328,9 +390,7 @@ const matchesSupplier =
             onSelectAll={(checked, currentPageItems) => {
               if (checked) {
                 const allIds = currentPageItems.map((p) => p.id);
-                setSelectedProducts((prev) => [
-                  ...new Set([...prev, ...allIds]),
-                ]);
+                setSelectedProducts((prev) => [...new Set([...prev, ...allIds])]);
               } else {
                 const pageIds = currentPageItems.map((p) => p.id);
                 setSelectedProducts((prev) =>
@@ -339,7 +399,7 @@ const matchesSupplier =
               }
             }}
             onEdit={handleEdit}
-            onDelete={handleDelete}
+            onToggleActive={handleToggleActive}
             editingProduct={editingProduct}
             setEditingProduct={setEditingProduct}
             selectedProductId={selectedProductId}
@@ -349,6 +409,15 @@ const matchesSupplier =
           />
         </div>
       </div>
+
+      <ProductBulkUploadModal
+        show={showBulkModal}
+        onClose={handleCloseBulkModal}
+        onFileSelect={handleBulkFileSelect}
+        onSheetImport={handleSheetImport}
+        isProcessing={bulkProcessing}
+        status={bulkStatus}
+      />
     </MainLayout>
   );
 }

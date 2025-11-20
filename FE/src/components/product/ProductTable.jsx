@@ -6,7 +6,6 @@ import EditProductDetailCard from "../common/EditProductDetailCard";
 import TablePagination from "../common/TablePagination";
 import { formatCurrency } from "../../utils/formatters";
 
-
 export default function ProductTable({
   products,
   currentPage,
@@ -17,7 +16,7 @@ export default function ProductTable({
   onSelectOne,
   onSelectAll,
   onEdit,
-  onDelete,
+  onToggleActive,
   editingProduct,
   setEditingProduct,
   selectedProductId,
@@ -26,13 +25,15 @@ export default function ProductTable({
   const { t } = useTranslation();
   const { theme } = useTheme();
 
-  // --- Pagination ---
+  /* =============================
+        PAGINATION
+  ============================== */
   const totalPages = Math.max(1, Math.ceil(products.length / rowsPerPage));
   const startIndex = (currentPage - 1) * rowsPerPage;
   const currentRows = products.slice(startIndex, startIndex + rowsPerPage);
+
   const rowsSelectValue = rowsPerPage >= products.length ? "all" : rowsPerPage;
 
-  // ✅ Kiểm tra xem có chọn hết trang hiện tại chưa
   const allChecked =
     currentRows.length > 0 &&
     currentRows.every((p) => selectedProducts.includes(p.id));
@@ -46,148 +47,155 @@ export default function ProductTable({
     setCurrentPage(1);
   };
 
+  /* =============================
+           RENDER
+  ============================== */
   return (
     <div className="col-lg-10 col-12">
-      <div className={`table-responsive rounded-3 shadow-sm`}>
-        <div className="table-scroll" style={{ maxHeight: "60vh", overflowX: "auto", overflowY: "auto" }}>
-        <table className="table table-hover align-middle mb-0">
-          <thead className={`table-${theme}`}>
-            <tr>
-              <th style={{ width: 40 }}>
-                <input
-                  type="checkbox"
-                  className="form-check-input"
-                  checked={allChecked}
-                  onChange={(e) => onSelectAll(e.target.checked, currentRows)}
-                />
-              </th>
-              <th>#</th>
-              <th>{t("products.barcode") || "Mã vạch"}</th>
-              <th>{t("products.productName") || "Tên sản phẩm"}</th>
-              <th>{t("products.category") || "Danh mục"}</th>
-              <th>{t("products.brand") || "Thương hiệu"}</th> 
-              <th>{t("products.unit") || "Đơn vị"}</th>
-              <th>{t("products.sellingPrice") || "Giá bán"}</th>
-              <th>{t("products.costOfCapital") || "Giá vốn"}</th>
-              <th>{t("products.stock") || "Tồn kho"}</th>
-              <th>{t("products.status") || "Trạng thái"}</th>
-              <th>{t("products.createdDate") || "Ngày cập nhật"}</th>
-            </tr>
-          </thead>
+      <div className="table-responsive rounded-3 shadow-sm">
+        <div
+          style={{ maxHeight: "60vh", overflowX: "auto", overflowY: "auto" }}
+        >
+          <table className="table table-hover align-middle mb-0">
+            <thead className={`table-${theme}`}>
+              <tr>
+                <th style={{ width: 40 }}>
+                  <input
+                    type="checkbox"
+                    className="form-check-input"
+                    checked={allChecked}
+                    onChange={(e) => onSelectAll(e.target.checked, currentRows)}
+                  />
+                </th>
+                <th>#</th>
+                <th>{t("products.barcode")}</th>
+                <th>{t("products.productName")}</th>
+                <th>{t("products.category")}</th>
+                <th>{t("products.brand")}</th>
+                <th>{t("products.unit")}</th>
+                <th>{t("products.sellingPrice")}</th>
+                <th>{t("products.costOfCapital")}</th>
+                <th>{t("products.stock")}</th>
+                <th>{t("products.status")}</th>
+                <th>{t("products.createdDate")}</th>
+              </tr>
+            </thead>
 
-          <tbody>
-            {currentRows.length > 0 ? (
-              currentRows.map((p, index) => (
-                <React.Fragment key={p.id}>
-                  <tr
-                    style={{ cursor: "pointer" }}
-                    onClick={() =>
-                      setSelectedProductId((prev) =>
-                        prev === p.id ? null : p.id
-                      )
-                    }
-                  >
-                    {/* Checkbox */}
-                    <td onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        className="form-check-input"
-                        checked={selectedProducts.includes(p.id)}
-                        onChange={() => onSelectOne(p.id)}
-                      />
-                    </td>
-
-                    {/* Số thứ tự */}
-                    <td>{index + 1 + (currentPage - 1) * rowsPerPage}</td>
-
-                    {/* Mã vạch */}
-                    <td>{p.barcode || "-"}</td>
-
-                    {/* Tên sản phẩm */}
-                    <td>
-                      <div className="d-flex align-items-center gap-2">
-                        <img
-                          src={p.image}
-                          alt={p.name}
-                          className="rounded"
-                          style={{ width: 45, height: 45, objectFit: "cover" }}
-                        />
-                        <span>{p.name}</span>
-                      </div>
-                    </td>
-
-                    {/* Danh mục */}
-                    <td>{p.category || "-"}</td>
-
-                    {/* ✅ Thương hiệu */}
-                    <td>
-                      <span className="badge bg-light text-dark border">
-                        {p.brand || p.brandName || t("common.undefined")}
-                      </span>
-                    </td>
-
-                    {/* Đơn vị */}
-                    <td>{p.unit || "-"}</td>
-
-                    {/* Giá bán */}
-                    <td>{formatCurrency(p.price)}</td>
-
-                    {/* Giá vốn */}
-                    <td>{formatCurrency(p.cost)}</td>
-
-                    {/* Tồn kho */}
-                    <td>{p.stock}</td>
-
-                    {/* Trạng thái */}
-                    <td
-                      className={
-                        p.status === "Đang kinh doanh"
-                          ? "text-success fw-semibold"
-                          : "text-danger fw-semibold"
+            <tbody>
+              {currentRows.length > 0 ? (
+                currentRows.map((p, index) => (
+                  <React.Fragment key={p.id}>
+                    <tr
+                      style={{ cursor: "pointer" }}
+                      onClick={() =>
+                        setSelectedProductId((prev) =>
+                          prev === p.id ? null : p.id
+                        )
                       }
                     >
-                      {p.status}
-                    </td>
-
-                    {/* Ngày cập nhật */}
-                    <td>{p.createdAt}</td>
-                  </tr>
-
-                  {/* Chi tiết sản phẩm */}
-                  {selectedProductId === p.id && (
-                    <tr className="bg-body-tertiary">
-                      {/* ✅ Cập nhật colSpan để khớp với số cột mới (12 thay vì 11) */}
-                      <td colSpan={12} className="p-0 border-0">
-                        {editingProduct?.id === p.id ? (
-                          <EditProductDetailCard
-                            product={editingProduct}
-                            onClose={() => setEditingProduct(null)}
-                            onSave={(u) => onEdit(u)}
-                          />
-                        ) : (
-                          <ProductDetailCard
-                            product={p}
-                            onEdit={() => setEditingProduct(p)}
-                            onDelete={() => onDelete(p.id)}
-                          />
-                        )}
+                      {/* Checkbox */}
+                      <td onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          className="form-check-input"
+                          checked={selectedProducts.includes(p.id)}
+                          onChange={() => onSelectOne(p.id)}
+                        />
                       </td>
+
+                      {/* STT */}
+                      <td>{index + 1 + startIndex}</td>
+
+                      {/* Barcode */}
+                      <td>{p.code || p.barcode || "-"}</td>
+
+                      {/* Tên + Ảnh */}
+                      <td>
+                        <div className="d-flex align-items-center gap-2">
+                          <img
+                            src={p.image || "/no-image.png"}
+                            alt={p.name}
+                            className="rounded"
+                            style={{ width: 45, height: 45, objectFit: "cover" }}
+                          />
+                          <span>{p.name}</span>
+                        </div>
+                      </td>
+
+                      {/* Danh mục */}
+                      <td>{p.category || "-"}</td>
+
+                      {/* Thương hiệu */}
+                      <td>
+                        <span className="badge bg-light text-dark border">
+                          {p.brand || t("common.undefined")}
+                        </span>
+                      </td>
+
+                      {/* Đơn vị */}
+                      <td>{p.unit || "-"}</td>
+
+                      {/* Giá bán */}
+                      <td>{formatCurrency(p.price)}</td>
+
+                      {/* Giá vốn */}
+                      <td>{formatCurrency(p.cost)}</td>
+
+                      {/* Tồn kho */}
+                      <td>{p.stock}</td>
+
+                      {/* Trạng thái */}
+                      <td
+                        className={
+                          p.active || p.isActive || p.statusBoolean
+                            ? "text-success fw-semibold"
+                            : "text-danger fw-semibold"
+                        }
+                      >
+                        {p.active || p.isActive || p.statusBoolean
+                          ? t("products.active", "Đang bán")
+                          : t("products.inactive", "Ngừng bán")}
+                      </td>
+
+                      {/* Ngày tạo */}
+                      <td>{p.createdAt ? p.createdAt : "-"}</td>
                     </tr>
-                  )}
-                </React.Fragment>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={12} className="text-center text-muted py-4">
-                  {t("products.noData") || "Không có dữ liệu"}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+
+                    {/* Row chi tiết */}
+                    {selectedProductId === p.id && (
+                      <tr className="bg-body-tertiary">
+                        <td colSpan={12} className="p-0 border-0">
+                          {editingProduct?.id === p.id ? (
+                            <EditProductDetailCard
+                              product={editingProduct}
+                              onClose={() => setEditingProduct(null)}
+                              onSave={(u) => onEdit(u)}
+                            />
+                          ) : (
+                            <ProductDetailCard
+                              product={p}
+                              onEdit={() => setEditingProduct(p)}
+                              onToggleActive={() => onToggleActive(p)}
+                            />
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={12} className="text-center text-muted py-4">
+                    {t("products.noData")}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
+      {/* Pagination */}
       <TablePagination
         currentPage={currentPage}
         totalItems={products.length}

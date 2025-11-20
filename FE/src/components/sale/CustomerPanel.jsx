@@ -538,7 +538,7 @@ export default function CustomerPanel({
             {[
               { value: "cash", label: t("sales.cash") || "Tiền mặt" },
               { value: "bank", label: t("sales.bank") || "Chuyển khoản" },
-              { value: "qr_code", label: t("sales.qr") || "Quét mã QR" },
+              { value: "wallet", label: t("sales.wallet") || "Ví điện tử" },
             ].map((m) => (
               <label key={m.value} className="form-check d-flex align-items-center gap-2 text-dark">
                 <input

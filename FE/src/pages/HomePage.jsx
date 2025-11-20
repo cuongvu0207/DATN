@@ -1,5 +1,4 @@
-﻿
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import MainLayout from "../layouts/MainLayout";
 import { useTheme } from "../context/ThemeContext";
 import { useTranslation } from "react-i18next";
@@ -12,12 +11,12 @@ export default function HomePage() {
   const { t } = useTranslation();
   const token = localStorage.getItem("accessToken");
 
-  const [period, setPeriod] = useState("day");
+  const [period, setPeriod] = useState("day"); // "day" | "week" | "month"
   const [summary, setSummary] = useState({ revenue: 0, cost: 0, profit: 0 });
   const [trend, setTrend] = useState([]);
   const [topProducts, setTopProducts] = useState([]);
   const [topCustomers, setTopCustomers] = useState([]);
-  const [activities, setActivities] = useState([]);
+  const [activities, setActivities] = useState([]); // tạm thời để trống, nếu sau này có /audit/logs thì gắn vào
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -25,90 +24,206 @@ export default function HomePage() {
     () =>
       axios.create({
         baseURL: API_BASE_URL,
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
       }),
     [token]
   );
 
-  const filterTrend = (arr) => {
-    try {
-      if (!Array.isArray(arr)) return [];
-      if (period !== "day") return arr;
-      return arr.filter((d) => {
-        const h = new Date(d.date).getHours();
-        return h >= 8 && h <= 20 && h % 2 === 0;
-      });
-    } catch {
-      return arr || [];
+  // Giới hạn thời gian theo period (day / week / month)
+  const getFromDateByPeriod = () => {
+    const now = new Date();
+    const from = new Date(now);
+
+    if (period === "day") {
+      from.setHours(0, 0, 0, 0);
+    } else if (period === "week") {
+      from.setDate(from.getDate() - 6); // 7 ngày gần nhất (bao gồm hôm nay)
+      from.setHours(0, 0, 0, 0);
+    } else if (period === "month") {
+      from.setDate(from.getDate() - 29); // 30 ngày gần nhất
+      from.setHours(0, 0, 0, 0);
     }
+
+    return from;
   };
 
   const fetchDashboard = async () => {
     setLoading(true);
     setError("");
+
     try {
-      const [sum, tr, prod, cust, logs] = await Promise.all([
-        axiosInstance.get("/finance/summary", { params: { period } }),
-        axiosInstance.get("/analytics/revenue-trend", { params: { period, points: period === "day" ? 7 : 12 } }),
-        axiosInstance.get("/analytics/top-products", { params: { period, limit: 5 } }),
-        axiosInstance.get("/analytics/top-customers", { params: { period, limit: 5 } }),
-        axiosInstance.get("/audit/logs", { params: { limit: 20 } }),
+      // Gọi 3 API: orders, products, customers
+      const [ordersRes, productsRes, customersRes] = await Promise.all([
+        axiosInstance.get("/order/static/allCompleted"),
+        axiosInstance.get("/inventory/products"),
+        axiosInstance.get("/customer"),
       ]);
 
-      setSummary({
-        revenue: Number(sum.data?.revenue || 0),
-        cost: Number(sum.data?.cost || 0),
-        profit: Number(sum.data?.profit || 0),
+      const allOrders = Array.isArray(ordersRes.data) ? ordersRes.data : [];
+      const products = Array.isArray(productsRes.data) ? productsRes.data : [];
+      const customers = Array.isArray(customersRes.data) ? customersRes.data : [];
+
+      // Map barcode -> giá vốn
+      const costMap = {};
+      products.forEach((p) => {
+        if (p.barcode) {
+          costMap[p.barcode] = Number(p.costOfCapital || p.costPrice || 0);
+        }
       });
-      setTrend(filterTrend(Array.isArray(tr.data) ? tr.data : []));
-      setTopProducts(Array.isArray(prod.data) ? prod.data : []);
-      setTopCustomers(Array.isArray(cust.data) ? cust.data : []);
-      setActivities(Array.isArray(logs.data) ? logs.data : []);
-    } catch (err) {
-      console.warn("Dashboard fetch failed, using demo data", err);
-      setSummary({ revenue: 125000000, cost: 83000000, profit: 42000000 });
+
+      // Map customerId -> info
+      const customerMap = {};
+      customers.forEach((c) => {
+        if (c.id) {
+          customerMap[c.id] = {
+            name: c.name || c.fullName || "Khách hàng",
+            phone: c.phone || c.phoneNumber || "",
+          };
+        }
+      });
+
+      // Lọc orders theo period
       const now = new Date();
+      const fromDate = getFromDateByPeriod();
+
+      const orders = allOrders.filter((o) => {
+        const d = new Date(o.createdAt);
+        if (isNaN(d.getTime())) return false;
+        return d >= fromDate && d <= now;
+      });
+
+      // ===== TÍNH SUMMARY: DOANH THU / CHI PHÍ / LỢI NHUẬN =====
+      const revenue = orders.reduce(
+        (sum, o) => sum + Number(o.totalPrice || 0),
+        0
+      );
+
+      let cost = 0;
+      orders.forEach((o) => {
+        (o.orderItemDTOs || []).forEach((item) => {
+          const barcode = item.barcode;
+          const qty = Number(item.quantity || 0);
+          const unitCost = costMap[barcode] ?? 0;
+          cost += qty * unitCost;
+        });
+      });
+
+      const profit = revenue - cost;
+
+      setSummary({ revenue, cost, profit });
+
+      // ===== TÍNH TREND REVENUE =====
+      let trendData = [];
       if (period === "day") {
-        const hours = [8, 10, 12, 14, 16, 18, 20];
-        setTrend(
-          hours.map((h) => ({
-            date: new Date(now.getFullYear(), now.getMonth(), now.getDate(), h).toISOString(),
-            revenue: Math.max(0, Math.round(5_000_000 + Math.random() * 20_000_000)),
-          }))
-        );
+        // group by hour trong ngày
+        const byHour = {};
+        orders.forEach((o) => {
+          const d = new Date(o.createdAt);
+          const h = d.getHours();
+          const key = h; // 0-23
+          byHour[key] = (byHour[key] || 0) + Number(o.totalPrice || 0);
+        });
+
+        const today = new Date();
+        trendData = Object.entries(byHour)
+          .map(([hStr, rev]) => {
+            const h = Number(hStr);
+            const d = new Date(
+              today.getFullYear(),
+              today.getMonth(),
+              today.getDate(),
+              h
+            );
+            return { date: d.toISOString(), revenue: rev };
+          })
+          .sort((a, b) => new Date(a.date) - new Date(b.date));
       } else {
-        const pts = 12;
-        setTrend(
-          Array.from({ length: pts }, (_, i) => ({
-            date: new Date(now.getFullYear(), now.getMonth() - (pts - 1 - i), 1).toISOString(),
-            revenue: Math.max(0, Math.round(5_000_000 + Math.random() * 20_000_000)),
-          }))
-        );
+        // group by day (YYYY-MM-DD)
+        const byDay = {};
+        orders.forEach((o) => {
+          const d = new Date(o.createdAt);
+          d.setHours(0, 0, 0, 0);
+          const key = d.toISOString().slice(0, 10); // YYYY-MM-DD
+          byDay[key] = (byDay[key] || 0) + Number(o.totalPrice || 0);
+        });
+
+        trendData = Object.entries(byDay)
+          .map(([dateStr, rev]) => {
+            const d = new Date(dateStr);
+            return { date: d.toISOString(), revenue: rev };
+          })
+          .sort((a, b) => new Date(a.date) - new Date(b.date));
       }
-      setTopProducts(
-        Array.from({ length: 5 }, (_, i) => ({
-          name: `S?n ph?m ${i + 1}`,
-          barcode: `SP${String(1000 + i)}`,
-          revenue: Math.round(10_000_000 + Math.random() * 20_000_000),
-          qty: Math.round(50 + Math.random() * 300),
-        }))
-      );
-      setTopCustomers(
-        Array.from({ length: 5 }, (_, i) => ({
-          name: `Kh�ch h�ng ${i + 1}`,
-          phone: `09${Math.floor(10000000 + Math.random() * 90000000)}`,
-          revenue: Math.round(15_000_000 + Math.random() * 25_000_000),
-          orders: Math.round(1 + Math.random() * 10),
-        }))
-      );
-      setActivities(
-        Array.from({ length: 10 }, (_, i) => ({
-          time: new Date(Date.now() - i * 3600_000).toISOString(),
-          user: i % 2 === 0 ? "manager" : "staff01",
-          action: i % 3 === 0 ? "CREATE_INVOICE" : i % 3 === 1 ? "IMPORT_STOCK" : "UPDATE_PRICE",
-          detail: `Ho?t d?ng ${i + 1}`,
-        }))
-      );
+
+      setTrend(trendData);
+
+      // ===== TÍNH TOP PRODUCTS =====
+      const prodAgg = {};
+      orders.forEach((o) => {
+        (o.orderItemDTOs || []).forEach((item) => {
+          const key = item.barcode || item.productName;
+          if (!key) return;
+          if (!prodAgg[key]) {
+            prodAgg[key] = {
+              name: item.productName || "Sản phẩm",
+              barcode: item.barcode || "",
+              revenue: 0,
+              qty: 0,
+            };
+          }
+          const subTotal =
+            item.subTotal || Number(item.price || 0) * Number(item.quantity || 0);
+          prodAgg[key].revenue += subTotal;
+          prodAgg[key].qty += Number(item.quantity || 0);
+        });
+      });
+
+      const topProdArr = Object.values(prodAgg)
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 5);
+
+      setTopProducts(topProdArr);
+
+      // ===== TÍNH TOP CUSTOMERS =====
+      const custAgg = {};
+      orders.forEach((o) => {
+        const cid = o.customerId || "default_customer_id";
+        if (!custAgg[cid]) {
+          const info = customerMap[cid] || {};
+          custAgg[cid] = {
+            id: cid,
+            name:
+              cid === "default_customer_id"
+                ? "Khách lẻ"
+                : info.name || `Khách #${cid.substring(0, 6)}`,
+            phone: info.phone || "",
+            revenue: 0,
+            orders: 0,
+          };
+        }
+        custAgg[cid].revenue += Number(o.totalPrice || 0);
+        custAgg[cid].orders += 1;
+      });
+
+      const topCustArr = Object.values(custAgg)
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 5);
+
+      setTopCustomers(topCustArr);
+
+      // Activity: hiện tại chưa có API, để rỗng
+      setActivities([]);
+    } catch (err) {
+      console.error("Dashboard fetch failed:", err);
+      setError("Không tải được dữ liệu dashboard");
+      setSummary({ revenue: 0, cost: 0, profit: 0 });
+      setTrend([]);
+      setTopProducts([]);
+      setTopCustomers([]);
+      setActivities([]);
     } finally {
       setLoading(false);
     }
@@ -116,11 +231,15 @@ export default function HomePage() {
 
   useEffect(() => {
     fetchDashboard();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [period]);
 
-  const maxRevenue = trend.reduce((m, d) => Math.max(m, d.revenue || 0), 0) || 1;
-  const maxProdRevenue = topProducts.reduce((m, p) => Math.max(m, p.revenue || 0), 0) || 1;
-  const maxCustRevenue = topCustomers.reduce((m, c) => Math.max(m, c.revenue || 0), 0) || 1;
+  const maxRevenue =
+    trend.reduce((m, d) => Math.max(m, d.revenue || 0), 0) || 1;
+  const maxProdRevenue =
+    topProducts.reduce((m, p) => Math.max(m, p.revenue || 0), 0) || 1;
+  const maxCustRevenue =
+    topCustomers.reduce((m, c) => Math.max(m, c.revenue || 0), 0) || 1;
 
   return (
     <MainLayout>
@@ -128,19 +247,51 @@ export default function HomePage() {
         <div className="d-flex justify-content-between align-items-center mb-3">
           <h4 className="fw-bold mb-0">{t("dashboard.title")}</h4>
           <div className="btn-group">
-            {[{k:"day",l:"Ng�y"},{k:"week",l:"Tu?n"},{k:"month",l:"Th�ng"}].map(x => (
-              <button key={x.k} className={`btn btn-${period===x.k?theme:"outline-"+theme}`} onClick={() => setPeriod(x.k)}>
+            {[
+              { k: "day", l: "Ngày" },
+              { k: "week", l: "Tuần" },
+              { k: "month", l: "Tháng" },
+            ].map((x) => (
+              <button
+                key={x.k}
+                className={`btn btn-${
+                  period === x.k ? theme : "outline-" + theme
+                }`}
+                onClick={() => setPeriod(x.k)}
+              >
                 {x.l}
               </button>
             ))}
           </div>
         </div>
 
+        {/* THÔNG BÁO LỖI (nếu có) */}
+        {error && (
+          <div className="alert alert-warning py-2 small">{error}</div>
+        )}
+
+        {/* SUMMARY CARDS */}
         <div className="row g-3 mb-3">
-          {[{label:t("dashboard.revenue"), value:formatCurrency(summary.revenue), icon:"bi-graph-up", cls:"text-success"},
-            {label:t("dashboard.cost"), value:formatCurrency(summary.cost), icon:"bi-cash-stack", cls:"text-danger"},
-            {label:t("dashboard.profit"), value:formatCurrency(summary.profit), icon:"bi-wallet2", cls:"text-primary"}]
-            .map((c,i)=> (
+          {[
+            {
+              label: t("dashboard.revenue"),
+              value: formatCurrency(summary.revenue),
+              icon: "bi-graph-up",
+              cls: "text-success",
+            },
+            {
+              label: t("dashboard.cost"),
+              value: formatCurrency(summary.cost),
+              icon: "bi-cash-stack",
+              cls: "text-danger",
+            },
+            {
+              label: t("dashboard.profit"),
+              value: formatCurrency(summary.profit),
+              icon: "bi-wallet2",
+              cls: "text-primary",
+            },
+          ].map((c, i) => (
             <div key={i} className="col-12 col-md-4">
               <div className="card shadow-sm border-0 h-100">
                 <div className="card-body d-flex align-items-center justify-content-between">
@@ -155,46 +306,106 @@ export default function HomePage() {
           ))}
         </div>
 
+        {/* REVENUE TREND + ACTIVITY (activity tạm rỗng) */}
         <div className="row g-3">
           <div className="col-12 col-xl-8">
             <div className="card shadow-sm border-0 h-100">
-              <div className="card-header bg-white border-0 fw-semibold">{t("dashboard.revenueTrend")}</div>
+              <div className="card-header bg-white border-0 fw-semibold">
+                {t("dashboard.revenueTrend")}
+              </div>
               <div className="card-body">
-                {loading && <div className="text-center py-4"><div className="spinner-border text-primary" /></div>}
+                {loading && (
+                  <div className="text-center py-4">
+                    <div className="spinner-border text-primary" />
+                  </div>
+                )}
                 {!loading && (
-                  <div className="d-flex align-items-end" style={{ height: 220, gap: 6, overflowX: 'auto' }}>
+                  <div
+                    className="d-flex align-items-end"
+                    style={{ height: 220, gap: 6, overflowX: "auto" }}
+                  >
                     {trend.map((d, i) => {
-                      const h = Math.max(6, Math.round((d.revenue / maxRevenue) * 200));
-                      const label = period === 'day' ? new Date(d.date).getHours()+':00' : (new Date(d.date).getMonth()+1)+'/'+new Date(d.date).getFullYear();
+                      const h = Math.max(
+                        6,
+                        Math.round((d.revenue / maxRevenue) * 200)
+                      );
+                      const dateObj = new Date(d.date);
+                      const label =
+                        period === "day"
+                          ? `${dateObj.getHours()}:00`
+                          : `${
+                              dateObj.getDate()
+                            }/${dateObj.getMonth() + 1}`;
                       return (
-                        <div key={i} className="text-center" style={{ width: 22 }}>
-                          <div className={`bg-${theme}`} style={{ height: h, borderRadius: 4 }} title={`${formatCurrency(d.revenue)} (${label})`} />
-                          <small className="text-muted d-block mt-1" style={{ fontSize: 10 }}>{label}</small>
+                        <div
+                          key={i}
+                          className="text-center"
+                          style={{ width: 22 }}
+                        >
+                          <div
+                            className={`bg-${theme}`}
+                            style={{
+                              height: h,
+                              borderRadius: 4,
+                            }}
+                            title={`${formatCurrency(
+                              d.revenue
+                            )} (${label})`}
+                          />
+                          <small
+                            className="text-muted d-block mt-1"
+                            style={{ fontSize: 10 }}
+                          >
+                            {label}
+                          </small>
                         </div>
                       );
                     })}
+                    {trend.length === 0 && !loading && (
+                      <div className="text-muted small">
+                        {t("common.noData")}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
             </div>
           </div>
-          {/* Activity feed pinned on the right */}
+
+          {/* Activity feed (hiện tạm không có dữ liệu) */}
           <div className="col-12 col-xl-4">
             <div className="card shadow-sm border-0 h-100">
-              <div className="card-header bg-white border-0 fw-semibold">{t("dashboard.activity")}</div>
-              <div className="card-body" style={{ maxHeight: 320, overflowY: 'auto' }}>
-                {activities.length === 0 && <div className="text-muted text-center py-3">{t("common.noData")}</div>}
+              <div className="card-header bg-white border-0 fw-semibold">
+                {t("dashboard.activity")}
+              </div>
+              <div
+                className="card-body"
+                style={{ maxHeight: 320, overflowY: "auto" }}
+              >
+                {activities.length === 0 && (
+                  <div className="text-muted text-center py-3">
+                    {t("common.noData")}
+                  </div>
+                )}
                 <ul className="list-group list-group-flush">
                   {activities.map((a, i) => (
                     <li key={i} className="list-group-item">
                       <div className="d-flex justify-content-between">
                         <div>
-                          <span className="badge bg-light text-dark border me-2">{a.action}</span>
+                          <span className="badge bg-light text-dark border me-2">
+                            {a.action}
+                          </span>
                           <span className="fw-semibold">{a.user}</span>
                         </div>
-                        <small className="text-muted">{formatters.date.toDisplay(a.time)}</small>
+                        <small className="text-muted">
+                          {formatters.date.toDisplay(a.time)}
+                        </small>
                       </div>
-                      {a.detail && <div className="small text-muted mt-1">{a.detail}</div>}
+                      {a.detail && (
+                        <div className="small text-muted mt-1">
+                          {a.detail}
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -203,97 +414,207 @@ export default function HomePage() {
           </div>
         </div>
 
+        {/* TOP PRODUCTS & TOP CUSTOMERS */}
         <div className="row g-3 mt-1">
+          {/* Top products */}
           <div className="col-12 col-xl-6">
             <div className="card shadow-sm border-0 h-100">
-              <div className="card-header bg-white border-0 fw-semibold">{t("dashboard.topProducts")}</div>
+              <div className="card-header bg-white border-0 fw-semibold">
+                {t("dashboard.topProducts")}
+              </div>
               <div className="card-body">
-                {/* Mini chart */}
                 {topProducts.map((p, i) => (
-                  <div key={p.barcode || i} className="d-flex align-items-center mb-2">
-                    <div className="text-truncate" style={{ width: 120 }} title={p.name || p.productName}>{p.name || p.productName}</div>
-                    <div className="flex-grow-1 mx-2 bg-light rounded" style={{ height: 8 }}>
-                      <div className={`bg-${theme} rounded`} style={{ width: `${Math.round(((p.revenue||0)/maxProdRevenue)*100)}%`, height: 8 }}></div>
+                  <div
+                    key={p.barcode || i}
+                    className="d-flex align-items-center mb-2"
+                  >
+                    <div
+                      className="text-truncate"
+                      style={{ width: 120 }}
+                      title={p.name || p.productName}
+                    >
+                      {p.name || p.productName}
                     </div>
-                    <small className="text-muted">{formatCurrency(p.revenue || 0)}</small>
+                    <div
+                      className="flex-grow-1 mx-2 bg-light rounded"
+                      style={{ height: 8 }}
+                    >
+                      <div
+                        className={`bg-${theme} rounded`}
+                        style={{
+                          width: `${Math.round(
+                            ((p.revenue || 0) / maxProdRevenue) * 100
+                          )}%`,
+                          height: 8,
+                        }}
+                      ></div>
+                    </div>
+                    <small className="text-muted">
+                      {formatCurrency(p.revenue || 0)}
+                    </small>
                   </div>
                 ))}
-                <div className="table-responsive rounded-3 mt-3" style={{ borderRadius: 16, overflow: "hidden", paddingRight: 8, paddingBottom: 8, backgroundColor: "#fff" }}>
-                  <div style={{ maxHeight: "60vh", overflowX: "auto", overflowY: "auto", borderRadius: 12 }}>
-                  <table className="table table-hover align-middle mb-0">
-                    <thead className="table-light" style={{ position: "sticky", top: 0, zIndex: 2 }}>
-                      <tr>
-                        <th>#</th><th>{t("products.name")}</th><th className="text-end">{t("dashboard.revenue")}</th><th className="text-end">SL</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {topProducts.map((p, i) => (
-                        <tr key={p.barcode || i}>
-                          <td>{i + 1}</td>
-                          <td>{p.name || p.productName}</td>
-                          <td className="text-end">{formatCurrency(p.revenue || 0)}</td>
-                          <td className="text-end">{p.qty || p.quantity || 0}</td>
+
+                <div
+                  className="table-responsive rounded-3 mt-3"
+                  style={{
+                    borderRadius: 16,
+                    overflow: "hidden",
+                    paddingRight: 8,
+                    paddingBottom: 8,
+                    backgroundColor: "#fff",
+                  }}
+                >
+                  <div
+                    style={{
+                      maxHeight: "60vh",
+                      overflowX: "auto",
+                      overflowY: "auto",
+                      borderRadius: 12,
+                    }}
+                  >
+                    <table className="table table-hover align-middle mb-0">
+                      <thead
+                        className="table-light"
+                        style={{ position: "sticky", top: 0, zIndex: 2 }}
+                      >
+                        <tr>
+                          <th>#</th>
+                          <th>{t("products.name")}</th>
+                          <th className="text-end">
+                            {t("dashboard.revenue")}
+                            </th>
+                          <th className="text-end">SL</th>
                         </tr>
-                      ))}
-                      {topProducts.length === 0 && (
-                        <tr><td colSpan={4} className="text-center text-muted py-3">{t("common.noData")}</td></tr>
-                      )}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {topProducts.map((p, i) => (
+                          <tr key={p.barcode || i}>
+                            <td>{i + 1}</td>
+                            <td>{p.name || p.productName}</td>
+                            <td className="text-end">{formatCurrency(p.revenue || 0)}</td>
+                            <td className="text-end">{p.qty || p.quantity || 0}</td>
+                          </tr>
+                        ))}
+
+                        {topProducts.length === 0 && (
+                          <tr>
+                            <td colSpan={4} className="text-center text-muted py-3">
+                              {t("common.noData")}
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>
             </div>
           </div>
+          {/* Top customers */}
           <div className="col-12 col-xl-6">
             <div className="card shadow-sm border-0 h-100">
-              <div className="card-header bg-white border-0 fw-semibold">{t("dashboard.topCustomers")}</div>
+              <div className="card-header bg-white border-0 fw-semibold">
+                {t("dashboard.topCustomers")}
+              </div>
+
               <div className="card-body">
-                {/* Mini chart */}
                 {topCustomers.map((c, i) => (
-                  <div key={c.phone || i} className="d-flex align-items-center mb-2">
-                    <div className="text-truncate" style={{ width: 120 }} title={c.name || c.fullName}>{c.name || c.fullName}</div>
-                    <div className="flex-grow-1 mx-2 bg-light rounded" style={{ height: 8 }}>
-                      <div className={`bg-${theme} rounded`} style={{ width: `${Math.round(((c.revenue||0)/maxCustRevenue)*100)}%`, height: 8 }}></div>
+                  <div
+                    key={c.id || i}
+                    className="d-flex align-items-center mb-2"
+                  >
+                    <div
+                      className="text-truncate"
+                      style={{ width: 120 }}
+                      title={c.name}
+                    >
+                      {c.name}
                     </div>
-                    <small className="text-muted">{formatCurrency(c.revenue || 0)}</small>
+
+                    <div
+                      className="flex-grow-1 mx-2 bg-light rounded"
+                      style={{ height: 8 }}
+                    >
+                      <div
+                        className={`bg-${theme} rounded`}
+                        style={{
+                          width: `${Math.round(
+                            ((c.revenue || 0) / maxCustRevenue) * 100
+                          )}%`,
+                          height: 8,
+                        }}
+                      ></div>
+                    </div>
+
+                    <small className="text-muted">
+                      {formatCurrency(c.revenue || 0)}
+                    </small>
                   </div>
                 ))}
-                <div className="table-responsive rounded-3 mt-3" style={{ borderRadius: 16, overflow: "hidden", paddingRight: 8, paddingBottom: 8, backgroundColor: "#fff" }}>
-                  <div style={{ maxHeight: "60vh", overflowX: "auto", overflowY: "auto", borderRadius: 12 }}>
-                  <table className="table table-hover align-middle mb-0">
-                    <thead className="table-light" style={{ position: "sticky", top: 0, zIndex: 2 }}>
-                      <tr>
-                        <th>#</th><th>{t("customer.fullName")}</th><th>{t("customer.phoneNumber")}</th><th className="text-end">{t("dashboard.revenue")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {topCustomers.map((c, i) => (
-                        <tr key={c.phone || i}>
-                          <td>{i + 1}</td>
-                          <td>{c.name || c.fullName}</td>
-                          <td>{c.phone}</td>
-                          <td className="text-end">{formatCurrency(c.revenue || 0)}</td>
+
+                {/* TABLE */}
+                <div
+                  className="table-responsive rounded-3 mt-3"
+                  style={{
+                    borderRadius: 16,
+                    overflow: "hidden",
+                    paddingRight: 8,
+                    paddingBottom: 8,
+                    backgroundColor: "#fff",
+                  }}
+                >
+                  <div
+                    style={{
+                      maxHeight: "60vh",
+                      overflowX: "auto",
+                      overflowY: "auto",
+                      borderRadius: 12,
+                    }}
+                  >
+                    <table className="table table-hover align-middle mb-0">
+                      <thead
+                        className="table-light"
+                        style={{ position: "sticky", top: 0, zIndex: 2 }}
+                      >
+                        <tr>
+                          <th>#</th>
+                          <th>{t("customer.fullName")}</th>
+                          <th>{t("customer.phoneNumber")}</th>
+                          <th className="text-end">{t("dashboard.revenue")}</th>
                         </tr>
-                      ))}
-                      {topCustomers.length === 0 && (
-                        <tr><td colSpan={4} className="text-center text-muted py-3">{t("common.noData")}</td></tr>
-                      )}
-                    </tbody>
-                  </table>
+                      </thead>
+
+                      <tbody>
+                        {topCustomers.map((c, i) => (
+                          <tr key={c.id || i}>
+                            <td>{i + 1}</td>
+                            <td>{c.name}</td>
+                            <td>{c.phone}</td>
+                            <td className="text-end">
+                              {formatCurrency(c.revenue || 0)}
+                            </td>
+                          </tr>
+                        ))}
+
+                        {topCustomers.length === 0 && (
+                          <tr>
+                            <td colSpan={4} className="text-center text-muted py-3">
+                              {t("common.noData")}
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
+
+        </div> {/* END ROW */}
+      </div> {/* END container */}
     </MainLayout>
   );
 }
-
-
-
-
-
-
+          

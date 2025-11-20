@@ -9,24 +9,25 @@ export function exportProductsToExcel(products, t) {
     return;
   }
 
+  // 🔥 Header mới — KHÔNG có nhà cung cấp
   const worksheetData = [
     [
       t?.("products.productId") || "Mã hàng",
       t?.("products.productName") || "Tên hàng",
       t?.("products.brand") || "Thương hiệu",
       t?.("products.category") || "Danh mục",
-      t?.("products.supplier") || "Nhà cung cấp",
       t?.("products.costOfCapital") || "Giá vốn",
       t?.("products.sellingPrice") || "Giá bán",
       t?.("products.quantityInStock") || "Tồn kho",
       t?.("products.createdAt") || "Ngày tạo",
     ],
+
+    // 🔥 Data — Mã hàng = barcode, bỏ supplier
     ...products.map((p) => [
-      p.id,
+      p.barcode || p.id, // <-- sửa tại đây
       p.name,
       p.brand,
       p.category,
-      p.supplier,
       p.cost,
       p.price,
       p.stock,

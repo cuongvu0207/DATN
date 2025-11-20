@@ -98,7 +98,7 @@ const serializeDraftState = ({
   });
 const normalizePaymentMethod = (value) => {
   const val = String(value || "").toLowerCase();
-  if (val === "bank" || val === "qr_code") return val;
+  if (val === "bank" || val === "wallet") return val;
   return "cash";
 };
 
@@ -146,7 +146,7 @@ export default function SalesPage() {
           headers: { Authorization: `Bearer ${token}` },
         });
   
-        // ? Chu?n hÛa d˙ng v?i d? li?u th?c t? c?a b?n
+        // ? Chu?n h√≥a d√∫ng v?i d? li?u th?c t? c?a b?n
         const formatted = (res.data || []).map((p) => ({
           id: p.productId,
           code: p.barcode || `SP${String(p.productId).padStart(6, "0")}`,
@@ -174,13 +174,13 @@ export default function SalesPage() {
     fetchProducts();
   }, [token]);
 
-  /* ====== STATE HO¡ –ON ====== */
+  /* ====== STATE HO√Å √êON ====== */
   const [tabs, setTabs] = useState(() => [createSalesTab(1, tabPrefix)]);
   const [activeTab, setActiveTab] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [barcodeMode, setBarcodeMode] = useState(false);
 
-  /* ====== KH¡CH H¿NG ====== */
+  /* ====== KH√ÅCH H√ÄNG ====== */
   const [customers, setCustomers] = useState([]);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [newCustomer, setNewCustomer] = useState(() => getEmptyCustomerForm());
@@ -366,7 +366,7 @@ export default function SalesPage() {
     };
   }, [loadDraftTabs]);
 
-  /* ====== TH‘NG TIN TAB HI?N T?I ====== */
+  /* ====== TH√îNG TIN TAB HI?N T?I ====== */
   const currentTab = tabs.find((t) => t.id === activeTab);
   const cartItems = currentTab?.items || [];
   const customer = currentTab?.customerInput || "";
@@ -616,7 +616,7 @@ export default function SalesPage() {
     setSearchQuery("");
   };
 
-  /* ====== QU…T BARCODE ====== */
+  /* ====== QU√âT BARCODE ====== */
   const handleScanProduct = (code) => {
     const found = productList.find(
       (p) => p.code?.toLowerCase() === code.trim().toLowerCase()
@@ -628,7 +628,7 @@ export default function SalesPage() {
     }
   };
 
-  /* ====== GI?M GI¡, S? LU?NG, X”A, GHI CH⁄ ====== */
+  /* ====== GI?M GI√Å, S? LU?NG, X√ìA, GHI CH√ö ====== */
   const setDiscount = (code, { discount, discountValue, discountMode }) => {
     setTabs((prev) =>
       prev.map((tab) =>
@@ -733,11 +733,11 @@ export default function SalesPage() {
     await createDraftTab();
   };
   
-  /* ====== THANH TO¡N ====== */
+  /* ====== THANH TO√ÅN ====== */
   const totalAmount = cartItems.reduce((s, it) => s + (it.total ?? 0), 0);
   const finalTotal = Math.max(totalAmount - invoiceDiscount, 0);
 
-  // G?i API luu don ? tr?ng th·i PENDING
+  // G?i API luu don ? tr?ng th√°i PENDING
   const savePendingOrder = async () => {
     if (cartItems.length === 0) {
       alert(t("sales.cartEmpty"));
@@ -773,7 +773,7 @@ export default function SalesPage() {
       const pendingMessage = t("sales.pendingSaved", { orderId: oid, total: formatCurrency(total) });
       alert(pendingMessage);
 
-      // Reset gi? h‡ng sau khi luu
+      // Reset gi? h√†ng sau khi luu
       setTabs((prev) =>
         prev.map((tab) =>
           tab.id === activeTab
@@ -850,7 +850,7 @@ export default function SalesPage() {
       />
 
       <div className="row gx-1 gy-1 m-0" style={{ height: "calc(100vh - 110px)" }}>
-        {/* === TR¡I: GI? H¿NG === */}
+        {/* === TR√ÅI: GI? H√ÄNG === */}
         <div className="col-lg-8 col-md-7 p-2 d-flex flex-column">
           <div className="flex-grow-1 overflow-auto position-relative">
             {loading ? (
@@ -902,7 +902,7 @@ export default function SalesPage() {
             )}
           </div>
 
-          {/* Ghi ch˙ hÛa don */}
+          {/* Ghi ch√∫ h√≥a don */}
           <div className={`rounded-4 border border-${theme} border-opacity-25 bg-white p-3 mt-2`}>
             <div className="d-flex align-items-center">
               <i className="bi bi-pencil text-muted me-2" />
@@ -917,7 +917,7 @@ export default function SalesPage() {
           </div>
         </div>
 
-        {/* === PH?I: KH¡CH H¿NG === */}
+        {/* === PH?I: KH√ÅCH H√ÄNG === */}
         <div className="col-lg-4 col-md-5 p-2 d-flex flex-column">
           <CustomerPanel
             customer={customer}
@@ -940,7 +940,7 @@ export default function SalesPage() {
         </div>
       </div>
 
-      {/* Modal kh·ch h‡ng */}
+      {/* Modal kh√°ch h√†ng */}
       <CustomerModal
         show={showCustomerModal}
         onClose={handleCloseCustomerModal}
@@ -952,10 +952,3 @@ export default function SalesPage() {
     </div>
   );
 }
-
-
-
-
-
-
-

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>AI Prophet Demo Advanced</title>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body { font-family: Arial; background: #f4f4f7; padding: 20px; }
+    .btn {
+      padding: 8px 14px; border: none; border-radius: 6px;
+      cursor: pointer; font-size: 14px;
+    }
+    .btn-primary { background: #007bff; color: white; }
+    .btn-secondary { background: #cccccc; }
+
+    /* MODAL */
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.4);
+      display: none; justify-content: center; align-items: center; z-index: 1000;
+    }
+    .modal {
+      background: white; width: 520px; padding: 20px;
+      border-radius: 12px; animation: fade .25s;
+    }
+    @keyframes fade { from { opacity: 0; transform: scale(.9); } }
+
+    label { font-weight: bold; margin-bottom: 4px; display: block; }
+    input, select {
+      width: 100%; margin-bottom: 12px; padding: 7px;
+      border-radius: 6px; border: 1px solid #ccc;
+    }
+
+    .alert { padding: 10px; border-radius: 6px; margin-top: 12px; }
+    .alert-info { background: #dbe4ff; color: #364fc7; }
+    .alert-success { background: #e6fcf5; color: #087f5b; }
+  </style>
+</head>
+<body>
+
+<h1>AI Prophet Demo – Training + Dự báo + Biểu đồ</h1>
+<button class="btn btn-primary" onclick="openModal()">Huấn luyện mô hình</button>
+
+<hr>
+
+<h2>📊 Biểu đồ dữ liệu gốc (365 ngày)</h2>
+<canvas id="chartData" height="120"></canvas>
+
+<h2 style="margin-top:40px;">📈 Biểu đồ dự báo 30 ngày</h2>
+<canvas id="chartForecast" height="120"></canvas>
+
+<!-- ===================== MODAL ======================= -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2>Training AI Prophet</h2>
+
+    <label>Số Epoch</label>
+    <input id="epoch" type="number" value="60" min="10" max="200">
+
+    <label>Learning Rate</label>
+    <input id="lr" type="number" value="0.05" step="0.01">
+
+    <div id="status"></div>
+
+    <button class="btn btn-secondary" onclick="closeModal()">Đóng</button>
+    <button class="btn btn-primary" onclick="startTraining()">Bắt đầu Train</button>
+  </div>
+</div>
+
+<script>
+/* ============================================================================
+   1. SINH DỮ LIỆU GIẢ (365 NGÀY) – trend + seasonality + noise
+============================================================================ */
+function generateData() {
+  const data = [];
+  const labels = [];
+  const start = new Date("2024-01-01");
+
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(start);
+    d.setDate(d.getDate() + i);
+
+    labels.push(d.toISOString().slice(0, 10));
+
+    const base = 50 + i * 0.05;
+    const seasonal = 10 * Math.sin(i / 14);
+    const noise = Math.random() * 6 - 3;
+
+    data.push(Math.round(base + seasonal + noise));
+  }
+
+  return { labels, data };
+}
+
+let rawData = generateData();
+renderDataChart(rawData.labels, rawData.data);
+
+
+/* ============================================================================
+   2. BIỂU ĐỒ DỮ LIỆU GỐC
+============================================================================ */
+let chartDataRef;
+
+function renderDataChart(labels, data) {
+  const ctx = document.getElementById("chartData").getContext("2d");
+
+  if (chartDataRef) chartDataRef.destroy();
+
+  chartDataRef = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        label: "Doanh số theo ngày",
+        data,
+        borderColor: "#007bff",
+        borderWidth: 2,
+        tension: 0.3
+      }]
+    }
+  });
+}
+
+
+/* ============================================================================
+   3. DỰ BÁO 30 NGÀY TIẾP (FAKE PROPHET)
+============================================================================ */
+function forecastNext30days(baseData) {
+  const last = baseData[baseData.length - 1];
+  const forecast = [];
+
+  for (let i = 1; i <= 30; i++) {
+    const trend = last + i * 0.1;
+    const seasonal = 5 * Math.sin(i / 6);
+    const noise = Math.random() * 4 - 2;
+    forecast.push(Math.round(trend + seasonal + noise));
+  }
+  return forecast;
+}
+
+
+/* ============================================================================
+   4. BIỂU ĐỒ DỰ BÁO 30 NGÀY
+============================================================================ */
+let forecastChartRef;
+
+function renderForecastChart(forecast) {
+  const labels = [];
+
+  for (let i = 1; i <= 30; i++) {
+    labels.push("Ngày " + i);
+  }
+
+  const ctx = document.getElementById("chartForecast").getContext("2d");
+
+  if (forecastChartRef) forecastChartRef.destroy();
+
+  forecastChartRef = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        label: "Dự báo 30 ngày",
+        data: forecast,
+        borderColor: "#28a745",
+        borderWidth: 2,
+        tension: 0.3
+      }]
+    }
+  });
+}
+
+
+/* ============================================================================
+   5. MODAL CONTROL
+============================================================================ */
+function openModal() {
+  document.getElementById("overlay").style.display = "flex";
+  document.getElementById("status").innerHTML = "";
+}
+
+function closeModal() {
+  document.getElementById("overlay").style.display = "none";
+}
+
+
+/* ============================================================================
+   6. TRAINING GIẢ LẬP
+============================================================================ */
+async function startTraining() {
+  const status = document.getElementById("status");
+  const epoch = Number(document.getElementById("epoch").value);
+  const lr = Number(document.getElementById("lr").value);
+
+  status.innerHTML = `<div class='alert alert-info'>Chuẩn bị huấn luyện...</div>`;
+
+  // giả lập training: 0% -> 100%
+  for (let i = 0; i <= 100; i += Math.random() * 15) {
+    await new Promise(r => setTimeout(r, 200));
+    status.innerHTML = `<div class='alert alert-info'>Đang train (${i.toFixed(0)}%)...</div>`;
+  }
+
+  // Sau khi train xong → dự báo
+  const forecast = forecastNext30days(rawData.data);
+
+  renderForecastChart(forecast);
+
+  status.innerHTML =
+    `<div class='alert alert-success'>
+       ✔ Huấn luyện xong!<br>
+       - Epoch: ${epoch}<br>
+       - Learning Rate: ${lr}<br>
+       - Đã tạo dự báo 30 ngày tương lai.
+     </div>`;
+}
+
+</script>
+</body>
+</html>

@@ -187,7 +187,9 @@
     "status": "Trạng thái",
     "active": "Hoạt động",
     "inactive": "Không hoạt động",
-    "createdDate": "Ngày tạo"
+    "createdDate": "Ngày tạo",
+    "activate": "Kích hoạt",
+    "deactivate": "Vô hiệu hoá"
   },
   "actions": {
     "apply": "Áp dụng",
@@ -220,6 +222,7 @@
     "paymentMethod": "Phương thức thanh toán",
     "cash": "Tiền mặt",
     "bank": "Chuyển khoản",
+    "wallet": "Ví điện tử",
     "qr": "Quét mã QR",
     "productName": "Tên sản phẩm",
     "qty": "Số lượng",
@@ -354,5 +357,36 @@
     "display": "Hiển thị",
     "rows": "hàng",
     "all": "Tất cả"
+  },
+  "invoices" :{
+    "title": "Hoá đơn",
+    "invoiceId": "Mã hoá đơn",
+    "customer": "Khách hàng",
+    "phone": "Số điện thoại",
+    "total": "Tổng tiền",
+    "paymentMethod": "Phương thức thanh toán",
+    "status": "Trạng thái",
+    "createdAt": "Ngày tạo",
+    "seller": "Người bán",
+    "searchPlaceholder": "Tìm theo mã hoá đơn, tên khách hàng, số điện thoại...",
+    "loadFail": "Không thể tải danh sách hoá đơn!",
+    "cash": "Tiền mặt",
+    "bank": "Chuyển khoản", 
+    "wallet": "Ví điện tử",
+    "other": "Khác",
+    "completed": "Đã thanh toán",
+    "pending": "Chờ thanh toán",
+    "cancelled": "Đã huỷ"
+  },
+  "dashboard": {
+    "revenue": "Doanh thu",
+    "cost": "Chi phí",
+    "profit": "Lợi nhuận",
+    "revenueTrend": "Xu hướng doanh thu",
+    "topProducts": "Sản phẩm bán chạy",
+    "activity": "Nhật ký hoạt động",
+    "orders": "Đơn hàng",
+    "customers": "Khách hàng",
+    "products": "Sản phẩm"
   }
 }

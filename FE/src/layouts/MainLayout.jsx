@@ -3,35 +3,38 @@ import Header from "../components/layout/Header";
 import Navbar from "../components/layout/Navbar";
 
 export default function MainLayout({ children, theme, setTheme }) {
-  // Trạng thái kiểm tra xem có phải màn hình desktop không
-  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1200);
+  const [width, setWidth] = useState(window.innerWidth);
 
   useEffect(() => {
-    const handleResize = () => setIsDesktop(window.innerWidth >= 1200);
+    const handleResize = () => setWidth(window.innerWidth);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // max width cho desktop (giống dashboard chuyên nghiệp)
+  const maxContentWidth = 1500; // bạn có thể chỉnh 1400/1600 tùy UI
+
   return (
     <>
-      {/* Header */}
       <Header theme={theme} setTheme={setTheme} />
 
-      {/* Navbar */}
       <Navbar theme={theme} />
 
-      {/* Nội dung chính */}
       <div
-        className="container-fluid"
+        className="w-100 d-flex justify-content-center"
         style={{
-          paddingLeft: isDesktop ? "40px" : "0px",
-          paddingRight: isDesktop ? "40px" : "0px",
-          transition: "all 0.3s ease",
+          padding: width >= 1400 ? "0 24px" : width >= 1000 ? "0 12px" : "0 6px",
+          transition: "all .25s ease",
         }}
       >
-        <div className="row justify-content-center">
-          {/* Căn giữa nội dung, full width khi mobile */}
-          <div className="col-12 col-lg-10">{children}</div>
+        <div
+          style={{
+            width: "100%",
+            maxWidth: `${maxContentWidth}px`,
+            transition: "all .25s ease",
+          }}
+        >
+          {children}
         </div>
       </div>
     </>

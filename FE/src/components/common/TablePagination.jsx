@@ -55,23 +55,25 @@ export default function TablePagination({
         </select>
       </div>
 
-      <div className="btn-group align-items-stretch">
+      <div className="d-flex align-items-center gap-3">
         <button
-          className={`btn btn-outline-${theme}`}
+          className={`btn text-${theme} border-0 shadow-none`}
+          style={{ fontSize: 28, lineHeight: 1 }}
           disabled={currentPage <= 1}
           onClick={handlePrev}
         >
-          &lt;
+          &lsaquo;
         </button>
-        <span className={`btn btn-${theme} text-white fw-bold`} style={{ minWidth: 80 }}>
+        <span className={`fw-bold text-${theme}`} style={{ minWidth: 80, textAlign: "center" }}>
           {currentPage}/{totalPages}
         </span>
         <button
-          className={`btn btn-outline-${theme}`}
+          className={`btn text-${theme} border-0 shadow-none`}
+          style={{ fontSize: 28, lineHeight: 1 }}
           disabled={currentPage >= totalPages}
           onClick={handleNext}
         >
-          &gt;
+          &rsaquo;
         </button>
       </div>
     </div>

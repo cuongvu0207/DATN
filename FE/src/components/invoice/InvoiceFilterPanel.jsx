@@ -3,9 +3,11 @@ import { useTranslation } from "react-i18next";
 import Select from "react-select";
 import { useTheme } from "../../context/ThemeContext";
 
-export default function InvoiceFilterPanel({ filters, onChange }) {
+export default function InvoiceFilterPanel({ filters, onChange, sellerList }) {
   const { t } = useTranslation();
   const { theme } = useTheme();
+
+  const ALL_OPTION = { value: "all", label: t("common.all") };
 
   return (
     <aside className="col-lg-2 d-none d-lg-block">
@@ -18,21 +20,30 @@ export default function InvoiceFilterPanel({ filters, onChange }) {
             <label className="form-label fw-medium mb-2">
               {t("invoices.status")}
             </label>
+
             <Select
               value={
                 filters.status
-                  ? { value: filters.status, label: filters.status }
-                  : null
+                  ? {
+                      value: filters.status,
+                      label:
+                        filters.status === "COMPLETED"
+                          ? t("invoices.completed")
+                          : filters.status === "PENDING"
+                          ? t("invoices.pending")
+                          : t("invoices.cancelled"),
+                    }
+                  : ALL_OPTION
               }
               onChange={(opt) =>
-                onChange("status", opt ? opt.value : "")
+                onChange("status", opt && opt.value !== "all" ? opt.value : "")
               }
               options={[
-                { value: "Đã thanh toán", label: "Đã thanh toán" },
-                { value: "Chưa thanh toán", label: "Chưa thanh toán" },
-                { value: "Đã hủy", label: "Đã hủy" },
+                ALL_OPTION,
+                { value: "COMPLETED", label: t("invoices.completed") },
+                { value: "PENDING", label: t("invoices.pending") },
+                { value: "CANCELLED", label: t("invoices.cancelled") },
               ]}
-              placeholder={t("invoices.selectStatus")}
               isSearchable
             />
           </div>
@@ -42,21 +53,35 @@ export default function InvoiceFilterPanel({ filters, onChange }) {
             <label className="form-label fw-medium mb-2">
               {t("invoices.paymentMethod")}
             </label>
+
             <Select
               value={
                 filters.paymentMethod
-                  ? { value: filters.paymentMethod, label: filters.paymentMethod }
-                  : null
+                  ? {
+                      value: filters.paymentMethod,
+                      label:
+                        filters.paymentMethod === "CASH"
+                          ? t("invoices.cash")
+                          : filters.paymentMethod === "BANK"
+                          ? t("invoices.bank")
+                          : filters.paymentMethod === "WALLET"
+                          ? t("invoices.wallet")
+                          : t("invoices.other"),
+                    }
+                  : ALL_OPTION
               }
               onChange={(opt) =>
-                onChange("paymentMethod", opt ? opt.value : "")
+                onChange(
+                  "paymentMethod",
+                  opt && opt.value !== "all" ? opt.value : ""
+                )
               }
               options={[
-                { value: "Tiền mặt", label: "Tiền mặt" },
-                { value: "Chuyển khoản", label: "Chuyển khoản" },
-                { value: "Thẻ", label: "Thẻ" },
+                ALL_OPTION,
+                { value: "CASH", label: t("invoices.cash") },
+                { value: "BANK", label: t("invoices.bank") },
+                { value: "WALLET", label: t("invoices.wallet") },
               ]}
-              placeholder={t("invoices.selectPayment")}
               isSearchable
             />
           </div>
@@ -66,19 +91,19 @@ export default function InvoiceFilterPanel({ filters, onChange }) {
             <label className="form-label fw-medium mb-2">
               {t("invoices.seller")}
             </label>
+
             <Select
               value={
                 filters.seller
-                  ? { value: filters.seller, label: filters.seller }
-                  : null
+                  ? sellerList.find((s) => s.value === filters.seller)
+                  : ALL_OPTION
               }
               onChange={(opt) =>
-                onChange("seller", opt ? opt.value : "")
+                onChange("seller", opt && opt.value !== "all" ? opt.value : "")
               }
               options={[
-                { value: "Nhân viên A", label: "Nhân viên A" },
-                { value: "Nhân viên B", label: "Nhân viên B" },
-                { value: "Nhân viên C", label: "Nhân viên C" },
+                ALL_OPTION,
+                ...sellerList, // ❗ CHỈ sellerList, không chứa "all"
               ]}
               placeholder={t("invoices.selectSeller")}
               isSearchable

@@ -16,12 +16,14 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
   const [preview, setPreview] = useState(product.image || "");
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
-  const [showModal, setShowModal] = useState(null); // "category" | "brand" | null
+  const [showModal, setShowModal] = useState(null);
   const [loading, setLoading] = useState(false);
   const [rawCats, setRawCats] = useState([]);
   const [rawBrands, setRawBrands] = useState([]);
 
-  // 🔹 Lấy dữ liệu từ BE
+  // =============================
+  // 🔹 Lấy danh mục + thương hiệu
+  // =============================
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -46,16 +48,17 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
 
         const catData = await catRes.json();
         const brandData = await brandRes.json();
+
         setRawCats(catData || []);
         setRawBrands(brandData || []);
 
-        // Map dữ liệu từ BE -> react-select { value, label }
         setCategories(
           catData.map((item) => ({
             value: item.categoryName,
             label: item.categoryName,
           }))
         );
+
         setBrands(
           brandData.map((item) => ({
             value: item.brandName,
@@ -72,18 +75,43 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
     fetchData();
   }, [token]);
 
+  // ===================================================
+  // 🔥 Sửa lỗi react-select không giữ giá trị ban đầu
+  // ===================================================
+  useEffect(() => {
+    if (categories.length > 0 && form.category) {
+      const match = categories.find((c) => c.value === form.category);
+      if (match) {
+        setForm((prev) => ({ ...prev, category: match.value }));
+      }
+    }
+
+    if (brands.length > 0 && form.brand) {
+      const match = brands.find((b) => b.value === form.brand);
+      if (match) {
+        setForm((prev) => ({ ...prev, brand: match.value }));
+      }
+    }
+  }, [categories, brands]);
+
+  // =============================
   // 🔹 Xử lý input text
+  // =============================
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // 🔹 Xử lý chọn trong Select
+  // =============================
+  // 🔹 Xử lý react-select
+  // =============================
   const handleSelectChange = (type, option) => {
     setForm((prev) => ({ ...prev, [type]: option?.value || "" }));
   };
 
+  // =============================
   // 🔹 Xử lý ảnh
+  // =============================
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -94,18 +122,20 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
     }
   };
 
+  // =============================
   // 🔹 Lưu sản phẩm
+  // =============================
   const handleSubmit = (e) => {
     e.preventDefault();
+
     const resolvedCategoryId =
       form.categoryId ||
       rawCats.find((c) => c.categoryName === form.category)?.categoryId ||
-      rawCats.find((c) => c.name === form.category)?.id ||
       "";
+
     const resolvedBrandId =
       form.brandId ||
       rawBrands.find((b) => b.brandName === form.brand)?.brandId ||
-      rawBrands.find((b) => b.name === form.brand)?.id ||
       "";
 
     const payload = {
@@ -113,11 +143,14 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
       categoryId: resolvedCategoryId ? String(resolvedCategoryId) : "",
       brandId: resolvedBrandId ? String(resolvedBrandId) : "",
     };
+
     onSave(payload);
     onClose();
   };
 
-  // 🔹 Callback khi thêm danh mục / thương hiệu mới
+  // =============================
+  // 🔹 Callback thêm danh mục
+  // =============================
   const handleCategoryAdded = (data) => {
     if (data?.categoryName) {
       const val = { value: data.categoryName, label: data.categoryName };
@@ -129,6 +162,9 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
     setShowModal(null);
   };
 
+  // =============================
+  // 🔹 Callback thêm thương hiệu
+  // =============================
   const handleBrandAdded = (data) => {
     if (data?.brandName) {
       const val = { value: data.brandName, label: data.brandName };
@@ -140,6 +176,9 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
     setShowModal(null);
   };
 
+  // =============================
+  // 🔹 RENDER UI
+  // =============================
   return (
     <>
       <div
@@ -153,7 +192,7 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
           {/* Header */}
           <div className="d-flex justify-content-between align-items-center mb-3">
             <h5 className={`fw-bold text-${theme} m-0`}>
-              {t("products.editProduct") || "Sửa hàng hóa"}
+              {t("products.editProduct")}
             </h5>
             <button type="button" className="btn-close" onClick={onClose}></button>
           </div>
@@ -175,23 +214,15 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
             </div>
           </div>
 
-          {/* Form nội dung */}
+          {/* FORM */}
           <form onSubmit={handleSubmit}>
             <div className="p-3 mb-4">
               <div className="row g-3">
-                {/* ID sản phẩm */}
                 <div className="col-md-6">
                   <label className="form-label">{t("products.productId")}</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={form.id}
-                    disabled
-                    placeholder={t("products.auto")}
-                  />
+                  <input type="text" className="form-control" value={form.id} disabled />
                 </div>
 
-                {/* Mã vạch */}
                 <div className="col-md-6">
                   <label className="form-label">{t("products.barcode")}</label>
                   <input
@@ -200,11 +231,9 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
                     className="form-control"
                     value={form.barcode || ""}
                     onChange={handleChange}
-                    placeholder={t("products.enterBarcode")}
                   />
                 </div>
 
-                {/* Tên sản phẩm */}
                 <div className="col-md-6">
                   <label className="form-label">{t("products.productName")}</label>
                   <input
@@ -213,7 +242,6 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
                     className="form-control"
                     value={form.name}
                     onChange={handleChange}
-                    placeholder={t("products.enterProductName")}
                   />
                 </div>
 
@@ -263,44 +291,42 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
                   />
                 </div>
 
-                {/* Giá và tồn kho */}
+                {/* Giá và tồn */}
                 <div className="col-md-6">
-                  <label className="form-label">{t("products.costOfCapital")}</label>
+                  <label className="form-label">{t("products.costOfCapital")}:</label>
                   <input
                     type="number"
                     name="cost"
                     className="form-control"
                     value={form.cost}
                     onChange={handleChange}
-                    placeholder="0"
                   />
                 </div>
+
                 <div className="col-md-6">
-                  <label className="form-label">{t("products.sellingPrice")}</label>
+                  <label className="form-label">{t("products.sellingPrice")}:</label>
                   <input
                     type="number"
                     name="price"
                     className="form-control"
                     value={form.price}
                     onChange={handleChange}
-                    placeholder="0"
                   />
                 </div>
+
                 <div className="col-md-6">
-                  <label className="form-label">{t("products.quantityInStock")}</label>
+                  <label className="form-label">{t("products.quantityInStock")}:</label>
                   <input
                     type="number"
                     name="stock"
                     className="form-control"
                     value={form.stock}
                     onChange={handleChange}
-                    placeholder="0"
                   />
                 </div>
               </div>
             </div>
 
-            {/* Nút hành động */}
             <div className="d-flex justify-content-end gap-2 mt-3">
               <button type="button" className="btn btn-secondary px-4" onClick={onClose}>
                 {t("common.cancel")}
@@ -313,34 +339,22 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
         </div>
       </div>
 
-      {/* === Modal thêm danh mục / thương hiệu === */}
+      {/* Modal thêm danh mục / thương hiệu */}
       {showModal && (
-        <div
-          className="modal fade show"
-          style={{ display: "block", background: "rgba(0,0,0,.5)" }}
-        >
+        <div className="modal fade show" style={{ display: "block", background: "rgba(0,0,0,.5)" }}>
           <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content border-0 shadow">
+            <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">
-                  {showModal === "brand"
-                    ? t("products.addBrand")
-                    : t("products.addCategory")}
+                  {showModal === "brand" ? t("products.addBrand") : t("products.addCategory")}
                 </h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setShowModal(null)}
-                ></button>
+                <button type="button" className="btn-close" onClick={() => setShowModal(null)}></button>
               </div>
               <div className="modal-body">
                 {showModal === "brand" ? (
                   <BrandAddCard onSave={handleBrandAdded} onCancel={() => setShowModal(null)} />
                 ) : (
-                  <CategoryAddCard
-                    onSave={handleCategoryAdded}
-                    onCancel={() => setShowModal(null)}
-                  />
+                  <CategoryAddCard onSave={handleCategoryAdded} onCancel={() => setShowModal(null)} />
                 )}
               </div>
             </div>

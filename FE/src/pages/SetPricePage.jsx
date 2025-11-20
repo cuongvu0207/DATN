@@ -14,14 +14,24 @@ export default function SetPricePage() {
 
   const [products, setProducts] = useState([]);
   const [query, setQuery] = useState("");
-  const [selectedProducts, setSelectedProducts] = useState([]);
+  const [filters, setFilters] = useState({
+    category: "all",
+    brand: "all",
+  });
+  const [categories, setCategories] = useState([]);
+  const [brands, setBrands] = useState([]);
+
+  const [selectedProducts, setSelectedProducts] = useState([]); // chứa id sản phẩm
   const [rowsPerPage, setRowsPerPage] = useState(15);
   const [currentPage, setCurrentPage] = useState(1);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [updatingBarcode, setUpdatingBarcode] = useState(null);
+  const [updatingId, setUpdatingId] = useState(null);
 
-  /* === FETCH DATA FROM API === */
+  /* ================================
+      FETCH SẢN PHẨM TỪ API
+  ================================= */
   const fetchProducts = async () => {
     setLoading(true);
     setError("");
@@ -33,10 +43,11 @@ export default function SetPricePage() {
       const formatted = (res.data || []).map((item) => {
         const sellingPrice = Number(item.sellingPrice || 0);
         const discountValue = Number(item.discount || 0);
+
         return {
           id: item.productId ? String(item.productId) : "",
           barcode: item.barcode || "",
-          name: item.productName || "Kh�ng c� t�n",
+          name: item.productName || t("products.unnamed"),
           brand: item.brandName || t("products.unknownBrand"),
           category: item.categoryName || t("products.unknownCategory"),
           cost: Number(item.costOfCapital || 0),
@@ -47,16 +58,31 @@ export default function SetPricePage() {
           createdAt: item.lastUpdated
             ? new Date(item.lastUpdated).toLocaleDateString("vi-VN")
             : "",
-          image: item.image
-            ? `${API_BASE_URL}/uploads/${item.image}`
-            : "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Crect width='80' height='80' fill='%23dee2e6'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='14' fill='%23777'%3EIMG%3C/text%3E%3C/svg%3E",
         };
       });
 
       setProducts(formatted);
+
+      // set filter options
+      setCategories([
+        ...new Set(
+          formatted
+            .map((p) => p.category)
+            .filter((v) => v && v !== t("products.unknownCategory"))
+        ),
+      ]);
+      setBrands([
+        ...new Set(
+          formatted
+            .map((p) => p.brand)
+            .filter((v) => v && v !== t("products.unknownBrand"))
+        ),
+      ]);
     } catch (err) {
       console.error(err);
-      setError(t("prices.loadFail") || "Kh�ng th? t?i danh s�ch s?n ph?m!");
+      setError(
+        t("prices.loadFail") || "Không thể tải danh sách sản phẩm!"
+      );
     } finally {
       setLoading(false);
     }
@@ -64,20 +90,20 @@ export default function SetPricePage() {
 
   useEffect(() => {
     fetchProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* === UPDATE PRICE === */
+  /* ================================
+      API UPDATE GIÁ & GIẢM GIÁ
+  ================================= */
   const attemptPut = (segment, payload) =>
-    axios.put(
-      `${API_BASE_URL}/inventory/products/${segment}`,
-      payload,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+    axios.put(`${API_BASE_URL}/inventory/products/${segment}`, payload, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
   const updatePrice = async (product, newPrice) => {
-    const payload = {
-      sellingPrice: Number(newPrice),
-    };
+    const payload = { sellingPrice: Number(newPrice) };
+
     const candidates = [
       product.id ? `${product.id}/price` : null,
       product.barcode ? `${product.barcode}/price` : null,
@@ -97,11 +123,9 @@ export default function SetPricePage() {
     throw new Error("No valid identifier for price update.");
   };
 
-  /* === UPDATE DISCOUNT === */
   const updateDiscount = async (product, newDiscount) => {
-    const payload = {
-      discount: Number(newDiscount),
-    };
+    const payload = { discount: Number(newDiscount) };
+
     const candidates = [
       product.id ? `${product.id}/discount` : null,
       product.barcode ? `${product.barcode}/discount` : null,
@@ -121,277 +145,542 @@ export default function SetPricePage() {
     throw new Error("No valid identifier for discount update.");
   };
 
-  const handleDraftChange = (barcode, field, value) => {
+  /* ================================
+      HANDLER CHỈNH GIÁ / GIẢM GIÁ
+  ================================= */
+  const handleDraftChange = (id, field, value) => {
     if (Number(value) < 0) return;
     setProducts((prev) =>
       prev.map((p) =>
-        p.barcode === barcode ? { ...p, [field]: Number(value) } : p
+        p.id === id ? { ...p, [field]: Number(value) } : p
       )
     );
   };
 
-  const handleConfirmUpdate = async (barcode, productId) => {
-    const current = products.find((p) => p.barcode === barcode);
-    if (!current) return;
-
-    const priceChanged = current.draftPrice !== current.price;
-    const discountChanged = current.draftDiscount !== current.discount;
+  const handleConfirmUpdate = async (product) => {
+    const priceChanged = product.draftPrice !== product.price;
+    const discountChanged = product.draftDiscount !== product.discount;
 
     if (!priceChanged && !discountChanged) {
-      alert(t("prices.noChange"));
+      alert(t("prices.noChange") || "Không có thay đổi để lưu.");
       return;
     }
 
-    const confirmed =
-      window.confirm(
-        t("prices.confirmUpdate")
-      );
+    const confirmed = window.confirm(
+      t("prices.confirmUpdate") ||
+        "Bạn có chắc muốn cập nhật giá / giảm giá cho sản phẩm này?"
+    );
     if (!confirmed) return;
 
-    setUpdatingBarcode(barcode);
+    setUpdatingId(product.id);
     try {
       if (priceChanged) {
-        await updatePrice(current, current.draftPrice);
+        await updatePrice(product, product.draftPrice);
       }
       if (discountChanged) {
-        await updateDiscount(current, current.draftDiscount);
+        await updateDiscount(product, product.draftDiscount);
       }
+
       setProducts((prev) =>
         prev.map((p) =>
-          p.barcode === barcode
-            ? { ...p, price: p.draftPrice, discount: p.draftDiscount }
+          p.id === product.id
+            ? {
+                ...p,
+                price: p.draftPrice,
+                discount: p.draftDiscount,
+              }
             : p
         )
       );
-      alert(t("prices.updateSuccess"));
+      alert(t("prices.updateSuccess") || "Cập nhật thành công!");
     } catch (err) {
       console.error(err);
-      alert(t("prices.updateFail"));
+      alert(t("prices.updateFail") || "Không thể cập nhật giá!");
     } finally {
-      setUpdatingBarcode(null);
+      setUpdatingId(null);
     }
   };
 
-  /* === FILTER & PAGINATION === */
-  const filtered = products.filter(
-    (p) =>
-      p.barcode.toLowerCase().includes(query.toLowerCase()) ||
-      p.name.toLowerCase().includes(query.toLowerCase())
-  );
+  /* ================================
+      FILTER & SEARCH
+  ================================= */
+  const filtered = products.filter((p) => {
+    const q = (query || "").toLowerCase();
 
+    const matchesQuery =
+      p.barcode.toLowerCase().includes(q) ||
+      p.name.toLowerCase().includes(q);
+
+    const matchesCategory =
+      filters.category === "all" || p.category === filters.category;
+
+    const matchesBrand =
+      filters.brand === "all" || p.brand === filters.brand;
+
+    return matchesQuery && matchesCategory && matchesBrand;
+  });
+
+  const totalItems = filtered.length;
+  const startIndex = (currentPage - 1) * rowsPerPage;
   const currentRows = filtered.slice(
-    (currentPage - 1) * rowsPerPage,
-    currentPage * rowsPerPage
+    startIndex,
+    startIndex + rowsPerPage
   );
 
-  const handleSelectAll = (e) => {
-    if (e.target.checked) setSelectedProducts(filtered.map((p) => p.barcode));
-    else setSelectedProducts([]);
-  };
-
-  const handleSelectOne = (barcode) => {
-    setSelectedProducts((prev) =>
-      prev.includes(barcode)
-        ? prev.filter((x) => x !== barcode)
-        : [...prev, barcode]
-    );
-  };
-  const rowsSelectValue = rowsPerPage > 100 ? "all" : rowsPerPage;
-  const headerCellStyle = { whiteSpace: "nowrap" };
+  const rowsSelectValue =
+    rowsPerPage >= totalItems && totalItems > 0 ? "all" : rowsPerPage;
 
   const handleRowsPerPageChange = (value) => {
-    setRowsPerPage(value === "all" ? Number.MAX_SAFE_INTEGER : Number(value));
+    const num =
+      value === "all" ? (filtered.length || 1) : Number(value);
+    setRowsPerPage(num);
     setCurrentPage(1);
   };
 
-  /* === UI LAYOUT === */
+  /* ================================
+      SELECT SẢN PHẨM & IN BẢNG GIÁ
+  ================================= */
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      setSelectedProducts(filtered.map((p) => p.id));
+    } else {
+      setSelectedProducts([]);
+    }
+  };
+
+  const handleSelectOne = (id) => {
+    setSelectedProducts((prev) =>
+      prev.includes(id)
+        ? prev.filter((x) => x !== id)
+        : [...prev, id]
+    );
+  };
+
+  const handlePrintSelected = () => {
+    const selectedList = products.filter((p) =>
+      selectedProducts.includes(p.id)
+    );
+    if (selectedList.length === 0) {
+      alert(
+        t("prices.selectToPrint") ||
+          "Vui lòng chọn ít nhất một sản phẩm để in."
+      );
+      return;
+    }
+
+    const win = window.open("", "_blank");
+    const title =
+      t("prices.printTitle") || "BẢNG GIÁ SẢN PHẨM";
+
+    const rowsHtml = selectedList
+      .map(
+        (p, idx) => `
+      <tr>
+        <td style="padding:6px 8px; border:1px solid #ccc; text-align:center;">${
+          idx + 1
+        }</td>
+        <td style="padding:6px 8px; border:1px solid #ccc;">${
+          p.barcode || ""
+        }</td>
+        <td style="padding:6px 8px; border:1px solid #ccc;">${
+          p.name || ""
+        }</td>
+        <td style="padding:6px 8px; border:1px solid #ccc; text-align:right;">${formatCurrency(
+          p.cost
+        )}</td>
+        <td style="padding:6px 8px; border:1px solid #ccc; text-align:right;">${formatCurrency(
+          p.price
+        )}</td>
+        <td style="padding:6px 8px; border:1px solid #ccc; text-align:center;">${
+          p.discount || 0
+        }%</td>
+      </tr>`
+      )
+      .join("");
+
+    const html = `
+      <html>
+        <head>
+          <title>${title}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 16px; }
+            h2 { text-align:center; margin-bottom: 16px; }
+            table { border-collapse: collapse; width: 100%; font-size: 13px; }
+            th { background:#f1f3f5; }
+            @media print {
+              button { display:none; }
+            }
+          </style>
+        </head>
+        <body>
+          <h2>${title}</h2>
+          <table>
+            <thead>
+              <tr>
+                <th style="padding:6px 8px; border:1px solid #ccc;">#</th>
+                <th style="padding:6px 8px; border:1px solid #ccc;">${
+                  t("products.barcode") || "Mã sản phẩm"
+                }</th>
+                <th style="padding:6px 8px; border:1px solid #ccc;">${
+                  t("products.productName") || "Tên sản phẩm"
+                }</th>
+                <th style="padding:6px 8px; border:1px solid #ccc;">${
+                  t("products.costOfCapital") || "Giá vốn"
+                }</th>
+                <th style="padding:6px 8px; border:1px solid #ccc;">${
+                  t("products.sellingPrice") || "Giá bán"
+                }</th>
+                <th style="padding:6px 8px; border:1px solid #ccc;">${
+                  t("products.discount") || "Giảm giá"
+                }</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+          <div style="margin-top:16px; text-align:right;">
+            <button onclick="window.print()">In</button>
+          </div>
+        </body>
+      </html>
+    `;
+
+    win.document.write(html);
+    win.document.close();
+  };
+
+  /* ================================
+      RENDER
+  ================================= */
+  const headerCellStyle = { whiteSpace: "nowrap" };
+
   return (
     <MainLayout>
       <div className="container-fluid py-3">
-        {/* ===== HEADER ===== */}
+        {/* ===== PAGE HEADER (CHUẨN SẢN PHẨM) ===== */}
         <div className="row align-items-center gy-2 mb-3">
-          <div className="col-md-3">
-            <h4 className="fw-bold mb-0">
-              {t("prices.title") || "Thi?t l?p gi� & gi?m gi�"}
-            </h4>
+
+        {/* Tiêu đề */}
+        <div className="col-12 col-md-3 col-lg-2">
+          <h4 className="fw-bold mb-0">
+            {t("prices.title") || "Thiết lập giá"}
+          </h4>
+        </div>
+
+        {/* Ô tìm kiếm giống hệt ProductListPage */}
+        <div className="col-12 col-md-5 col-lg-6">
+          <div className="position-relative">
+            <i 
+              className={`bi bi-search position-absolute top-50 start-0 translate-middle-y ps-3 text-${theme}`} 
+            />
+            <input
+              type="text"
+              className="form-control ps-5"
+              style={{
+                height: 40,
+                paddingLeft: 45,
+                border: "1px solid #ced4da",
+                boxShadow: "none",
+                outline: "none",
+              }}
+              placeholder={
+                t("prices.searchPlaceholder") || 
+                "Tìm theo mã vạch hoặc tên sản phẩm"
+              }
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
           </div>
-          <div className="col-md-5">
-            <div
-              className={`input-group border border-${theme} rounded-3 align-items-center`}
-              style={{ height: 40 }}
-            >
-              <span
-                className={`input-group-text bg-white border-0 text-${theme}`}
-                style={{
-                  borderRight: `1px solid var(--bs-${theme})`,
-                  height: "100%",
-                }}
-              >
-                <i className="bi bi-search"></i>
-              </span>
-              <input
-                type="text"
-                className="form-control border-0 shadow-none"
-                placeholder={
-                  t("prices.searchPlaceholder") ||
-                  "T�m ki?m theo m� v?ch ho?c t�n s?n ph?m"
-                }
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
+        </div>
+
+        {/* Các nút thao tác: giống ProductListPage */}
+        <div className="col-12 col-md-4 col-lg-4 d-flex justify-content-end gap-2 flex-wrap">
+
+          {/* Làm mới */}
+          <button
+            className={`btn btn-outline-${theme} d-flex align-items-center fw-semibold rounded-3 px-3`}
+            onClick={fetchProducts}
+          >
+            <i className="bi bi-arrow-repeat"></i>
+            <span className="ms-1 d-none d-md-inline">{t("common.refresh")}</span>
+          </button>
+
+          {/* In tem */}
+          <button
+            className={`btn btn-${theme} text-white d-flex align-items-center fw-semibold rounded-3 px-3`}
+            onClick={handlePrintSelected}
+          >
+            <i className="bi bi-printer"></i>
+            <span className="ms-1 d-none d-md-inline">
+              {t("prices.printButton") || "In tem"}
+            </span>
+          </button>
+
+        </div>
+        </div>
+
+
+        {/* ===== BỘ LỌC ===== */}
+        <div className="row g-3">
+          {/* Filter panel bên trái giống ProductList */}
+          <div className="col-lg-2 col-md-3">
+            <div className="card shadow-sm border-0 rounded-3">
+              <div className="card-body">
+                <h6 className="fw-semibold mb-3">
+                  {t("products.filters") || "Bộ lọc"}
+                </h6>
+
+                {/* Danh mục */}
+                <div className="mb-3">
+                  <label className="form-label">
+                    {t("products.category") || "Danh mục"}
+                  </label>
+                  <select
+                    className="form-select form-select-sm"
+                    value={filters.category}
+                    onChange={(e) => {
+                      setFilters((prev) => ({
+                        ...prev,
+                        category: e.target.value,
+                      }));
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <option value="all">
+                      {t("common.all") || "Tất cả"}
+                    </option>
+                    {categories.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Thương hiệu */}
+                <div className="mb-2">
+                  <label className="form-label">
+                    {t("products.brand") || "Thương hiệu"}
+                  </label>
+                  <select
+                    className="form-select form-select-sm"
+                    value={filters.brand}
+                    onChange={(e) => {
+                      setFilters((prev) => ({
+                        ...prev,
+                        brand: e.target.value,
+                      }));
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <option value="all">
+                      {t("common.all") || "Tất cả"}
+                    </option>
+                    {brands.map((br) => (
+                      <option key={br} value={br}>
+                        {br}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
-          <div className="col-md-4 d-flex justify-content-end gap-2">
-            <button
-              className={`btn btn-outline-${theme} fw-semibold`}
-              onClick={fetchProducts}
-            >
-              <i className="bi bi-arrow-repeat"></i> {t("common.refresh")}
-            </button>
-          </div>
-        </div>
 
-        {/* ===== BODY ===== */}
-        <div
-          className="table-responsive rounded-3 shadow-sm" style={{ borderRadius: 16, overflow: "hidden", paddingRight: 8, paddingBottom: 8, backgroundColor: "#fff" }}
-        >
-          <div style={{ maxHeight: "60vh", overflowX: "auto", overflowY: "auto", borderRadius: 12 }}><table className="table align-middle table-hover mb-0">
-            <thead className={`table-${theme}`} style={{ position: "sticky", top: 0, zIndex: 2 }}>
-                <tr>
-                  <th style={{ ...headerCellStyle, width: 40 }}>
-                    <input
-                      type="checkbox"
-                      checked={
-                        selectedProducts.length > 0 &&
-                        selectedProducts.length === filtered.length
-                      }
-                      onChange={handleSelectAll}
-                    />
-                  </th>
-                  <th style={headerCellStyle}>{t("products.barcode") || "Ma vach"}</th>
-                  <th style={headerCellStyle}></th>
-                  <th style={headerCellStyle}>{t("products.name") || "Ten san pham"}</th>
-                  <th style={headerCellStyle}>{t("products.category") || "Danh muc"}</th>
-                  <th style={headerCellStyle}>{t("products.brand") || "Thuong hieu"}</th>
-                  <th style={headerCellStyle}>{t("products.cost") || "Gia von"}</th>
-                  <th style={headerCellStyle}>{t("products.price") || "Gia ban"}</th>
-                  <th style={headerCellStyle}>{t("products.discount") || "Giam gia (%)"}</th>
-                  <th style={headerCellStyle}>{t("products.createdAt") || "Ngay cap nhat"}</th>
-                  <th style={headerCellStyle}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan={11} className="text-center py-4">
-                      <div className="spinner-border text-primary" />
-                    </td>
-                  </tr>
-                ) : error ? (
-                  <tr>
-                    <td colSpan={11} className="text-center text-danger py-3">
-                      {error}
-                    </td>
-                  </tr>
-                ) : currentRows.length > 0 ? (
-                  currentRows.map((p) => (
-                    <tr key={p.barcode}>
-                      <td>
+          {/* ===== BẢNG SẢN PHẨM ===== */}
+          <div className="col-lg-10 col-md-9">
+            <div
+              className="table-responsive rounded-3 shadow-sm"
+              style={{
+                borderRadius: 16,
+                overflow: "hidden",
+                backgroundColor: "#fff",
+              }}
+            >
+              <div
+                style={{
+                  maxHeight: "60vh",
+                  overflowX: "auto",
+                  overflowY: "auto",
+                  borderRadius: 12,
+                }}
+              >
+                <table className="table align-middle table-hover mb-0">
+                  <thead
+                    className={`table-${theme}`}
+                    style={{ position: "sticky", top: 0, zIndex: 2 }}
+                  >
+                    <tr>
+                      <th style={{ ...headerCellStyle, width: 40 }}>
                         <input
                           type="checkbox"
-                          checked={selectedProducts.includes(p.barcode)}
-                          onChange={() => handleSelectOne(p.barcode)}
-                        />
-                      </td>
-                      <td>{p.barcode}</td>
-                      <td>
-                        <img
-                          src={p.image}
-                          alt=""
-                          className="rounded"
-                          style={{ width: 50, height: 50 }}
-                        />
-                      </td>
-                      <td>{p.name}</td>
-                      <td>{p.category}</td>
-                      <td>{p.brand}</td>
-                      <td>{formatCurrency(p.cost)}</td>
-
-                      {/* Gi� b�n */}
-                      <td>
-                        <input
-                          type="number"
-                          className="form-control form-control-sm"
-                          value={p.draftPrice}
+                          checked={
+                            filtered.length > 0 &&
+                            selectedProducts.length === filtered.length
+                          }
                           onChange={(e) =>
-                            handleDraftChange(
-                              p.barcode,
-                              "draftPrice",
-                              e.target.value
-                            )
+                            handleSelectAll(e.target.checked)
                           }
                         />
-                      </td>
-
-                      {/* Gi?m gi� (%) */}
-                      <td>
-                        <div className="input-group input-group-sm">
-                          <input
-                            type="number"
-                            className="form-control"
-                            value={p.draftDiscount}
-                            onChange={(e) =>
-                              handleDraftChange(
-                                p.barcode,
-                                "draftDiscount",
-                                e.target.value
-                              )
-                            }
-                          />
-                          <span className="input-group-text">%</span>
-                        </div>
-                      </td>
-
-                      <td>{p.createdAt}</td>
-                      <td>
-                        <button
-                          className={`btn btn-sm btn-${theme}`}
-                          onClick={() => handleConfirmUpdate(p.barcode, p.id)}
-                          disabled={updatingBarcode === p.barcode}
-                        >
-                          {updatingBarcode === p.barcode
-                            ? t("common.saving") || "Dang luu..."
-                            : t("common.save") || "Luu"}
-                        </button>
-                      </td>
+                      </th>
+                      <th style={headerCellStyle}>
+                        {t("products.barcode") || "Mã sản phẩm"}
+                      </th>
+                      <th style={headerCellStyle}>
+                        {t("products.productName") || "Tên sản phẩm"}
+                      </th>
+                      <th style={headerCellStyle}>
+                        {t("products.costOfCapital") || "Giá vốn"}
+                      </th>
+                      <th style={headerCellStyle}>
+                        {t("products.sellingPrice") || "Giá bán"}
+                      </th>
+                      <th style={headerCellStyle}>
+                        {t("products.discount") || "Giảm giá (%)"}
+                      </th>
+                      <th style={headerCellStyle}></th>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={11} className="text-center text-muted py-3">
-                      {t("common.noData") || "Kh�ng c� d? li?u ph� h?p"}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  </thead>
+
+                  <tbody>
+                    {loading ? (
+                      <tr>
+                        <td colSpan={7} className="text-center py-4">
+                          <div className="spinner-border text-primary" />
+                        </td>
+                      </tr>
+                    ) : error ? (
+                      <tr>
+                        <td
+                          colSpan={7}
+                          className="text-center text-danger py-3"
+                        >
+                          {error}
+                        </td>
+                      </tr>
+                    ) : currentRows.length > 0 ? (
+                      currentRows.map((p) => {
+                        const priceChanged =
+                          p.draftPrice !== p.price;
+                        const discountChanged =
+                          p.draftDiscount !== p.discount;
+
+                        return (
+                          <tr key={p.id}>
+                            <td>
+                              <input
+                                type="checkbox"
+                                checked={selectedProducts.includes(
+                                  p.id
+                                )}
+                                onChange={() =>
+                                  handleSelectOne(p.id)
+                                }
+                              />
+                            </td>
+                            <td>{p.barcode}</td>
+                            <td>{p.name}</td>
+                            <td>{formatCurrency(p.cost)}</td>
+
+                            {/* Giá bán */}
+                            <td>
+                              <input
+                                type="number"
+                                className="form-control form-control-sm"
+                                value={p.draftPrice}
+                                onChange={(e) =>
+                                  handleDraftChange(
+                                    p.id,
+                                    "draftPrice",
+                                    e.target.value
+                                  )
+                                }
+                                style={
+                                  priceChanged
+                                    ? {
+                                        background:
+                                          "#fff3cd",
+                                      }
+                                    : {}
+                                }
+                              />
+                            </td>
+
+                            {/* Giảm giá (%) */}
+                            <td>
+                              <div className="input-group input-group-sm">
+                                <input
+                                  type="number"
+                                  className="form-control"
+                                  value={p.draftDiscount}
+                                  onChange={(e) =>
+                                    handleDraftChange(
+                                      p.id,
+                                      "draftDiscount",
+                                      e.target.value
+                                    )
+                                  }
+                                  style={
+                                    discountChanged
+                                      ? {
+                                          background:
+                                            "#fff3cd",
+                                        }
+                                      : {}
+                                  }
+                                />
+                                <span className="input-group-text">
+                                  %
+                                </span>
+                              </div>
+                            </td>
+
+                            <td>
+                              <button
+                                className={`btn btn-sm btn-${theme}`}
+                                onClick={() =>
+                                  handleConfirmUpdate(p)
+                                }
+                                disabled={updatingId === p.id}
+                              >
+                                {updatingId === p.id
+                                  ? t("common.saving") ||
+                                    "Đang lưu..."
+                                  : t("common.save") || "Lưu"}
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={7}
+                          className="text-center text-muted py-3"
+                        >
+                          {t("common.noData") ||
+                            "Không có dữ liệu phù hợp"}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <TablePagination
+              currentPage={currentPage}
+              totalItems={totalItems}
+              rowsPerPage={rowsPerPage}
+              rowsPerPageOptions={[15, 30, 50, 100]}
+              rowsPerPageValue={rowsSelectValue}
+              onPageChange={setCurrentPage}
+              onRowsPerPageChange={handleRowsPerPageChange}
+            />
           </div>
         </div>
-
-        <TablePagination
-          currentPage={currentPage}
-          totalItems={filtered.length}
-          rowsPerPage={rowsPerPage}
-          rowsPerPageOptions={[15, 30, 50, 100]}
-          rowsPerPageValue={rowsSelectValue}
-          onPageChange={setCurrentPage}
-          onRowsPerPageChange={handleRowsPerPageChange}
-        />
       </div>
     </MainLayout>
   );
 }
-
-
-
-
