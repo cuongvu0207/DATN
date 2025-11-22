@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import * as XLSX from "xlsx";
+import ConfirmImportDialog from "../components/notifications/ConfirmImportDialog";
 
 /* === Import child components === */
 import ImportHeader from "../components/import/ImportHeader";
@@ -41,6 +42,7 @@ export default function ImportDetailPage() {
   const [showAddSupplier, setShowAddSupplier] = useState(false);
   const [suppliers, setSuppliers] = useState([]);
   const [importFile, setImportFile] = useState(null);
+  const [showConfirmComplete, setShowConfirmComplete] = useState(false);
 
   const token = localStorage.getItem("accessToken");
 
@@ -512,7 +514,10 @@ const handleComplete = () => sendImportData(true);
                   <button className={`btn btn-outline-${theme} w-50 me-2`} onClick={handleSave}>
                     <i className="bi bi-lock me-1"></i> {t("import.saveDraft")}
                   </button>
-                  <button className={`btn btn-${theme} text-white w-50`} onClick={handleComplete}>
+                  <button
+                    className={`btn btn-${theme} text-white w-50`}
+                    onClick={() => setShowConfirmComplete(true)}
+                  >
                     <i className="bi bi-check2-circle me-1"></i> {t("import.complete")}
                   </button>
                 </div>
@@ -591,6 +596,19 @@ const handleComplete = () => sendImportData(true);
           </div>
         )}
       </div>
+      <ConfirmImportDialog
+        show={showConfirmComplete}
+        supplierName={
+          suppliers.find((s) => s.supplierId == supplier)?.supplierName || ""
+        }
+        itemCount={items.length}
+        totalAmount={total}
+        onCancel={() => setShowConfirmComplete(false)}
+        onConfirm={() => {
+          setShowConfirmComplete(false);
+          sendImportData(true);
+        }}
+      />
     </MainLayout>
   );
 }

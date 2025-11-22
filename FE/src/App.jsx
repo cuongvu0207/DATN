@@ -16,6 +16,7 @@ import FinancePage from "./pages/FinancePage";
 import SupplierPage from "./pages/SupplierPage";
 import ProtectedRoute from "./components/auth/ProtectedRoute"; 
 import CustomerPage from "./pages/CustomerPage";
+import PaymentNotification from "./pages/PaymentNotification";
 export default function App() {
   return (
     <ThemeProvider>
@@ -42,6 +43,8 @@ export default function App() {
                   <Route path="/finance" element={<FinancePage />} />
                   <Route path="/products/supplier" element={<SupplierPage />} />
                   <Route path="/customers" element={<CustomerPage />} />
+                  <Route path="/payment-notification" element={<PaymentNotification />} />
+
                 </Routes>
               </ProtectedRoute>
             }

@@ -5,6 +5,8 @@ import { useTheme } from "../../context/ThemeContext";
 import { API_BASE_URL } from "../../services/api";
 import CategoryAddCard from "../product/CategoryAddCard";
 import BrandAddCard from "../product/BrandAddCard";
+import { validators } from "../../utils/validators";
+import useLoadingTimeout from "../../hooks/useLoadingTimeout";
 
 export default function AddProductCard({ onCancel, onSave }) {
   const { t } = useTranslation();
@@ -16,9 +18,9 @@ export default function AddProductCard({ onCancel, onSave }) {
     categoryId: "",
     brandId: "",
     unit: "Cái",
-    cost: 0,
-    price: 0,
-    stock: 0,
+    cost: "",
+    price: "",
+    stock: "",
     barcode: "",
     imageFile: null,
   });
@@ -26,11 +28,25 @@ export default function AddProductCard({ onCancel, onSave }) {
   const [preview, setPreview] = useState(null);
   const [localCategories, setLocalCategories] = useState([]);
   const [localBrands, setLocalBrands] = useState([]);
-  const [showModal, setShowModal] = useState(null); // "category" | "brand"
+  const [showModal, setShowModal] = useState(null);
 
-  /* =====================================================
-     🔹 GỌI API DANH MỤC & THƯƠNG HIỆU
-     ===================================================== */
+  // ⭐ Loading khi lưu
+  const [saving, setSaving] = useState(false);
+  const { showSpinner } = useLoadingTimeout(saving, { delayMs: 200 });
+
+  /* ================================
+     Format & Normalize
+  ================================= */
+  const formatCurrencyDots = (num) => {
+    if (!num) return "";
+    return String(num).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  };
+
+  const normalizeNumber = (str) => str.replace(/\./g, "");
+
+  /* ================================
+     Fetch Category + Brand
+  ================================= */
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -43,49 +59,58 @@ export default function AddProductCard({ onCancel, onSave }) {
           }),
         ]);
 
-        // ✅ Chuẩn hóa dữ liệu trả về
-        const normalizedCats = (catRes.data || []).map((c, i) => ({
-          categoryId: String(c.categoryId || c.id || i),
-          categoryName: c.categoryName || c.name || c,
-        }));
+        setLocalCategories(
+          (catRes.data || []).map((c, i) => ({
+            categoryId: String(c.categoryId || c.id || i),
+            categoryName: c.categoryName || c.name || c,
+          }))
+        );
 
-        const normalizedBrands = (brandRes.data || []).map((b, i) => ({
-          brandId: String(b.brandId || b.id || i),
-          brandName: b.brandName || b.name || b,
-        }));
-
-        setLocalCategories(normalizedCats);
-        setLocalBrands(normalizedBrands);
-
-        console.log("✅ Category list:", normalizedCats);
-        console.log("✅ Brand list:", normalizedBrands);
+        setLocalBrands(
+          (brandRes.data || []).map((b, i) => ({
+            brandId: String(b.brandId || b.id || i),
+            brandName: b.brandName || b.name || b,
+          }))
+        );
       } catch (err) {
-        console.error("❌ Lỗi tải danh mục/thương hiệu:", err);
+        console.error("Load category/brand error:", err);
       }
     };
 
     fetchData();
   }, [token]);
 
-  /* =====================================================
-     🔹 XỬ LÝ FORM
-     ===================================================== */
-  const handleChange = (e) => {
+  /* ================================
+     Handle input
+  ================================= */
+  const handleTextChange = (e) => {
     const { name, value } = e.target;
-    if (["price", "cost", "stock"].includes(name)) {
-      const num = Number(value);
-      if (num < 0) return;
-    }
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  /* =====================================================
-     🔹 CALLBACK SAU KHI THÊM DANH MỤC / THƯƠNG HIỆU
-     ===================================================== */
+  const handleNumberInput = (e) => {
+    const { name, value } = e.target;
+
+    if (!/^[0-9.]*$/.test(value)) return;
+
+    const raw = normalizeNumber(value);
+
+    if (value.includes(".")) {
+      if (!validators.decimal(raw)) return;
+    }
+
+    if (raw !== "" && Number(raw) < 0) return;
+
+    setForm((prev) => ({ ...prev, [name]: raw }));
+  };
+
+  /* ================================
+     Add Category / Brand
+  ================================= */
   const handleCategoryAdded = (data) => {
-    // Normalize payload from API
     const id = data?.categoryId ?? data?.id;
     const name = data?.categoryName ?? data?.name;
+
     if (id && name) {
       const normalized = { categoryId: String(id), categoryName: name };
       setLocalCategories((prev) =>
@@ -101,6 +126,7 @@ export default function AddProductCard({ onCancel, onSave }) {
   const handleBrandAdded = (data) => {
     const id = data?.brandId ?? data?.id;
     const name = data?.brandName ?? data?.name;
+
     if (id && name) {
       const normalized = { brandId: String(id), brandName: name };
       setLocalBrands((prev) =>
@@ -113,9 +139,9 @@ export default function AddProductCard({ onCancel, onSave }) {
     setShowModal(null);
   };
 
-  /* =====================================================
-     🔹 XỬ LÝ ẢNH
-     ===================================================== */
+  /* ================================
+     Image
+  ================================= */
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -124,53 +150,71 @@ export default function AddProductCard({ onCancel, onSave }) {
     }
   };
 
-  /* =====================================================
-     🔹 GỬI FORM
-     ===================================================== */
+  /* ================================
+     Submit
+  ================================= */
   const generateBarcode = () =>
     "SP" + Math.floor(100000000000 + Math.random() * 900000000000);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!form.name.trim()) return alert(t("products.enterProductName"));
     if (!form.categoryId || !form.brandId)
       return alert(t("products.chooseCategoryBrand"));
 
-    const newProduct = {
-      ...form,
-      barcode: form.barcode || generateBarcode(),
-      id: "SPNEW" + Math.floor(Math.random() * 1000),
-      createdAt: new Date().toLocaleDateString("vi-VN"),
-    };
+    setSaving(true);
 
-    onSave(newProduct);
+    try {
+      const newProduct = {
+        ...form,
+        price: Number(form.price || 0),
+        cost: Number(form.cost || 0),
+        stock: Number(form.stock || 0),
+        barcode: form.barcode || generateBarcode(),
+        id: "SPNEW" + Math.floor(Math.random() * 1000),
+        createdAt: new Date().toLocaleDateString("vi-VN"),
+      };
+
+      await onSave(newProduct); // chờ BE xử lý upload ảnh
+    } finally {
+      setSaving(false);
+    }
   };
 
-  /* =====================================================
-     🔹 RENDER GIAO DIỆN
-     ===================================================== */
+  /* ================================
+     UI
+  ================================= */
   return (
     <>
+      {/* Loading Overlay */}
+      {showSpinner && (
+        <div
+          className="position-fixed top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center"
+          style={{ background: "rgba(255,255,255,0.65)", zIndex: 3000 }}
+        >
+          <div className="spinner-border text-primary" style={{ width: "3rem", height: "3rem" }}></div>
+          <div className="mt-3 fw-semibold fs-5">{t("common.saving") || "Đang lưu sản phẩm..."}</div>
+        </div>
+      )}
+
       <div
         className="position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex align-items-center justify-content-center"
         style={{ zIndex: 1050 }}
         onClick={onCancel}
       >
         <div
-          className="bg-white rounded-4 shadow-lg p-4"
+          className="bg-white rounded-4 shadow-lg p-4 position-relative"
           style={{ width: "90%", maxWidth: "950px", maxHeight: "90%", overflowY: "auto" }}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header */}
+          {/* HEADER */}
           <div className="d-flex justify-content-between align-items-center mb-3">
-            <h5 className={`fw-bold text-${theme} m-0`}>
-              {t("products.addProduct") || "Thêm hàng hóa"}
-            </h5>
+            <h5 className={`fw-bold text-${theme} m-0`}>{t("products.addProduct")}</h5>
             <button type="button" className="btn-close" onClick={onCancel}></button>
           </div>
 
-          {/* Ảnh sản phẩm */}
+          {/* IMAGE */}
           <div className="text-center mb-4">
             <div className="p-3 d-inline-block bg-light rounded-3">
               <img
@@ -181,16 +225,17 @@ export default function AddProductCard({ onCancel, onSave }) {
               />
               <label className={`btn btn-outline-${theme} btn-sm w-100`}>
                 <i className="bi bi-upload me-1"></i>
-                {t("products.chooseImage") || "Chọn ảnh"}
+                {t("products.chooseImage")}
                 <input type="file" accept="image/*" hidden onChange={handleImageChange} />
               </label>
             </div>
           </div>
 
-          {/* Form nội dung */}
+          {/* FORM */}
           <form onSubmit={handleSubmit}>
             <div className="row g-3">
-              {/* Tên sản phẩm */}
+
+              {/* NAME */}
               <div className="col-md-6">
                 <label className="form-label">{t("products.productName")}</label>
                 <input
@@ -198,13 +243,12 @@ export default function AddProductCard({ onCancel, onSave }) {
                   name="name"
                   className="form-control"
                   value={form.name}
-                  onChange={handleChange}
-                  placeholder={t("products.enterProductName")}
+                  onChange={handleTextChange}
                   required
                 />
               </div>
 
-              {/* Mã vạch */}
+              {/* BARCODE */}
               <div className="col-md-6">
                 <label className="form-label">{t("products.barcode")}</label>
                 <input
@@ -212,29 +256,28 @@ export default function AddProductCard({ onCancel, onSave }) {
                   name="barcode"
                   className="form-control"
                   value={form.barcode}
-                  onChange={handleChange}
-                  placeholder={t("products.enterBarcode")}
+                  onChange={handleTextChange}
                 />
               </div>
 
-              {/* Danh mục */}
+              {/* CATEGORY */}
               <div className="col-md-6">
-                <label className="form-label d-flex justify-content-between align-items-center">
-                  <span>{t("products.category")}</span>
+                <label className="form-label d-flex justify-content-between">
+                  {t("products.category")}
                   <button
                     type="button"
                     className={`btn btn-outline-${theme} btn-sm rounded-circle p-0`}
                     style={{ width: 24, height: 24 }}
                     onClick={() => setShowModal("category")}
                   >
-                    <i className="bi bi-plus-lg" style={{ fontSize: 11 }}></i>
+                    <i className="bi bi-plus-lg"></i>
                   </button>
                 </label>
                 <select
                   name="categoryId"
                   className="form-select"
                   value={form.categoryId}
-                  onChange={handleChange}
+                  onChange={handleTextChange}
                   required
                 >
                   <option value="">{t("products.selectCategory")}</option>
@@ -246,24 +289,24 @@ export default function AddProductCard({ onCancel, onSave }) {
                 </select>
               </div>
 
-              {/* Thương hiệu */}
+              {/* BRAND */}
               <div className="col-md-6">
-                <label className="form-label d-flex justify-content-between align-items-center">
-                  <span>{t("products.brand")}</span>
+                <label className="form-label d-flex justify-content-between">
+                  {t("products.brand")}
                   <button
                     type="button"
                     className={`btn btn-outline-${theme} btn-sm rounded-circle p-0`}
                     style={{ width: 24, height: 24 }}
                     onClick={() => setShowModal("brand")}
                   >
-                    <i className="bi bi-plus-lg" style={{ fontSize: 11 }}></i>
+                    <i className="bi bi-plus-lg"></i>
                   </button>
                 </label>
                 <select
                   name="brandId"
                   className="form-select"
                   value={form.brandId}
-                  onChange={handleChange}
+                  onChange={handleTextChange}
                   required
                 >
                   <option value="">{t("products.selectBrand")}</option>
@@ -275,7 +318,7 @@ export default function AddProductCard({ onCancel, onSave }) {
                 </select>
               </div>
 
-              {/* Đơn vị */}
+              {/* UNIT */}
               <div className="col-md-6">
                 <label className="form-label">{t("products.unit")}</label>
                 <input
@@ -283,55 +326,55 @@ export default function AddProductCard({ onCancel, onSave }) {
                   name="unit"
                   className="form-control"
                   value={form.unit}
-                  onChange={handleChange}
-                  placeholder={t("products.placeholder.unit") || "Nhập đơn vị (vd: Cái)"}
+                  onChange={handleTextChange}
                   required
                 />
               </div>
 
-              {/* Giá vốn / Giá bán / Tồn kho */}
+              {/* COST */}
               <div className="col-md-4">
                 <label className="form-label">{t("products.costOfCapital")}</label>
                 <input
-                  type="number"
+                  type="text"
                   name="cost"
                   className="form-control"
-                  value={form.cost}
-                  onChange={handleChange}
+                  value={formatCurrencyDots(form.cost)}
+                  onChange={handleNumberInput}
                   placeholder="0"
-                  min="0"
                   required
                 />
               </div>
+
+              {/* PRICE */}
               <div className="col-md-4">
                 <label className="form-label">{t("products.sellingPrice")}</label>
                 <input
-                  type="number"
+                  type="text"
                   name="price"
                   className="form-control"
-                  value={form.price}
-                  onChange={handleChange}
+                  value={formatCurrencyDots(form.price)}
+                  onChange={handleNumberInput}
                   placeholder="0"
-                  min="0"
                   required
                 />
               </div>
+
+              {/* STOCK */}
               <div className="col-md-4">
                 <label className="form-label">{t("products.quantityInStock")}</label>
                 <input
-                  type="number"
+                  type="text"
                   name="stock"
                   className="form-control"
-                  value={form.stock}
-                  onChange={handleChange}
+                  value={formatCurrencyDots(form.stock)}
+                  onChange={handleNumberInput}
                   placeholder="0"
-                  min="0"
                   required
                 />
               </div>
             </div>
 
-            {/* Buttons */}
+            {/* BUTTONS */}
             <div className="d-flex justify-content-end gap-2 mt-4">
               <button type="button" className="btn btn-secondary px-4" onClick={onCancel}>
                 {t("common.cancel")}
@@ -344,7 +387,7 @@ export default function AddProductCard({ onCancel, onSave }) {
         </div>
       </div>
 
-      {/* Modal thêm danh mục / thương hiệu */}
+      {/* MODAL ADD CATEGORY / BRAND */}
       {showModal && (
         <div className="modal fade show" style={{ display: "block", background: "rgba(0,0,0,.4)" }}>
           <div className="modal-dialog modal-dialog-centered">

@@ -5,6 +5,7 @@ import { useTheme } from "../../context/ThemeContext";
 import CategoryAddCard from "../product/CategoryAddCard";
 import BrandAddCard from "../product/BrandAddCard";
 import { API_BASE_URL } from "../../services/api";
+import { validators } from "../../utils/validators";
 
 export default function EditProductDetailCard({ product, onClose, onSave }) {
   const { t } = useTranslation();
@@ -14,16 +15,29 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
 
   const [form, setForm] = useState({ ...product });
   const [preview, setPreview] = useState(product.image || "");
+
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
-  const [showModal, setShowModal] = useState(null);
-  const [loading, setLoading] = useState(false);
+
   const [rawCats, setRawCats] = useState([]);
   const [rawBrands, setRawBrands] = useState([]);
 
-  // =============================
-  // 🔹 Lấy danh mục + thương hiệu
-  // =============================
+  const [showModal, setShowModal] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  /* ==========================================================
+      🔹 FORMATTER SỐ DẤU CHẤM (1.200.000)
+  ========================================================== */
+  const formatCurrencyDots = (num) => {
+    if (!num) return "";
+    return String(num).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  };
+
+  const normalizeNumber = (str) => str.replace(/\./g, "");
+
+  /* ==========================================================
+      🔹 FETCH CATEGORY + BRAND
+  ========================================================== */
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -31,42 +45,37 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
         const [catRes, brandRes] = await Promise.all([
           fetch(`${API_BASE_URL}/inventory/category`, {
             headers: {
-              "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
             },
           }),
           fetch(`${API_BASE_URL}/inventory/brand`, {
             headers: {
-              "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
             },
           }),
         ]);
 
-        if (!catRes.ok || !brandRes.ok)
-          throw new Error("Không thể tải danh mục hoặc thương hiệu");
+        const cats = await catRes.json();
+        const brands = await brandRes.json();
 
-        const catData = await catRes.json();
-        const brandData = await brandRes.json();
-
-        setRawCats(catData || []);
-        setRawBrands(brandData || []);
+        setRawCats(cats);
+        setRawBrands(brands);
 
         setCategories(
-          catData.map((item) => ({
-            value: item.categoryName,
-            label: item.categoryName,
+          cats.map((c) => ({
+            value: c.categoryName,
+            label: c.categoryName,
           }))
         );
 
         setBrands(
-          brandData.map((item) => ({
-            value: item.brandName,
-            label: item.brandName,
+          brands.map((b) => ({
+            value: b.brandName,
+            label: b.brandName,
           }))
         );
       } catch (err) {
-        console.error("Lỗi tải dữ liệu:", err);
+        console.error("Load categories/brands error:", err);
       } finally {
         setLoading(false);
       }
@@ -75,56 +84,77 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
     fetchData();
   }, [token]);
 
-  // ===================================================
-  // 🔥 Sửa lỗi react-select không giữ giá trị ban đầu
-  // ===================================================
+  /* ==========================================================
+      🔹 GIỮ LẠI GIÁ TRỊ SELECT CŨ
+  ========================================================== */
   useEffect(() => {
     if (categories.length > 0 && form.category) {
       const match = categories.find((c) => c.value === form.category);
       if (match) {
-        setForm((prev) => ({ ...prev, category: match.value }));
+        setForm((p) => ({ ...p, category: match.value }));
       }
     }
-
     if (brands.length > 0 && form.brand) {
       const match = brands.find((b) => b.value === form.brand);
       if (match) {
-        setForm((prev) => ({ ...prev, brand: match.value }));
+        setForm((p) => ({ ...p, brand: match.value }));
       }
     }
   }, [categories, brands]);
 
-  // =============================
-  // 🔹 Xử lý input text
-  // =============================
-  const handleChange = (e) => {
+  /* ==========================================================
+      🔹 HANDLE TEXT INPUT
+  ========================================================== */
+  const handleTextChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // =============================
-  // 🔹 Xử lý react-select
-  // =============================
-  const handleSelectChange = (type, option) => {
-    setForm((prev) => ({ ...prev, [type]: option?.value || "" }));
+  /* ==========================================================
+      🔹 HANDLE NUMBER INPUT (validate currency)
+  ========================================================== */
+  const handleNumberInput = (e) => {
+    const { name, value } = e.target;
+
+    // Allow only numbers + dot
+    if (!/^[0-9.]*$/.test(value)) return;
+
+    const raw = normalizeNumber(value);
+
+    // validate số thập phân
+    if (value.includes(".")) {
+      if (!validators.decimal(raw)) return;
+    }
+
+    if (raw !== "" && Number(raw) < 0) return;
+
+    setForm((prev) => ({ ...prev, [name]: raw }));
   };
 
-  // =============================
-  // 🔹 Xử lý ảnh
-  // =============================
+  /* ==========================================================
+      🔹 HANDLE SELECT
+  ========================================================== */
+  const handleSelectChange = (type, opt) => {
+    setForm((prev) => ({ ...prev, [type]: opt?.value || "" }));
+  };
+
+  /* ==========================================================
+      🔹 HANDLE IMAGE
+  ========================================================== */
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => setPreview(reader.result);
-      reader.readAsDataURL(file);
-      setForm((prev) => ({ ...prev, imageFile: file }));
-    }
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => setPreview(reader.result);
+    reader.readAsDataURL(file);
+
+    setForm((prev) => ({ ...prev, imageFile: file }));
   };
 
-  // =============================
-  // 🔹 Lưu sản phẩm
-  // =============================
+  /* ==========================================================
+      🔹 SUBMIT
+  ========================================================== */
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -142,196 +172,186 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
       ...form,
       categoryId: resolvedCategoryId ? String(resolvedCategoryId) : "",
       brandId: resolvedBrandId ? String(resolvedBrandId) : "",
+      price: Number(form.price || 0),
+      cost: Number(form.cost || 0),
+      stock: Number(form.stock || 0),
     };
 
     onSave(payload);
     onClose();
   };
 
-  // =============================
-  // 🔹 Callback thêm danh mục
-  // =============================
+  /* ==========================================================
+      🔹 ADD CATEGORY / BRAND CALLBACK
+  ========================================================== */
   const handleCategoryAdded = (data) => {
-    if (data?.categoryName) {
-      const val = { value: data.categoryName, label: data.categoryName };
-      if (!categories.find((c) => c.value === val.value)) {
-        setCategories((prev) => [...prev, val]);
-        setForm((prev) => ({ ...prev, category: val.value }));
-      }
-    }
+    const val = { value: data.categoryName, label: data.categoryName };
+
+    setCategories((prev) =>
+      prev.find((x) => x.value === val.value) ? prev : [...prev, val]
+    );
+
+    setForm((prev) => ({ ...prev, category: val.value }));
     setShowModal(null);
   };
 
-  // =============================
-  // 🔹 Callback thêm thương hiệu
-  // =============================
   const handleBrandAdded = (data) => {
-    if (data?.brandName) {
-      const val = { value: data.brandName, label: data.brandName };
-      if (!brands.find((b) => b.value === val.value)) {
-        setBrands((prev) => [...prev, val]);
-        setForm((prev) => ({ ...prev, brand: val.value }));
-      }
-    }
+    const val = { value: data.brandName, label: data.brandName };
+
+    setBrands((prev) =>
+      prev.find((x) => x.value === val.value) ? prev : [...prev, val]
+    );
+
+    setForm((prev) => ({ ...prev, brand: val.value }));
     setShowModal(null);
   };
 
-  // =============================
-  // 🔹 RENDER UI
-  // =============================
+  /* ==========================================================
+      🔹 UI
+  ========================================================== */
   return (
     <>
-      <div
-        className="position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex align-items-center justify-content-center"
+      <div className="position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex align-items-center justify-content-center"
         style={{ zIndex: 1050 }}
       >
         <div
           className="bg-white rounded-4 shadow-lg p-4"
           style={{ width: "90%", maxWidth: "950px", maxHeight: "90%", overflowY: "auto" }}
         >
-          {/* Header */}
-          <div className="d-flex justify-content-between align-items-center mb-3">
-            <h5 className={`fw-bold text-${theme} m-0`}>
-              {t("products.editProduct")}
-            </h5>
-            <button type="button" className="btn-close" onClick={onClose}></button>
+          {/* HEADER */}
+          <div className="d-flex justify-content-between mb-3">
+            <h5 className={`fw-bold text-${theme}`}>{t("products.editProduct")}</h5>
+            <button className="btn-close" onClick={onClose}></button>
           </div>
 
-          {/* Ảnh */}
+          {/* IMAGE */}
           <div className="text-center mb-4">
-            <div className="p-3 d-inline-block bg-light rounded-3">
-              <img
-                src={preview || "https://via.placeholder.com/200x200?text=No+Image"}
-                alt="preview"
-                className="img-fluid rounded mb-2"
-                style={{ objectFit: "cover", maxHeight: "200px" }}
-              />
-              <label className={`btn btn-outline-${theme} btn-sm w-100`}>
-                <i className="bi bi-upload me-1"></i>
-                {t("products.chooseImage")}
-                <input type="file" accept="image/*" hidden onChange={handleImageChange} />
-              </label>
-            </div>
+            <img
+              src={preview || "https://via.placeholder.com/200x200?text=No+Image"}
+              style={{ maxHeight: 200, objectFit: "cover" }}
+              className="rounded shadow-sm mb-2"
+            />
+            <label className={`btn btn-outline-${theme} btn-sm`}>
+              <i className="bi bi-upload me-1" />
+              {t("products.chooseImage")}
+              <input type="file" hidden accept="image/*" onChange={handleImageChange} />
+            </label>
           </div>
 
           {/* FORM */}
           <form onSubmit={handleSubmit}>
-            <div className="p-3 mb-4">
-              <div className="row g-3">
-                <div className="col-md-6">
-                  <label className="form-label">{t("products.productId")}</label>
-                  <input type="text" className="form-control" value={form.id} disabled />
-                </div>
+            <div className="row g-3 p-2">
 
-                <div className="col-md-6">
-                  <label className="form-label">{t("products.barcode")}</label>
-                  <input
-                    type="text"
-                    name="barcode"
-                    className="form-control"
-                    value={form.barcode || ""}
-                    onChange={handleChange}
-                  />
-                </div>
+              {/* ID */}
+              <div className="col-md-6">
+                <label className="form-label">{t("products.productId")}</label>
+                <input disabled className="form-control" value={form.id} />
+              </div>
 
-                <div className="col-md-6">
-                  <label className="form-label">{t("products.productName")}</label>
-                  <input
-                    type="text"
-                    name="name"
-                    className="form-control"
-                    value={form.name}
-                    onChange={handleChange}
-                  />
-                </div>
+              {/* Barcode */}
+              <div className="col-md-6">
+                <label className="form-label">{t("products.barcode")}</label>
+                <input
+                  className="form-control"
+                  name="barcode"
+                  value={form.barcode || ""}
+                  onChange={handleTextChange}
+                />
+              </div>
 
-                {/* Danh mục */}
-                <div className="col-md-6">
-                  <label className="form-label d-flex justify-content-between align-items-center">
-                    <span>{t("products.category")}</span>
-                    <button
-                      type="button"
-                      className={`btn btn-outline-${theme} btn-sm rounded-circle p-0`}
-                      style={{ width: 24, height: 24 }}
-                      onClick={() => setShowModal("category")}
-                    >
-                      <i className="bi bi-plus-lg" style={{ fontSize: 11 }}></i>
-                    </button>
-                  </label>
-                  <Select
-                    isLoading={loading}
-                    options={categories}
-                    value={categories.find((opt) => opt.value === form.category) || null}
-                    onChange={(opt) => handleSelectChange("category", opt)}
-                    placeholder={t("products.selectCategory")}
-                    isSearchable
-                  />
-                </div>
+              {/* Name */}
+              <div className="col-md-6">
+                <label className="form-label">{t("products.productName")}</label>
+                <input
+                  className="form-control"
+                  name="name"
+                  value={form.name}
+                  onChange={handleTextChange}
+                />
+              </div>
 
-                {/* Thương hiệu */}
-                <div className="col-md-6">
-                  <label className="form-label d-flex justify-content-between align-items-center">
-                    <span>{t("products.brand")}</span>
-                    <button
-                      type="button"
-                      className={`btn btn-outline-${theme} btn-sm rounded-circle p-0`}
-                      style={{ width: 24, height: 24 }}
-                      onClick={() => setShowModal("brand")}
-                    >
-                      <i className="bi bi-plus-lg" style={{ fontSize: 11 }}></i>
-                    </button>
-                  </label>
-                  <Select
-                    isLoading={loading}
-                    options={brands}
-                    value={brands.find((opt) => opt.value === form.brand) || null}
-                    onChange={(opt) => handleSelectChange("brand", opt)}
-                    placeholder={t("products.selectBrand")}
-                    isSearchable
-                  />
-                </div>
+              {/* Category */}
+              <div className="col-md-6">
+                <label className="form-label d-flex justify-content-between">
+                  {t("products.category")}
+                  <button
+                    type="button"
+                    className={`btn btn-outline-${theme} btn-sm rounded-circle p-0`}
+                    style={{ width: 24, height: 24 }}
+                    onClick={() => setShowModal("category")}
+                  >
+                    <i className="bi bi-plus-lg" />
+                  </button>
+                </label>
+                <Select
+                  options={categories}
+                  isLoading={loading}
+                  value={categories.find((x) => x.value === form.category) || null}
+                  onChange={(opt) => handleSelectChange("category", opt)}
+                />
+              </div>
 
-                {/* Giá và tồn */}
-                <div className="col-md-6">
-                  <label className="form-label">{t("products.costOfCapital")}:</label>
-                  <input
-                    type="number"
-                    name="cost"
-                    className="form-control"
-                    value={form.cost}
-                    onChange={handleChange}
-                  />
-                </div>
+              {/* Brand */}
+              <div className="col-md-6">
+                <label className="form-label d-flex justify-content-between">
+                  {t("products.brand")}
+                  <button
+                    type="button"
+                    className={`btn btn-outline-${theme} btn-sm rounded-circle p-0`}
+                    style={{ width: 24, height: 24 }}
+                    onClick={() => setShowModal("brand")}
+                  >
+                    <i className="bi bi-plus-lg" />
+                  </button>
+                </label>
+                <Select
+                  options={brands}
+                  isLoading={loading}
+                  value={brands.find((x) => x.value === form.brand) || null}
+                  onChange={(opt) => handleSelectChange("brand", opt)}
+                />
+              </div>
 
-                <div className="col-md-6">
-                  <label className="form-label">{t("products.sellingPrice")}:</label>
-                  <input
-                    type="number"
-                    name="price"
-                    className="form-control"
-                    value={form.price}
-                    onChange={handleChange}
-                  />
-                </div>
+              {/* COST */}
+              <div className="col-md-6">
+                <label className="form-label">{t("products.costOfCapital")}</label>
+                <input
+                  className="form-control"
+                  name="cost"
+                  value={formatCurrencyDots(form.cost)}
+                  onChange={handleNumberInput}
+                />
+              </div>
 
-                <div className="col-md-6">
-                  <label className="form-label">{t("products.quantityInStock")}:</label>
-                  <input
-                    type="number"
-                    name="stock"
-                    className="form-control"
-                    value={form.stock}
-                    onChange={handleChange}
-                  />
-                </div>
+              {/* PRICE */}
+              <div className="col-md-6">
+                <label className="form-label">{t("products.sellingPrice")}</label>
+                <input
+                  className="form-control"
+                  name="price"
+                  value={formatCurrencyDots(form.price)}
+                  onChange={handleNumberInput}
+                />
+              </div>
+
+              {/* STOCK */}
+              <div className="col-md-6">
+                <label className="form-label">{t("products.quantityInStock")}</label>
+                <input
+                  className="form-control"
+                  name="stock"
+                  value={formatCurrencyDots(form.stock)}
+                  onChange={handleNumberInput}
+                />
               </div>
             </div>
 
-            <div className="d-flex justify-content-end gap-2 mt-3">
-              <button type="button" className="btn btn-secondary px-4" onClick={onClose}>
+            {/* BUTTONS */}
+            <div className="d-flex justify-content-end mt-4 gap-2">
+              <button type="button" className="btn btn-secondary" onClick={onClose}>
                 {t("common.cancel")}
               </button>
-              <button type="submit" className={`btn btn-${theme} text-white px-4`}>
+              <button type="submit" className={`btn btn-${theme} text-white`}>
                 {t("common.save")}
               </button>
             </div>
@@ -339,22 +359,25 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
         </div>
       </div>
 
-      {/* Modal thêm danh mục / thương hiệu */}
+      {/* Modal thêm category / brand */}
       {showModal && (
-        <div className="modal fade show" style={{ display: "block", background: "rgba(0,0,0,.5)" }}>
+        <div
+          className="modal fade show"
+          style={{ display: "block", background: "rgba(0,0,0,.5)" }}
+        >
           <div className="modal-dialog modal-dialog-centered">
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">
                   {showModal === "brand" ? t("products.addBrand") : t("products.addCategory")}
                 </h5>
-                <button type="button" className="btn-close" onClick={() => setShowModal(null)}></button>
+                <button className="btn-close" onClick={() => setShowModal(null)} />
               </div>
               <div className="modal-body">
                 {showModal === "brand" ? (
-                  <BrandAddCard onSave={handleBrandAdded} onCancel={() => setShowModal(null)} />
+                  <BrandAddCard onSave={handleBrandAdded} />
                 ) : (
-                  <CategoryAddCard onSave={handleCategoryAdded} onCancel={() => setShowModal(null)} />
+                  <CategoryAddCard onSave={handleCategoryAdded} />
                 )}
               </div>
             </div>

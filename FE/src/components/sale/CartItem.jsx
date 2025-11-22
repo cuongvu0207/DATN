@@ -14,6 +14,7 @@ export default function CartItem({
 }) {
   const { theme } = useTheme();
   const { t } = useTranslation();
+
   const themeColorMap = {
     primary: "#0d6efd",
     success: "#198754",
@@ -23,6 +24,7 @@ export default function CartItem({
     secondary: "#6c757d",
     dark: "#212529",
   };
+
   const hexToRgba = (hex, alpha = 0.3) => {
     if (typeof hex !== "string" || !hex.startsWith("#")) return hex;
     let value = hex.slice(1);
@@ -135,7 +137,13 @@ export default function CartItem({
         <div className="d-flex align-items-center justify-content-end" style={{ gap: 25 }}>
           {/* SỐ LƯỢNG */}
           <div className="d-flex align-items-center" style={{ gap: 8 }}>
-            <button className="btn btn-sm btn-light rounded-circle" onClick={() => changeQty(item.code, -1)}>−</button>
+            <button
+              className="btn btn-sm btn-light rounded-circle"
+              onClick={() => changeQty(item.code, -1)}
+            >
+              −
+            </button>
+
             <input
               type="text"
               inputMode="numeric"
@@ -160,19 +168,32 @@ export default function CartItem({
               }}
               onBlur={() => {
                 const parsed = Math.max(0, Number(qtyInput) || 0);
+                // 🔥 CHỖ QUAN TRỌNG: gửi delta = newQty - oldQty
+                const delta = parsed - (Number(item.quantity) || 0);
+                if (delta !== 0) {
+                  changeQty(item.code, delta);
+                }
                 setQtyInput(String(parsed));
-                changeQty(item.code, parsed, "set");
               }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
                   const parsed = Math.max(0, Number(qtyInput) || 0);
+                  const delta = parsed - (Number(item.quantity) || 0);
+                  if (delta !== 0) {
+                    changeQty(item.code, delta);
+                  }
                   setQtyInput(String(parsed));
-                  changeQty(item.code, parsed, "set");
                 }
               }}
             />
-            <button className="btn btn-sm btn-light rounded-circle" onClick={() => changeQty(item.code, 1)}>+</button>
+
+            <button
+              className="btn btn-sm btn-light rounded-circle"
+              onClick={() => changeQty(item.code, 1)}
+            >
+              +
+            </button>
           </div>
 
           {/* GIÁ */}

@@ -9,7 +9,8 @@ import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { API_BASE_URL } from "../services/api";
 import { formatCurrency } from "../utils/formatters";
-
+import PaymentConfirmModal from "../components/notifications/PaymentConfirmModal";
+import { connectWS, subscribeOrder, onOrderNotify } from "../services/wsOrder";
 const createSalesTab = (id, labelPrefix, overrides = {}) => ({
   id,
   name: `${labelPrefix} ${id}`,
@@ -50,8 +51,8 @@ const mapDraftItemToCart = (item, idx = 0) => {
     discountMode === "%"
       ? Number(item.discount || 0)
       : price > 0
-      ? Math.min(100, Math.max(0, (discountValue / price) * 100))
-      : 0;
+        ? Math.min(100, Math.max(0, (discountValue / price) * 100))
+        : 0;
 
   const stockValue = Number(item.stock);
   return {
@@ -137,6 +138,11 @@ export default function SalesPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+
+  // ===== POPUP THANH TOÁN REALTIME =====
+  const [showPaymentPopup, setShowPaymentPopup] = useState(false);
+  const [paymentData, setPaymentData] = useState(null);
+
   useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true);
@@ -145,8 +151,8 @@ export default function SalesPage() {
         const res = await axios.get(`${API_BASE_URL}/inventory/products`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-  
-        // ? Chu?n hóa dúng v?i d? li?u th?c t? c?a b?n
+
+        // Chuản hoá dữ liệu
         const formatted = (res.data || []).map((p) => ({
           id: p.productId,
           code: p.barcode || `SP${String(p.productId).padStart(6, "0")}`,
@@ -162,7 +168,7 @@ export default function SalesPage() {
           updatedAt: p.lastUpdated || null,
           active: p.isActive ?? true,
         }));
-  
+
         setProductList(formatted);
       } catch (err) {
         console.error(err);
@@ -212,6 +218,7 @@ export default function SalesPage() {
       });
       setActiveTab(nextIndex);
       if (newOrderId) {
+        
         draftSnapshotRef.current[newOrderId] = serializeDraftState({
           orderId: newOrderId,
           customerId: null,
@@ -235,8 +242,8 @@ export default function SalesPage() {
       const list = Array.isArray(payload)
         ? payload
         : Array.isArray(payload?.content)
-        ? payload.content
-        : [];
+          ? payload.content
+          : [];
       if (list.length === 0) {
         await createDraftTab({ replace: true });
         return;
@@ -377,6 +384,37 @@ export default function SalesPage() {
   const paymentMethod = currentTab?.paymentMethod || "cash";
   const invoiceDiscount = Number(currentTab?.invoiceDiscount || 0);
 
+
+  // Kết nối WebSocket ngay khi mở SalePage
+  useEffect(() => {
+    connectWS();
+
+    // đăng ký 1 lần duy nhất
+    onOrderNotify((data) => {
+      console.log("🔥 WS PAYMENT EVENT:", data);
+
+      setPaymentData(data);
+
+
+
+      setShowPaymentPopup(true);
+      if (data.paymentStatus === "COMPLETE") {
+        removeTabByOrderId(data.orderId);
+        createDraftTab({ replace: false });
+        setShowPaymentPopup(false);
+      }
+    });
+  }, []);
+
+  // Subscribe theo orderId của tab đang mở
+  useEffect(() => {
+    if (!currentOrderId) return;
+
+    console.log("📡 Subscribing to order:", currentOrderId);
+    subscribeOrder(currentOrderId);
+  }, [currentOrderId]);
+
+
   useEffect(() => {
     if (!currentOrderId) return undefined;
     if (draftSyncRef.current) clearTimeout(draftSyncRef.current);
@@ -440,6 +478,7 @@ export default function SalesPage() {
         await axios.delete(`${API_BASE_URL}/order/draft/${tabToRemove.orderId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
+        
       } catch (err) {
         console.error("Failed to delete draft order", err);
       }
@@ -472,11 +511,11 @@ export default function SalesPage() {
     customer.trim() === ""
       ? []
       : customers.filter((c) => {
-          const keyword = customer.trim().toLowerCase();
-          const name = (c.fullName || "").toLowerCase();
-          const phone = c.phoneNumber || "";
-          return name.includes(keyword) || phone.includes(customer.trim());
-        });
+        const keyword = customer.trim().toLowerCase();
+        const name = (c.fullName || "").toLowerCase();
+        const phone = c.phoneNumber || "";
+        return name.includes(keyword) || phone.includes(customer.trim());
+      });
 
   const setCustomerInput = (value) => {
     setTabs((prev) =>
@@ -491,11 +530,11 @@ export default function SalesPage() {
       prev.map((tab) =>
         tab.id === activeTab
           ? {
-              ...tab,
-              selectedCustomer: c,
-              customerInput: c.fullName || "",
-              customerId: c.id || null,
-            }
+            ...tab,
+            selectedCustomer: c,
+            customerInput: c.fullName || "",
+            customerId: c.id || null,
+          }
           : tab
       )
     );
@@ -579,38 +618,38 @@ export default function SalesPage() {
         tab.id !== activeTab
           ? tab
           : {
-              ...tab,
-              items: (() => {
-                const existed = tab.items.find((it) => it.code === p.code);
-                if (existed) {
-                  return tab.items.map((it) =>
-                    it.code === p.code
-                      ? {
-                          ...it,
-                          quantity: it.quantity + 1,
-                          total: (it.quantity + 1) * it.price - (it.discountValue ?? 0),
-                        }
-                      : it
-                  );
-                }
-                return [
-                  ...tab.items,
-                  {
-                    code: p.code,
-                    name: p.name,
-                    price: p.price,
-                    stock: p.stock,
-                    quantity: 1,
-                    total: p.price,
-                    note: "",
-                    showNote: false,
-                    discount: 0,
-                    discountValue: 0,
-                    discountMode: "%",
-                  },
-                ];
-              })(),
-            }
+            ...tab,
+            items: (() => {
+              const existed = tab.items.find((it) => it.code === p.code);
+              if (existed) {
+                return tab.items.map((it) =>
+                  it.code === p.code
+                    ? {
+                      ...it,
+                      quantity: it.quantity + 1,
+                      total: (it.quantity + 1) * it.price - (it.discountValue ?? 0),
+                    }
+                    : it
+                );
+              }
+              return [
+                ...tab.items,
+                {
+                  code: p.code,
+                  name: p.name,
+                  price: p.price,
+                  stock: p.stock,
+                  quantity: 1,
+                  total: p.price,
+                  note: "",
+                  showNote: false,
+                  discount: 0,
+                  discountValue: 0,
+                  discountMode: "%",
+                },
+              ];
+            })(),
+          }
       )
     );
     setSearchQuery("");
@@ -634,23 +673,23 @@ export default function SalesPage() {
       prev.map((tab) =>
         tab.id === activeTab
           ? {
-              ...tab,
-              items: tab.items.map((x) =>
-                x.code === code
-                  ? {
-                      ...x,
-                      discount,
-                      discountValue,
-                      discountMode,
-                      total:
-                        x.price * x.quantity -
-                        (discountMode === "%"
-                          ? (x.price * x.quantity * discount) / 100
-                          : discountValue),
-                    }
-                  : x
-              ),
-            }
+            ...tab,
+            items: tab.items.map((x) =>
+              x.code === code
+                ? {
+                  ...x,
+                  discount,
+                  discountValue,
+                  discountMode,
+                  total:
+                    x.price * x.quantity -
+                    (discountMode === "%"
+                      ? (x.price * x.quantity * discount) / 100
+                      : discountValue),
+                }
+                : x
+            ),
+          }
           : tab
       )
     );
@@ -661,20 +700,20 @@ export default function SalesPage() {
       prev.map((tab) =>
         tab.id === activeTab
           ? {
-              ...tab,
-              items: tab.items.map((it) => {
-                if (it.code === code) {
-                  const newQty = Math.max(0, it.quantity + delta);
-                  const newTotal =
-                    newQty * it.price -
-                    (it.discountMode === "%"
-                      ? (newQty * it.price * it.discount) / 100
-                      : it.discountValue);
-                  return { ...it, quantity: newQty, total: newTotal };
-                }
-                return it;
-              }),
-            }
+            ...tab,
+            items: tab.items.map((it) => {
+              if (it.code === code) {
+                const newQty = Math.max(0, it.quantity + delta);
+                const newTotal =
+                  newQty * it.price -
+                  (it.discountMode === "%"
+                    ? (newQty * it.price * it.discount) / 100
+                    : it.discountValue);
+                return { ...it, quantity: newQty, total: newTotal };
+              }
+              return it;
+            }),
+          }
           : tab
       )
     );
@@ -695,11 +734,11 @@ export default function SalesPage() {
       prev.map((tab) =>
         tab.id === activeTab
           ? {
-              ...tab,
-              items: tab.items.map((it) =>
-                it.code === code ? { ...it, showNote: !it.showNote } : it
-              ),
-            }
+            ...tab,
+            items: tab.items.map((it) =>
+              it.code === code ? { ...it, showNote: !it.showNote } : it
+            ),
+          }
           : tab
       )
     );
@@ -710,11 +749,11 @@ export default function SalesPage() {
       prev.map((tab) =>
         tab.id === activeTab
           ? {
-              ...tab,
-              items: tab.items.map((it) =>
-                it.code === code ? { ...it, note: value } : it
-              ),
-            }
+            ...tab,
+            items: tab.items.map((it) =>
+              it.code === code ? { ...it, note: value } : it
+            ),
+          }
           : tab
       )
     );
@@ -728,110 +767,133 @@ export default function SalesPage() {
     );
   };
 
-  
+
   const handleAddTab = async () => {
     await createDraftTab();
   };
-  
+
   /* ====== THANH TOÁN ====== */
   const totalAmount = cartItems.reduce((s, it) => s + (it.total ?? 0), 0);
   const finalTotal = Math.max(totalAmount - invoiceDiscount, 0);
 
-  // G?i API luu don ? tr?ng thái PENDING
   const savePendingOrder = async () => {
-    if (cartItems.length === 0) {
-      alert(t("sales.cartEmpty"));
+    console.log("🟦 [PAY BUTTON] Bắt đầu thanh toán...");
+  
+    if (!currentOrderId) {
+      alert("Không có orderId!");
       return;
     }
-
+  
     try {
-      const payload = {
-        orderId: currentOrderId,
-        customerId: currentCustomerId,
-        paymentMethod: paymentMethod.toUpperCase(),
-        orderNote: currentOrderNote,
-        orderItemDTOs: cartItems.map((it) => ({
-          productName: it.name,
-          barcode: it.code,
-          quantity: Number(it.quantity || 0),
-          price: Number(it.price || 0),
-        })),
-        invoiceDiscount,
-      };
-
-      const res = await axios.put(`${API_BASE_URL}/order/pending`, payload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      const data = res?.data || {};
-      const total = data.totalPrice ?? finalTotal;
-      const oid = data.orderId || t("sales.orderCodeMissing");
-
-      const pendingMessage = t("sales.pendingSaved", { orderId: oid, total: formatCurrency(total) });
-      alert(pendingMessage);
-
-      // Reset gi? hàng sau khi luu
-      setTabs((prev) =>
-        prev.map((tab) =>
-          tab.id === activeTab
-            ? {
-                ...tab,
-                items: [],
-                orderNote: "",
-                customerInput: "",
-                selectedCustomer: null,
-                customerId: null,
-                invoiceDiscount: 0,
-              }
-            : tab
-        )
+      //  Gọi API chuyển trạng thái → PENDING
+      const res = await axios.post(
+        `${API_BASE_URL}/order/sale/${currentOrderId}/pay`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
       );
+      
+  
+      console.log(" BE trả về:", res.data);
+  
+      // Nếu không đủ điều kiện để thanh toán
+      // if (res.data.paymentStatus === "DRAFT") {
+      //   console.log(" ĐƠN HÀNG KHÔNG THỂ THANH TOÁN");
+      //   alert(res.data.message || "Không thể thanh toán");
+      //   return;
+
+      // }
+  
+      //  Hợp lệ → mở popup
+      console.log(" Đơn hàng đủ điều kiện thanh toán — mở popup");
+      setPaymentData(res.data);
+      setShowPaymentPopup(true);
+  
     } catch (err) {
-      console.error("Failed to save pending order:", err);
-      const msg = err?.response?.data?.message || t("sales.pendingSaveFailed");
-      alert(msg);
+      console.error(" Lỗi khi thanh toán:", err);
+      alert(err?.response?.data?.message || "Lỗi thanh toán");
     }
   };
+  
+  
+  
 
-  const handlePayment = () => {
-    if (cartItems.length === 0) {
-      alert(t("sales.cartEmpty"));
-      return;
-    }
 
-    const customerName = selectedCustomer?.fullName || customer || t("sales.walkInCustomer");
-    const paymentMessage = t("sales.paymentSuccess", { customer: customerName, total: formatCurrency(finalTotal) });
-    alert(paymentMessage);
 
-    setTabs((prev) =>
-      prev.map((tab) =>
-        tab.id === activeTab
-          ? {
-              ...tab,
-              items: [],
-              orderNote: "",
-              customerInput: "",
-              selectedCustomer: null,
-              customerId: null,
-              invoiceDiscount: 0,
-            }
-          : tab
-      )
-    );
-  };
-
-  /* ====== GIAO DI?N ====== */
+  /* ====== GIAO DIỆN ====== */
   const filteredProducts =
     searchQuery.trim() === "" || barcodeMode
       ? []
       : productList.filter(
-          (p) =>
-            p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            p.code.toLowerCase().includes(searchQuery.toLowerCase())
-        );
+        (p) =>
+          p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          p.code.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+
+      const removeTabByOrderId = (orderId) => {
+        setTabs((prevTabs) => {
+          const target = prevTabs.find((t) => t.orderId === orderId);
+          if (!target) return prevTabs;
+      
+          const filtered = prevTabs.filter((t) => t.orderId !== orderId);
+      
+          // Xóa snapshot
+          delete draftSnapshotRef.current[orderId];
+      
+          // Nếu không còn tab nào → tạo ngay 1 tab mới để tiếp tục bán hàng
+          if (filtered.length === 0) {
+            console.log("⚠ Không còn tab → tạo tab mới ngay!");
+      
+            // === TẠO ĐƠN TẠM MỚI NGAY LẬP TỨC ===
+            (async () => {
+              try {
+                const res = await axios.post(
+                  `${API_BASE_URL}/order/draft`,
+                  {},
+                  { headers: { Authorization: `Bearer ${token}` } }
+                );
+      
+                const newOrderId = res?.data?.orderId;
+      
+                const newTab = createSalesTab(1, tabPrefix, {
+                  orderId: newOrderId,
+                });
+      
+                draftSnapshotRef.current[newOrderId] = serializeDraftState({
+                  orderId: newOrderId,
+                  customerId: null,
+                  paymentMethod: "CASH",
+                  orderNote: "",
+                  items: [],
+                  invoiceDiscount: 0,
+                });
+      
+                setTabs([newTab]);
+                setActiveTab(1);
+      
+                console.log("➕ Đã tạo tab mới:", newOrderId);
+              } catch (err) {
+                console.error("❌ Lỗi tạo tab mới:", err);
+              }
+            })();
+      
+            return []; // tạm trả rỗng, state sẽ được cập nhật sau async
+          }
+      
+          // Nếu còn tab → re-index lại
+          const reordered = filtered.map((tab, idx) => ({
+            ...tab,
+            id: idx + 1,
+            name: `${tabPrefix} ${idx + 1}`,
+          }));
+      
+          // Active tab mới phải là tab đầu tiên còn lại
+          setActiveTab(1);
+      
+          return reordered;
+        });
+      };
+      
+  
 
   return (
     <div className="container-fluid bg-light p-0" style={{ height: "100vh", overflow: "hidden" }}>
@@ -850,7 +912,7 @@ export default function SalesPage() {
       />
 
       <div className="row gx-1 gy-1 m-0" style={{ height: "calc(100vh - 110px)" }}>
-        {/* === TRÁI: GI? HÀNG === */}
+        {/* === GIỎ HÀNG === */}
         <div className="col-lg-8 col-md-7 p-2 d-flex flex-column">
           <div className="flex-grow-1 overflow-auto position-relative">
             {loading ? (
@@ -917,7 +979,7 @@ export default function SalesPage() {
           </div>
         </div>
 
-        {/* === PH?I: KHÁCH HÀNG === */}
+        {/* === KHÁCH HÀNG === */}
         <div className="col-lg-4 col-md-5 p-2 d-flex flex-column">
           <CustomerPanel
             customer={customer}
@@ -948,6 +1010,53 @@ export default function SalesPage() {
         setNewCustomer={setNewCustomer}
         handleAddCustomer={handleAddCustomer}
         saving={savingCustomer}
+      />
+
+      <PaymentConfirmModal
+        show={showPaymentPopup}
+        data={paymentData}
+
+        // HUỶ THANH TOÁN (BANK/CASH đều dùng)
+        onCancel={async () => {
+          try {
+            const res = await axios.post(
+              `${API_BASE_URL}/order/sale/${paymentData.orderId}/cancel`,
+              {},
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+        
+            console.log(" Đã hủy thanh toán:", res.data);
+        
+          } catch (err) {
+            console.error(" Failed to cancel:", err);
+          }
+        
+          setShowPaymentPopup(false);
+        }}
+
+        //  XÁC NHẬN THANH TOÁN (CHỈ CASH)
+        onConfirm={async () => {
+          try {
+            const res = await axios.post(
+              `${API_BASE_URL}/order/sale/${paymentData.orderId}/confirm`,
+              {},
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+        
+            console.log("Đã xác nhận thanh toán:", res.data);
+        
+            // 🟢 XOÁ TAB
+            removeTabByOrderId(res.data.orderId);
+        
+
+        
+          } catch (err) {
+            console.error("Failed to confirm:", err);
+          }
+        
+          setShowPaymentPopup(false);
+        }}
+        
       />
     </div>
   );

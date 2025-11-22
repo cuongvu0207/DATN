@@ -111,7 +111,8 @@
       "invalidFile": "❌ File không hợp lệ! Vui lòng kiểm tra lại.",
       "note": "Lưu ý: Vui lòng sử dụng file mẫu để đảm bảo định dạng đúng.",
       "sheetTitle": "Tải lên từ google sheet",
-      "sheetPlaceholder": "Nhập đường link google sheet..."
+      "sheetPlaceholder": "Nhập đường link google sheet...",
+      "addProducts": "Thêm sản phẩm"
     },
     "title": "Hàng hóa",
     "group": "Nhóm hàng",
@@ -388,5 +389,13 @@
     "orders": "Đơn hàng",
     "customers": "Khách hàng",
     "products": "Sản phẩm"
+  },
+  "payment" :{
+    "amount": "Tổng số tiền",
+    "changeMoney": "Tiền thừa",
+    "enterReceived": "Tiền khách trả",
+    "cancel": "Huỷ",
+    "confirm": "Xác nhận",
+    "waitingBank": "Đang chờ chuyển khoản..."
   }
 }
