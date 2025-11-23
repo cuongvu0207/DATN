@@ -41,6 +41,7 @@ export default function CustomerPanel({
   orderNote = "",
 
   onPay,
+  onPrintReady,
 
 }) {
 
@@ -138,6 +139,33 @@ export default function CustomerPanel({
 
   const controlRadius = 18;
 
+  // ===== EXPOSE PRINT FUNCTION =====
+  useEffect(() => {
+    if (onPrintReady) {
+      onPrintReady(() => {
+        printInvoice({
+          t,
+          selectedCustomer,
+          customer,
+          cartItems,
+          totalAmount,
+          invoiceDiscount,
+          paymentMethod,
+          orderNote,
+        });
+      });
+    }
+  }, [
+    onPrintReady,
+    t,
+    selectedCustomer,
+    customer,
+    cartItems,
+    totalAmount,
+    invoiceDiscount,
+    paymentMethod,
+    orderNote,
+  ]);
 
 
   return (

@@ -105,22 +105,25 @@ export default function InvoiceListPage() {
 
         const raw = Array.isArray(res.data) ? res.data : [];
 
-        const mapped = raw.map((item) => {
-          const customer = getCustomerInfo(item.customerId);
+        const mapped = raw
+          .map((item) => {
+            const customer = getCustomerInfo(item.customerId);
+            const dateObj = new Date(item.createdAt);
+            const staff = staffList.find((s) => s.username === item.cashierId);
 
-          return {
-            id: item.orderId,
-            customer: customer.name,
-            phone: customer.phone,
-            total: Number(item.totalPrice || 0),
-            paymentMethod: item.paymentMethod,
-            status: item.status,
-            createdAt: new Date(item.createdAt).toLocaleString("vi-VN", {
-              hour12: false,
-            }),
-            seller: item.cashierId || "unknown",
-          };
-        });
+            return {
+              id: item.orderId,
+              customer: customer.name,
+              phone: customer.phone,
+              total: Number(item.totalPrice || 0),
+              paymentMethod: item.paymentMethod,
+              status: item.status,
+              createdAt: dateObj.toLocaleString("vi-VN", { hour12: false }),
+              createdAtRaw: dateObj.getTime(), // ⭐ DÙNG ĐỂ SORT
+              seller: staff?.fullName || item.cashierId || "unknown",
+            };
+          })
+          .sort((a, b) => b.createdAtRaw - a.createdAtRaw); // ⭐ MỚI NHẤT → CŨ NHẤT
 
         setInvoices(mapped);
       } catch (err) {
@@ -177,7 +180,6 @@ export default function InvoiceListPage() {
           onExport={() => exportInvoicesToExcel(filtered, t)}
         />
 
-        {/* BODY */}
         <div className="row g-3 mt-1">
 
           {/* FILTER PANEL */}

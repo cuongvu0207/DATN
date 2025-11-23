@@ -254,9 +254,8 @@ export default function HomePage() {
             ].map((x) => (
               <button
                 key={x.k}
-                className={`btn btn-${
-                  period === x.k ? theme : "outline-" + theme
-                }`}
+                className={`btn btn-${period === x.k ? theme : "outline-" + theme
+                  }`}
                 onClick={() => setPeriod(x.k)}
               >
                 {x.l}
@@ -333,9 +332,8 @@ export default function HomePage() {
                       const label =
                         period === "day"
                           ? `${dateObj.getHours()}:00`
-                          : `${
-                              dateObj.getDate()
-                            }/${dateObj.getMonth() + 1}`;
+                          : `${dateObj.getDate()
+                          }/${dateObj.getMonth() + 1}`;
                       return (
                         <div
                           key={i}
@@ -353,11 +351,19 @@ export default function HomePage() {
                             )} (${label})`}
                           />
                           <small
-                            className="text-muted d-block mt-1"
-                            style={{ fontSize: 10 }}
+                            className="text-muted"
+                            style={{
+                              fontSize: 10,
+                              marginTop: 4,
+                              display: "inline-block",
+                              width: "100%",
+                              textAlign: "center",
+                              whiteSpace: "nowrap"   // ⭐ KHÔNG CHO XUỐNG DÒNG
+                            }}
                           >
                             {label}
                           </small>
+
                         </div>
                       );
                     })}
@@ -483,7 +489,7 @@ export default function HomePage() {
                           <th>{t("products.name")}</th>
                           <th className="text-end">
                             {t("dashboard.revenue")}
-                            </th>
+                          </th>
                           <th className="text-end">SL</th>
                         </tr>
                       </thead>
@@ -617,4 +623,4 @@ export default function HomePage() {
     </MainLayout>
   );
 }
-          
+

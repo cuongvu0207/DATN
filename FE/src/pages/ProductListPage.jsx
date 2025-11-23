@@ -117,21 +117,47 @@ export default function ProductListPage() {
     setBulkProcessing(false);
   };
 
-  const handleBulkFileSelect = (file) => {
+  const handleBulkFileSelect = async (file) => {
     if (!file) return;
+  
     setBulkProcessing(true);
     setBulkStatus(null);
-
-    setTimeout(() => {
-      setBulkProcessing(false);
+  
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+  
+      const { data } = await axios.post(
+        `${API_BASE_URL}/inventory/import-product/upload-excel`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+  
       setBulkStatus({
         type: "success",
-        message:
-          t("products.bulkUpload.fileQueued", { name: file.name }) ||
-          `Đã nhận file ${file.name}`,
+        message: data.message || "Nhập hàng thành công!",
+        details: data.importDetails,
       });
-    }, 600);
+  
+      // 🔥 reload lại danh sách sản phẩm sau khi import
+      fetchProducts();
+    } catch (err) {
+      console.error("❌ Lỗi import:", err);
+  
+      setBulkStatus({
+        type: "error",
+        message: "Import thất bại!",
+      });
+    } finally {
+      setBulkProcessing(false);
+    }
   };
+  
 
   const handleSheetImport = (sheetUrl) => {
     if (!sheetUrl) return;
@@ -188,28 +214,52 @@ export default function ProductListPage() {
   /* ==============================
       🔹 SỬA SẢN PHẨM
      ============================== */
-  const handleEdit = async (updated) => {
-    try {
-      await axiosInstance.put(`/inventory/products/${updated.id}`, {
-        productId: updated.id,
-        productName: updated.name,
-        categoryId: updated.categoryId || null,
-        brandId: updated.brandId || null,
-        unit: updated.unit,
-        barcode: updated.barcode,
-        sellingPrice: updated.price,
-        quantityInStock: updated.stock,
-        costOfCapital: updated.cost,
-        isActive: updated.statusBoolean,
-      });
-      alert(t("products.updateSuccess"));
-      setEditingProduct(null);
-      fetchProducts();
-    } catch (err) {
-      console.error("❌ Lỗi cập nhật:", err);
-      alert(t("products.updateError"));
-    }
-  };
+     const handleEdit = async (updated) => {
+      try {
+        const formData = new FormData();
+    
+        // Các field text phải append vào FormData
+        formData.append("productId", updated.id);
+        formData.append("productName", updated.name);
+        formData.append("barcode", updated.barcode);
+        formData.append("unit", updated.unit || "");
+        formData.append("sellingPrice", updated.price || 0);
+        formData.append("costOfCapital", updated.cost || 0);
+        formData.append("quantityInStock", updated.stock || 0);
+        formData.append("isActive", updated.statusBoolean);
+    
+        formData.append("categoryId", updated.categoryId || "");
+        formData.append("brandId", updated.brandId || "");
+    
+        // 🔥 Nếu người dùng CHỌN ẢNH MỚI
+        if (updated.imageFile) {
+          formData.append("file", updated.imageFile); // quan trọng
+        }
+    
+        const token = localStorage.getItem("accessToken");
+    
+        await axios.put(
+          `${API_BASE_URL}/inventory/products/${updated.id}`,
+          formData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,         // yêu cầu bắt buộc!!!
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
+    
+        alert(t("products.updateSuccess"));
+        setEditingProduct(null);
+        fetchProducts();
+      } catch (err) {
+        console.error("❌ Lỗi cập nhật:", err);
+        alert(t("products.updateError"));
+      }
+    };
+    
+    
+    
 
   /* ==============================
       🔹 KÍCH HOẠT / VÔ HIỆU HOÁ

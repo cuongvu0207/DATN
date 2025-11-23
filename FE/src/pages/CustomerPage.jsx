@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useTranslation } from "react-i18next";
 import { API_BASE_URL } from "../services/api";
@@ -309,10 +309,10 @@ export default function CustomerPage() {
                         onChange={handleChange}
                       >
                         <option value="male">
-                          {t("customer.genderMale") || "Nam"}
+                          {t("customer.genderMale") }
                         </option>
                         <option value="female">
-                          {t("customer.genderFemale") || "Nữ"}
+                          {t("customer.genderFemale") }
                         </option>
                       </select>
                     </div>

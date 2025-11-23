@@ -64,7 +64,7 @@ export default function StaffPage() {
           Authorization: `Bearer ${token}`,
         },
       });
-      if (!res.ok) throw new Error("Kh?ng th? t?i danh s?ch nh?n vi?n.");
+      if (!res.ok) throw new Error("Không thể tải danh sách nhân viên");
       const data = await res.json();
       const formatted = (data || []).map((s, i) => ({
         id: s.userID || i,
@@ -72,7 +72,7 @@ export default function StaffPage() {
         fullName: s.fullName || "",
         email: s.email || "",
         phoneNumber: s.phoneNumber || "",
-        gender: String(s.gender) === "1" ? "Nam" : "N?",
+        gender: String(s.gender) === "1" ? t("staff.male") : t("staff.female"),
         address: s.address || "",
         dateOfBirth: formatters.date.toDisplay(s.dateOfBirth),
         role: s.role || "ROLE_USER",
@@ -223,7 +223,7 @@ export default function StaffPage() {
                 <th>{t("staff.dateOfBirth")}</th>
                 <th>{t("staff.address")}</th>
                 <th>{t("staff.role")}</th>
-                <th className="text-center">{t("staff.actions")}</th>
+                <th ></th>
               </tr>
             </thead>
 
@@ -273,7 +273,7 @@ export default function StaffPage() {
                         onClick={() => handleDelete(s.id)}
                       >
                         <i className="bi bi-trash me-1"></i>
-                        {t("actions.delete")}
+                        {t("staff.delete")}
                       </button>
                     </td>
                   </tr>
@@ -341,8 +341,8 @@ export default function StaffPage() {
                         value={form.gender}
                         onChange={(e) => setForm({ ...form, gender: e.target.value })}
                       >
-                        <option value="Nam">{t("account.male")}</option>
-                        <option value="N?">{t("account.female")}</option>
+                        <option value="male">{t("account.male")}</option>
+                        <option value="female">{t("account.female")}</option>
                       </select>
                     </div>
 

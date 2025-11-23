@@ -55,6 +55,22 @@
     "rows": "hàng",
     "show": "Hiển thị"
   },
+  "staff": {
+    "title": "Danh sách Nhân viên",
+    "searchPlaceholder": "Tìm kiếm nhân viên...",
+    "username": "Tên đăng nhập",
+    "fullName": "Họ và tên",
+    "email": "Email",
+    "phoneNumber": "Số điện thoại",
+    "gender": "Giới tính",
+    "male": "Nam",
+    "female": "Nữ",
+    "address": "Địa chỉ",
+    "dateOfBirth": "Ngày sinh",
+    "role": "Vai trò",
+    "delete" : "Xoá",
+    "addButton": "Thêm nhân viên"
+  },
   "menu": {
     "overview": "Tổng quan",
     "products": "Hàng hoá",
@@ -380,6 +396,7 @@
     "cancelled": "Đã huỷ"
   },
   "dashboard": {
+    "title": "Tổng quan",
     "revenue": "Doanh thu",
     "cost": "Chi phí",
     "profit": "Lợi nhuận",

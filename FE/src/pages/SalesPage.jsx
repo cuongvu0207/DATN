@@ -10,7 +10,9 @@ import axios from "axios";
 import { API_BASE_URL } from "../services/api";
 import { formatCurrency } from "../utils/formatters";
 import PaymentConfirmModal from "../components/notifications/PaymentConfirmModal";
-import { connectWS, subscribeOrder, onOrderNotify } from "../services/wsOrder";
+import { connectWS, subscribeOrder, onOrderNotify, unsubscribeOrder } from "../services/wsOrder";
+
+
 const createSalesTab = (id, labelPrefix, overrides = {}) => ({
   id,
   name: `${labelPrefix} ${id}`,
@@ -97,6 +99,7 @@ const serializeDraftState = ({
       price: Number(item.price || 0),
     })),
   });
+
 const normalizePaymentMethod = (value) => {
   const val = String(value || "").toLowerCase();
   if (val === "bank" || val === "wallet") return val;
@@ -130,19 +133,47 @@ const mapDraftCustomer = (draft) => {
 export default function SalesPage() {
   const { theme } = useTheme();
   const { t } = useTranslation();
+  const printRef = useRef(null);
+
+  const [payLoading, setPayLoading] = useState(false);
+
   const tabPrefix = t("sales.tabPrefix", { defaultValue: "Order" });
   const token = localStorage.getItem("accessToken");
 
-  /* ====== S?N PH?M T? DATABASE ====== */
+  /* ====== SẢN PHẨM TỪ DATABASE ====== */
   const [productList, setProductList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
 
   // ===== POPUP THANH TOÁN REALTIME =====
   const [showPaymentPopup, setShowPaymentPopup] = useState(false);
   const [paymentData, setPaymentData] = useState(null);
 
+  /* ====== STATE HOÁ ĐƠN ====== */
+  const [tabs, setTabs] = useState([]);
+  const [activeTab, setActiveTab] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [barcodeMode, setBarcodeMode] = useState(false);
+
+  /* ====== KHÁCH HÀNG ====== */
+  const [customers, setCustomers] = useState([]);
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [newCustomer, setNewCustomer] = useState(() => getEmptyCustomerForm());
+  const [savingCustomer, setSavingCustomer] = useState(false);
+
+  const draftSyncRef = useRef(null);
+  const draftSnapshotRef = useRef({});
+  const lastDraftFetchRef = useRef(0);
+
+  // refs để tránh closure WS bị stale
+  const currentOrderIdRef = useRef(null);
+  const tabsRef = useRef(tabs);
+
+  useEffect(() => {
+    tabsRef.current = tabs;
+  }, [tabs]);
+
+  /* ================== LOAD PRODUCTS ================== */
   useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true);
@@ -152,7 +183,6 @@ export default function SalesPage() {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        // Chuản hoá dữ liệu
         const formatted = (res.data || []).map((p) => ({
           id: p.productId,
           code: p.barcode || `SP${String(p.productId).padStart(6, "0")}`,
@@ -178,23 +208,9 @@ export default function SalesPage() {
       }
     };
     fetchProducts();
-  }, [token]);
+  }, [token, t]);
 
-  /* ====== STATE HOÁ ÐON ====== */
-  const [tabs, setTabs] = useState(() => [createSalesTab(1, tabPrefix)]);
-  const [activeTab, setActiveTab] = useState(1);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [barcodeMode, setBarcodeMode] = useState(false);
-
-  /* ====== KHÁCH HÀNG ====== */
-  const [customers, setCustomers] = useState([]);
-  const [showCustomerModal, setShowCustomerModal] = useState(false);
-  const [newCustomer, setNewCustomer] = useState(() => getEmptyCustomerForm());
-  const [savingCustomer, setSavingCustomer] = useState(false);
-  const draftSyncRef = useRef(null);
-  const draftSnapshotRef = useRef({});
-  const lastDraftFetchRef = useRef(0);
-
+  /* ================== DRAFT TAB ================== */
   const createDraftTab = useCallback(async ({ replace = false } = {}) => {
     let newOrderId = null;
     try {
@@ -205,7 +221,10 @@ export default function SalesPage() {
       );
       newOrderId = res?.data?.orderId || null;
     } catch (err) {
-      console.error("Failed to create draft order", err);
+      console.error("Failed to fetch draft orders", err);
+      setTabs([]);       // ❗ không tự tạo tab nữa
+      await createDraftTab({ replace: true }); // ❗ chỉ tạo draft từ BE
+      setActiveTab(1);
     }
     setTabs((prev) => {
       const base = replace ? [] : prev;
@@ -216,9 +235,8 @@ export default function SalesPage() {
         paymentMethod: "cash",
         invoiceDiscount: 0,
       });
-      setActiveTab(nextIndex);
+
       if (newOrderId) {
-        
         draftSnapshotRef.current[newOrderId] = serializeDraftState({
           orderId: newOrderId,
           customerId: null,
@@ -228,8 +246,11 @@ export default function SalesPage() {
           invoiceDiscount: 0,
         });
       }
+
       return [...base, newTab];
     });
+
+    setActiveTab((prev) => (replace ? 1 : prev + 1));
   }, [tabPrefix, token]);
 
   const loadDraftTabs = useCallback(async () => {
@@ -244,14 +265,17 @@ export default function SalesPage() {
         : Array.isArray(payload?.content)
           ? payload.content
           : [];
+
       if (list.length === 0) {
         await createDraftTab({ replace: true });
         return;
       }
+
       const mapped = list.map((draft, idx) => {
         const selectedCustomer = mapDraftCustomer(draft);
         const customerId = selectedCustomer?.id || draft.customerId || null;
         const normalizedMethod = normalizePaymentMethod(draft.paymentMethod);
+
         return createSalesTab(idx + 1, tabPrefix, {
           orderId: draft.orderId || null,
           orderNote: draft.orderNote || "",
@@ -265,7 +289,10 @@ export default function SalesPage() {
           invoiceDiscount: Number(draft.invoiceDiscount || 0),
         });
       });
+
       setTabs(mapped);
+      setActiveTab(1);
+
       draftSnapshotRef.current = list.reduce((acc, draft) => {
         if (!draft.orderId) return acc;
         const selectedCustomer = mapDraftCustomer(draft);
@@ -279,17 +306,14 @@ export default function SalesPage() {
         });
         return acc;
       }, {});
-      setActiveTab(1);
     } catch (err) {
       console.error("Failed to fetch draft orders", err);
-      setTabs((prev) => {
-        if (prev.length > 0) return prev;
-        return [createSalesTab(1, tabPrefix)];
-      });
+      setTabs((prev) => (prev.length > 0 ? prev : [createSalesTab(1, tabPrefix)]));
       setActiveTab(1);
     }
   }, [tabPrefix, token, createDraftTab]);
 
+  /* ================== CUSTOMERS ================== */
   const fetchCustomers = useCallback(async () => {
     try {
       const res = await axios.get(`${API_BASE_URL}/customer`, {
@@ -315,16 +339,6 @@ export default function SalesPage() {
     fetchCustomers();
   }, [fetchCustomers]);
 
-  const handleCloseCustomerModal = () => {
-    setShowCustomerModal(false);
-    setNewCustomer(getEmptyCustomerForm());
-  };
-
-  const handleOpenCustomerModal = () => {
-    setNewCustomer(getEmptyCustomerForm());
-    setShowCustomerModal(true);
-  };
-
   useEffect(() => {
     loadDraftTabs();
   }, [loadDraftTabs]);
@@ -335,6 +349,7 @@ export default function SalesPage() {
       let changed = false;
       const updated = prev.map((tab) => {
         if (!tab.customerId) return tab;
+
         if (
           tab.selectedCustomer &&
           tab.selectedCustomer.id === tab.customerId &&
@@ -342,8 +357,10 @@ export default function SalesPage() {
         ) {
           return tab;
         }
+
         const found = customers.find((c) => c.id === tab.customerId);
         if (!found) return tab;
+
         changed = true;
         return {
           ...tab,
@@ -353,18 +370,15 @@ export default function SalesPage() {
       });
       return changed ? updated : prev;
     });
-  }, [customers, tabs]);
+  }, [customers]);
 
   useEffect(() => {
     const shouldReload = () => Date.now() - lastDraftFetchRef.current > 1000;
-    const handleFocus = () => {
-      if (shouldReload()) loadDraftTabs();
-    };
+    const handleFocus = () => { if (shouldReload()) loadDraftTabs(); };
     const handleVisibility = () => {
-      if (document.visibilityState === "visible" && shouldReload()) {
-        loadDraftTabs();
-      }
+      if (document.visibilityState === "visible" && shouldReload()) loadDraftTabs();
     };
+
     window.addEventListener("focus", handleFocus);
     document.addEventListener("visibilitychange", handleVisibility);
     return () => {
@@ -373,7 +387,7 @@ export default function SalesPage() {
     };
   }, [loadDraftTabs]);
 
-  /* ====== THÔNG TIN TAB HI?N T?I ====== */
+  /* ================== CURRENT TAB ================== */
   const currentTab = tabs.find((t) => t.id === activeTab);
   const cartItems = currentTab?.items || [];
   const customer = currentTab?.customerInput || "";
@@ -385,38 +399,72 @@ export default function SalesPage() {
   const invoiceDiscount = Number(currentTab?.invoiceDiscount || 0);
 
 
-  // Kết nối WebSocket ngay khi mở SalePage
+  // update ref cho WS filter
+  useEffect(() => {
+    currentOrderIdRef.current = currentOrderId;
+  }, [currentOrderId]);
+
+  // log orderId khi chọn tab
+  useEffect(() => {
+    if (currentTab?.orderId) {
+      console.log("🟢 Active OrderId:", currentTab.orderId);
+    } else {
+      console.log("🟡 Tab chưa có orderId");
+    }
+  }, [activeTab, currentTab?.orderId]);
+
+  /* ================== WS LISTENER (RUN ONCE) ================== */
   useEffect(() => {
     connectWS();
 
-    // đăng ký 1 lần duy nhất
-    onOrderNotify((data) => {
-      console.log("🔥 WS PAYMENT EVENT:", data);
+    const unsubscribe = onOrderNotify((data) => {
+      const activeOrderId = currentOrderIdRef.current;
 
+      // 1️⃣ Phải có orderId hợp lệ
+      if (!data.orderId) return;
+
+      // 2️⃣ Đơn phải còn tồn tại trong tabs hiện tại
+      const existsInTabs = tabsRef.current.some((t) => t.orderId === data.orderId);
+      if (!existsInTabs) return;
+
+      // 3️⃣ Đúng orderId đang active mới xử lý
+      if (data.orderId !== activeOrderId) return;
+
+      console.log("🔥 PAYMENT WS EVENT:", data);
+
+      setPayLoading(false);
       setPaymentData(data);
 
+      if (data.paymentStatus === "PENDING") {
+        setShowPaymentPopup(true);
+        return;
+      }
 
-
-      setShowPaymentPopup(true);
-      if (data.paymentStatus === "COMPLETE") {
-        removeTabByOrderId(data.orderId);
-        createDraftTab({ replace: false });
+      if (data.paymentStatus === "COMPLETED") {
+        console.log("🎉 PAYMENT COMPLETE:", data.orderId);
+        alert("Thanh toán hoàn tất!");
+        // 🖨 AUTO PRINT
+        // if (printRef.current) {
+        //   printRef.current();
+        // }
         setShowPaymentPopup(false);
+
+        // ❗ Bạn có thể gọi nút in hóa đơn tại đây nếu muốn
+        // if (printRef.current) printRef.current();
+
+        unsubscribeOrder(data.orderId);
+        handleAfterPaymentComplete(data.orderId);
       }
     });
+
+    return () => unsubscribe();
   }, []);
 
-  // Subscribe theo orderId của tab đang mở
-  useEffect(() => {
-    if (!currentOrderId) return;
 
-    console.log("📡 Subscribing to order:", currentOrderId);
-    subscribeOrder(currentOrderId);
-  }, [currentOrderId]);
-
-
+  /* ================== DRAFT AUTO SYNC ================== */
   useEffect(() => {
     if (!currentOrderId) return undefined;
+
     if (draftSyncRef.current) clearTimeout(draftSyncRef.current);
     draftSyncRef.current = setTimeout(() => {
       const draftPayload = {
@@ -427,6 +475,7 @@ export default function SalesPage() {
         orderItemDTOs: cartItems.map((item) => mapCartItemToDraftDTO(item)),
         invoiceDiscount,
       };
+
       const serialized = serializeDraftState({
         orderId: draftPayload.orderId,
         customerId: draftPayload.customerId,
@@ -435,16 +484,15 @@ export default function SalesPage() {
         items: draftPayload.orderItemDTOs,
         invoiceDiscount: draftPayload.invoiceDiscount,
       });
-      if (draftSnapshotRef.current[currentOrderId] === serialized) {
-        return;
-      }
-      axios
-        .put(`${API_BASE_URL}/order/draft`, draftPayload, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        })
+
+      if (draftSnapshotRef.current[currentOrderId] === serialized) return;
+
+      axios.put(`${API_BASE_URL}/order/draft`, draftPayload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      })
         .then(() => {
           draftSnapshotRef.current[currentOrderId] = serialized;
         })
@@ -452,10 +500,9 @@ export default function SalesPage() {
           console.error("Failed to sync draft order", err);
         });
     }, 600);
+
     return () => {
-      if (draftSyncRef.current) {
-        clearTimeout(draftSyncRef.current);
-      }
+      if (draftSyncRef.current) clearTimeout(draftSyncRef.current);
     };
   }, [
     cartItems,
@@ -467,46 +514,98 @@ export default function SalesPage() {
     token,
   ]);
 
+  /* ================== TAB REMOVE ================== */
   const handleRemoveTab = async (id) => {
-    if (tabs.length <= 1) {
+    if (tabsRef.current.length <= 1) {
       alert(t("sales.needOneTab"));
       return;
     }
-    const tabToRemove = tabs.find((tab) => tab.id === id);
+
+    const tabToRemove = tabsRef.current.find((tab) => tab.id === id);
+
     if (tabToRemove?.orderId) {
       try {
         await axios.delete(`${API_BASE_URL}/order/draft/${tabToRemove.orderId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        
       } catch (err) {
         console.error("Failed to delete draft order", err);
       }
       delete draftSnapshotRef.current[tabToRemove.orderId];
     }
 
-    const normalized = tabs
-      .filter((tab) => tab.id !== id)
-      .map((tab, idx) => ({
-        ...tab,
-        id: idx + 1,
-        name: `${tabPrefix} ${idx + 1}`,
-      }));
+    setTabs((prev) => {
+      const normalized = prev
+        .filter((tab) => tab.id !== id)
+        .map((tab, idx) => ({
+          ...tab,
+          id: idx + 1,
+          name: `${tabPrefix} ${idx + 1}`,
+        }));
 
-    if (normalized.length === 0) {
-      const fallback = createSalesTab(1, tabPrefix);
-      setTabs([fallback]);
-      setActiveTab(1);
-    } else {
-      setTabs(normalized);
-      if (activeTab === id) {
-        setActiveTab(Math.max(1, id - 1));
-      } else if (activeTab > id) {
-        setActiveTab(activeTab - 1);
+      return normalized.length > 0 ? normalized : [createSalesTab(1, tabPrefix)];
+    });
+
+    setActiveTab((prevActive) => {
+      if (prevActive === id) return Math.max(1, id - 1);
+      if (prevActive > id) return prevActive - 1;
+      return prevActive;
+    });
+  };
+
+  // Xóa tab theo orderId (SỬA thành sync, KHÔNG tạo draft bên trong setTabs nữa)
+  const removeTabByOrderIdSync = (orderId) => {
+    const prevTabs = tabsRef.current;
+    const filtered = prevTabs.filter((t) => t.orderId !== orderId);
+
+    delete draftSnapshotRef.current[orderId];
+
+    const reordered = filtered.map((tab, idx) => ({
+      ...tab,
+      id: idx + 1,
+      name: `${tabPrefix} ${idx + 1}`,
+    }));
+
+    setTabs(reordered);
+    setActiveTab(1);
+
+    return reordered.length === 0; // true nếu là tab cuối
+  };
+
+  // xử lý sau khi payment completed
+  const handleAfterPaymentComplete = async (completedOrderId) => {
+    // 1️⃣ Xoá tab tương ứng trong FE
+    removeTabByOrderIdSync(completedOrderId);
+
+    try {
+      // 2️⃣ Gọi BE xem còn draft nào không
+      const res = await axios.get(`${API_BASE_URL}/order/drafts/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const list = Array.isArray(res.data)
+        ? res.data
+        : Array.isArray(res.data?.content)
+          ? res.data.content
+          : [];
+
+      if (list.length === 0) {
+        // 3️⃣ Không còn draft nào → tạo đơn mới
+        await createDraftTab({ replace: true });
+        console.log("🟢 No draft left → created a new draft");
+      } else {
+        // 4️⃣ Còn draft → load lại toàn bộ FE từ BE
+        await loadDraftTabs();
+        console.log("🟡 Still has drafts → reload tabs");
       }
+
+    } catch (err) {
+      console.error("❌ Error checking remaining drafts:", err);
     }
   };
 
+
+  /* ================== CUSTOMER UI LOGIC ================== */
   const filteredCustomers =
     customer.trim() === ""
       ? []
@@ -564,6 +663,16 @@ export default function SalesPage() {
     );
   };
 
+  const handleCloseCustomerModal = () => {
+    setShowCustomerModal(false);
+    setNewCustomer(getEmptyCustomerForm());
+  };
+
+  const handleOpenCustomerModal = () => {
+    setNewCustomer(getEmptyCustomerForm());
+    setShowCustomerModal(true);
+  };
+
   const handleAddCustomer = async () => {
     if (!newCustomer.fullName.trim()) {
       alert(t("sales.alertEmptyCustomer"));
@@ -612,6 +721,7 @@ export default function SalesPage() {
     }
   };
 
+  /* ================== CART LOGIC ================== */
   const handleAddProduct = (p) => {
     setTabs((prev) =>
       prev.map((tab) =>
@@ -655,7 +765,6 @@ export default function SalesPage() {
     setSearchQuery("");
   };
 
-  /* ====== QUÉT BARCODE ====== */
   const handleScanProduct = (code) => {
     const found = productList.find(
       (p) => p.code?.toLowerCase() === code.trim().toLowerCase()
@@ -667,7 +776,6 @@ export default function SalesPage() {
     }
   };
 
-  /* ====== GI?M GIÁ, S? LU?NG, XÓA, GHI CHÚ ====== */
   const setDiscount = (code, { discount, discountValue, discountMode }) => {
     setTabs((prev) =>
       prev.map((tab) =>
@@ -767,59 +875,83 @@ export default function SalesPage() {
     );
   };
 
-
   const handleAddTab = async () => {
     await createDraftTab();
   };
 
-  /* ====== THANH TOÁN ====== */
+  /* ================== PAY ================== */
   const totalAmount = cartItems.reduce((s, it) => s + (it.total ?? 0), 0);
   const finalTotal = Math.max(totalAmount - invoiceDiscount, 0);
 
   const savePendingOrder = async () => {
-    console.log("🟦 [PAY BUTTON] Bắt đầu thanh toán...");
-  
-    if (!currentOrderId) {
-      alert("Không có orderId!");
-      return;
-    }
-  
+    if (!currentOrderId) return;
+
+
+    setPayLoading(true);
+
     try {
-      //  Gọi API chuyển trạng thái → PENDING
+      // 1️⃣ SYNC DRAFT NGAY LẬP TỨC
+      const draftPayload = {
+        orderId: currentOrderId,
+        customerId: currentCustomerId,
+        paymentMethod: paymentMethod.toUpperCase(),
+        orderNote: currentOrderNote,
+        orderItemDTOs: cartItems.map((item) => mapCartItemToDraftDTO(item)),
+        invoiceDiscount,
+      };
+
+      console.log("🔄 Sync draft before payment...", draftPayload);
+
+      await axios.put(`${API_BASE_URL}/order/draft`, draftPayload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      // 🔥 CẬP NHẬT SNAPSHOT NGAY (để auto-sync không sync lại)
+      draftSnapshotRef.current[currentOrderId] = serializeDraftState({
+        orderId: currentOrderId,
+        customerId: currentCustomerId,
+        paymentMethod: paymentMethod.toUpperCase(),
+        orderNote: currentOrderNote,
+        items: draftPayload.orderItemDTOs,
+        invoiceDiscount,
+      });
+
+      // 2️⃣ SUBSCRIBE ĐƠN NÀY ĐỂ LẮNG NGHE WS
+      subscribeOrder(currentOrderId, async () => {
+        console.log("📡 WS READY → NOW SEND PAY");
+
+        const res = await axios.post(
+          `${API_BASE_URL}/order/sale/${currentOrderId}/pay`,
+          { paymentMethod: paymentMethod.toUpperCase() },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        console.log("💰 PAY SENT:", res.data);
+      });
+      // 3️⃣ GỌI THANH TOÁN
       const res = await axios.post(
         `${API_BASE_URL}/order/sale/${currentOrderId}/pay`,
-        {},
+        { paymentMethod: paymentMethod.toUpperCase() },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      
-  
-      console.log(" BE trả về:", res.data);
-  
-      // Nếu không đủ điều kiện để thanh toán
-      // if (res.data.paymentStatus === "DRAFT") {
-      //   console.log(" ĐƠN HÀNG KHÔNG THỂ THANH TOÁN");
-      //   alert(res.data.message || "Không thể thanh toán");
-      //   return;
 
-      // }
-  
-      //  Hợp lệ → mở popup
-      console.log(" Đơn hàng đủ điều kiện thanh toán — mở popup");
-      setPaymentData(res.data);
-      setShowPaymentPopup(true);
-  
-    } catch (err) {
-      console.error(" Lỗi khi thanh toán:", err);
-      alert(err?.response?.data?.message || "Lỗi thanh toán");
+      console.log("💰 PAY REQUEST SENT:", res.data);
+
+    } catch (e) {
+      console.error("PAY ERROR:", e);
+      alert("Có lỗi khi thanh toán, thử lại!");
+    } finally {
+      setPayLoading(false);
     }
   };
-  
-  
-  
 
 
 
-  /* ====== GIAO DIỆN ====== */
+
+  /* ================== FILTER PRODUCTS ================== */
   const filteredProducts =
     searchQuery.trim() === "" || barcodeMode
       ? []
@@ -829,72 +961,9 @@ export default function SalesPage() {
           p.code.toLowerCase().includes(searchQuery.toLowerCase())
       );
 
-      const removeTabByOrderId = (orderId) => {
-        setTabs((prevTabs) => {
-          const target = prevTabs.find((t) => t.orderId === orderId);
-          if (!target) return prevTabs;
-      
-          const filtered = prevTabs.filter((t) => t.orderId !== orderId);
-      
-          // Xóa snapshot
-          delete draftSnapshotRef.current[orderId];
-      
-          // Nếu không còn tab nào → tạo ngay 1 tab mới để tiếp tục bán hàng
-          if (filtered.length === 0) {
-            console.log("⚠ Không còn tab → tạo tab mới ngay!");
-      
-            // === TẠO ĐƠN TẠM MỚI NGAY LẬP TỨC ===
-            (async () => {
-              try {
-                const res = await axios.post(
-                  `${API_BASE_URL}/order/draft`,
-                  {},
-                  { headers: { Authorization: `Bearer ${token}` } }
-                );
-      
-                const newOrderId = res?.data?.orderId;
-      
-                const newTab = createSalesTab(1, tabPrefix, {
-                  orderId: newOrderId,
-                });
-      
-                draftSnapshotRef.current[newOrderId] = serializeDraftState({
-                  orderId: newOrderId,
-                  customerId: null,
-                  paymentMethod: "CASH",
-                  orderNote: "",
-                  items: [],
-                  invoiceDiscount: 0,
-                });
-      
-                setTabs([newTab]);
-                setActiveTab(1);
-      
-                console.log("➕ Đã tạo tab mới:", newOrderId);
-              } catch (err) {
-                console.error("❌ Lỗi tạo tab mới:", err);
-              }
-            })();
-      
-            return []; // tạm trả rỗng, state sẽ được cập nhật sau async
-          }
-      
-          // Nếu còn tab → re-index lại
-          const reordered = filtered.map((tab, idx) => ({
-            ...tab,
-            id: idx + 1,
-            name: `${tabPrefix} ${idx + 1}`,
-          }));
-      
-          // Active tab mới phải là tab đầu tiên còn lại
-          setActiveTab(1);
-      
-          return reordered;
-        });
-      };
-      
-  
 
+
+  /* ================== RENDER ================== */
   return (
     <div className="container-fluid bg-light p-0" style={{ height: "100vh", overflow: "hidden" }}>
       <Header />
@@ -964,7 +1033,7 @@ export default function SalesPage() {
             )}
           </div>
 
-          {/* Ghi chú hóa don */}
+          {/* Ghi chú hóa đơn */}
           <div className={`rounded-4 border border-${theme} border-opacity-25 bg-white p-3 mt-2`}>
             <div className="d-flex align-items-center">
               <i className="bi bi-pencil text-muted me-2" />
@@ -998,6 +1067,7 @@ export default function SalesPage() {
             cartItems={cartItems}
             orderNote={currentTab?.orderNote || ""}
             onPay={savePendingOrder}
+            onPrintReady={(fn) => (printRef.current = fn)}
           />
         </div>
       </div>
@@ -1016,7 +1086,6 @@ export default function SalesPage() {
         show={showPaymentPopup}
         data={paymentData}
 
-        // HUỶ THANH TOÁN (BANK/CASH đều dùng)
         onCancel={async () => {
           try {
             const res = await axios.post(
@@ -1024,40 +1093,49 @@ export default function SalesPage() {
               {},
               { headers: { Authorization: `Bearer ${token}` } }
             );
-        
-            console.log(" Đã hủy thanh toán:", res.data);
-        
+            console.log("Đã hủy thanh toán:", res.data);
           } catch (err) {
-            console.error(" Failed to cancel:", err);
+            console.error("Failed to cancel:", err);
           }
-        
           setShowPaymentPopup(false);
         }}
 
-        //  XÁC NHẬN THANH TOÁN (CHỈ CASH)
         onConfirm={async () => {
+          console.log("CLIENT SEND CONFIRM:", paymentData.orderId);
+
+
+
           try {
-            const res = await axios.post(
+            await axios.post(
               `${API_BASE_URL}/order/sale/${paymentData.orderId}/confirm`,
               {},
               { headers: { Authorization: `Bearer ${token}` } }
             );
-        
-            console.log("Đã xác nhận thanh toán:", res.data);
-        
-            // 🟢 XOÁ TAB
-            removeTabByOrderId(res.data.orderId);
-        
 
-        
-          } catch (err) {
-            console.error("Failed to confirm:", err);
+          } catch (e) {
+            console.error("CONFIRM ERROR:", e);
           }
-        
-          setShowPaymentPopup(false);
         }}
-        
       />
+
+      {payLoading && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            background: "rgba(0,0,0,0.25)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 2000,
+          }}
+        >
+          <div className="spinner-border text-primary" style={{ width: "4rem", height: "4rem" }} />
+        </div>
+      )}
     </div>
   );
 }
