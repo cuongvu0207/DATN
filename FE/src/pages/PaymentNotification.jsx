@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import SockJS from "sockjs-client/dist/sockjs";
 import { Stomp } from "@stomp/stompjs";
+import { API_BASE_URL_SOCKET } from "../services/api";
 
 export default function PaymentNotification() {
   const [messages, setMessages] = useState([]);
@@ -9,7 +10,7 @@ export default function PaymentNotification() {
   useEffect(() => {
     console.log("⏳ Đang kết nối tới ws-notify...");
 
-    const socket = new SockJS("http://192.168.1.208:8888/ws-notify");   // FIX!
+    const socket = new SockJS(API_BASE_URL_SOCKET);   
     const stompClient = Stomp.over(socket);
     stompClient.debug = () => {};
 

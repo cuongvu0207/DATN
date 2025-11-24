@@ -29,10 +29,7 @@ export default function CartItem({
     if (typeof hex !== "string" || !hex.startsWith("#")) return hex;
     let value = hex.slice(1);
     if (value.length === 3) {
-      value = value
-        .split("")
-        .map((c) => c + c)
-        .join("");
+      value = value.split("").map((c) => c + c).join("");
     }
     const intVal = Number.parseInt(value, 16);
     if (Number.isNaN(intVal)) return hex;
@@ -42,18 +39,22 @@ export default function CartItem({
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   };
 
-  const themeBorderColor = themeColorMap[theme] || "var(--bs-primary)";
+  const themeBorderColor = themeColorMap[theme] || "#0d6efd";
   const themeBorderSoftColor = hexToRgba(themeBorderColor, 0.35);
 
-  const [editingDiscount, setEditingDiscount] = useState(false);
-  const [tempValue, setTempValue] = useState(item.discountValue ?? 0);
-  const [mode, setMode] = useState(item.discountMode || "%");
+  // ====== GIẢM GIÁ CHỈ DÙNG % ======
   const popupRef = useRef(null);
+  const [editingDiscount, setEditingDiscount] = useState(false);
+
+  // tempValue KHÔNG dùng item.discountValue nữa, chỉ dùng discount %
+  const [tempValue, setTempValue] = useState(item.discount ?? 0);
+
   const [qtyInput, setQtyInput] = useState(String(item.quantity ?? 0));
   const noteRef = useRef(null);
 
   const total = item.price * item.quantity;
 
+  /* Sync qty input */
   useEffect(() => {
     setQtyInput(String(item.quantity ?? 0));
   }, [item.quantity]);
@@ -67,25 +68,17 @@ export default function CartItem({
 
   // ===== Áp dụng giảm giá =====
   const applyDiscount = () => {
-    let pct = 0;
-    let money = 0;
-
-    if (mode === "%") {
-      pct = Math.min(Math.max(Number(tempValue) || 0, 0), 100);
-      money = Math.round((total * pct) / 100);
-    } else {
-      money = Math.min(Math.max(Number(tempValue) || 0, 0), total);
-      pct = total > 0 ? (money / total) * 100 : 0;
-    }
+    const pct = Math.min(Math.max(Number(tempValue) || 0, 0), 100);
+    const money = Math.round((total * pct) / 100);
 
     setDiscount(item.code, {
       discount: pct,
       discountValue: money,
-      discountMode: mode,
+      discountMode: "%",
     });
   };
 
-  // ===== Click ngoài -> áp dụng + đóng popup =====
+  // ===== Click ngoài => đóng popup =====
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (popupRef.current && !popupRef.current.contains(e.target)) {
@@ -95,28 +88,24 @@ export default function CartItem({
     };
     if (editingDiscount) document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [editingDiscount, tempValue, mode]);
+  }, [editingDiscount, tempValue]);
 
-  // ===== Mở popup =====
+  // ===== Mở popup sửa giảm giá =====
   const openDiscountEditor = () => {
-    const m = item.discountMode || "%";
-    setMode(m);
-    setTempValue(m === "%" ? item.discount ?? 0 : item.discountValue ?? 0);
+    setTempValue(item.discount ?? 0); // luôn lấy % từ item
     setEditingDiscount(true);
   };
 
-  // ===== Tính toán hiển thị =====
-  const discountAmount =
-    item.discountMode === "%"
-      ? Math.round((total * (item.discount ?? 0)) / 100)
-      : item.discountValue ?? 0;
-
+  // ===== Tính giảm giá theo % hiện hành =====
+  const currentPct = item.discount ?? 0;
+  const discountAmount = Math.round((total * currentPct) / 100);
   const totalAfterDiscount = Math.max(total - discountAmount, 0);
 
   return (
     <div className={`bg-white rounded-4 border border-${theme} border-opacity-25 mb-2 p-2`}>
       <div className="d-flex align-items-center justify-content-between" style={{ minHeight: 50 }}>
-        {/* BÊN TRÁI */}
+        
+        {/* LEFT */}
         <div className="flex-grow-1">
           <div className="d-flex align-items-center" style={{ gap: 10 }}>
             <span className="text-secondary small">{index + 1}</span>
@@ -126,6 +115,7 @@ export default function CartItem({
             <strong>{item.code}</strong>
             <span>{item.name}</span>
           </div>
+
           {item.note && !item.showNote && (
             <div className="text-secondary small fst-italic mt-1 ps-5">
               {item.note}
@@ -133,14 +123,12 @@ export default function CartItem({
           )}
         </div>
 
-        {/* BÊN PHẢI */}
+        {/* RIGHT */}
         <div className="d-flex align-items-center justify-content-end" style={{ gap: 25 }}>
-          {/* SỐ LƯỢNG */}
+          
+          {/* QTY */}
           <div className="d-flex align-items-center" style={{ gap: 8 }}>
-            <button
-              className="btn btn-sm btn-light rounded-circle"
-              onClick={() => changeQty(item.code, -1)}
-            >
+            <button className="btn btn-sm btn-light rounded-circle" onClick={() => changeQty(item.code, -1)}>
               −
             </button>
 
@@ -159,47 +147,29 @@ export default function CartItem({
                 borderBottomColor: themeBorderColor,
                 paddingBottom: 2,
               }}
-              onFocus={(e) => e.target.select()}
               onChange={(e) => {
                 const val = e.target.value;
-                if (val === "" || /^\d+$/.test(val)) {
-                  setQtyInput(val);
-                }
+                if (val === "" || /^\d+$/.test(val)) setQtyInput(val);
               }}
               onBlur={() => {
                 const parsed = Math.max(0, Number(qtyInput) || 0);
-                // 🔥 CHỖ QUAN TRỌNG: gửi delta = newQty - oldQty
                 const delta = parsed - (Number(item.quantity) || 0);
-                if (delta !== 0) {
-                  changeQty(item.code, delta);
-                }
+                if (delta !== 0) changeQty(item.code, delta);
                 setQtyInput(String(parsed));
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  const parsed = Math.max(0, Number(qtyInput) || 0);
-                  const delta = parsed - (Number(item.quantity) || 0);
-                  if (delta !== 0) {
-                    changeQty(item.code, delta);
-                  }
-                  setQtyInput(String(parsed));
-                }
               }}
             />
 
-            <button
-              className="btn btn-sm btn-light rounded-circle"
-              onClick={() => changeQty(item.code, 1)}
-            >
+            <button className="btn btn-sm btn-light rounded-circle" onClick={() => changeQty(item.code, 1)}>
               +
             </button>
           </div>
 
-          {/* GIÁ */}
-          <span style={{ width: 80, textAlign: "right" }}>{formatCurrency(item.price)}</span>
+          {/* PRICE */}
+          <span style={{ width: 80, textAlign: "right" }}>
+            {formatCurrency(item.price)}
+          </span>
 
-          {/* GIẢM GIÁ */}
+          {/* DISCOUNT */}
           <div
             style={{ width: 120, textAlign: "right", position: "relative", cursor: "pointer" }}
             onClick={openDiscountEditor}
@@ -208,74 +178,36 @@ export default function CartItem({
               <div
                 ref={popupRef}
                 className="position-absolute bg-white shadow-sm p-3 rounded-3 border"
-                style={{
-                  right: 0,
-                  top: "-120%",
-                  zIndex: 100,
-                  width: 210,
-                }}
+                style={{ right: 0, top: "-120%", zIndex: 100, width: 210 }}
                 onClick={(e) => e.stopPropagation()}
               >
-                {/* === Tiêu đề i18n === */}
                 <div className="text-center fw-semibold mb-2">
-                  {t("sales.discount") || "Giảm giá"}
+                  {t("sales.discount")}
                 </div>
 
-                {/* === Nhập giá trị + đơn vị === */}
                 <div className="d-flex align-items-center bg-light rounded-3 px-2 py-1">
                   <input
                     type="number"
                     min="0"
-                    max={mode === "%" ? "100" : undefined}
-                    className="form-control form-control-sm border-0 border-bottom border-2 bg-transparent text-end shadow-none flex-grow-1"
-                    style={{
-                      outline: "none",
-                      borderRadius: 0,
-                      borderBottomColor: themeBorderColor,
-                      paddingBottom: 2,
-                      WebkitAppearance: "none",
-                      MozAppearance: "textfield",
-                    }}
+                    max="100"
+                    className="form-control form-control-sm text-end border-0 border-bottom border-2 bg-transparent shadow-none flex-grow-1"
                     value={tempValue}
                     onChange={(e) => setTempValue(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        applyDiscount();
-                        setEditingDiscount(false);
-                      }
-                      if (e.key === "Escape") setEditingDiscount(false);
-                    }}
-                    autoFocus
                   />
-                  <select
-                    className="form-select form-select-sm border-0 bg-transparent shadow-none text-secondary"
-                    style={{
-                      width: 70,
-                      flexShrink: 0,
-                      appearance: "none",
-                    }}
-                    value={mode}
-                    onChange={(e) => setMode(e.target.value)}
-                  >
-                    <option value="%">%</option>
-                    <option value="VND">VNĐ</option>
-                  </select>
+                  <span className="ms-2 text-secondary">%</span>
                 </div>
               </div>
             ) : (
               <span
                 className="fw-semibold text-secondary d-inline-block border-bottom border-2"
-                style={{
-                  borderBottomColor: themeBorderColor,
-                  paddingBottom: 2,
-                }}
+                style={{ borderBottomColor: themeBorderColor, paddingBottom: 2 }}
               >
-                {discountAmount > 0 ? `−${formatCurrency(discountAmount)}` : "−0"}
+                - {currentPct > 0 ? `${currentPct}%` : "0%"}
               </span>
             )}
           </div>
 
-          {/* THÀNH TIỀN */}
+          {/* TOTAL */}
           <strong style={{ width: 100, textAlign: "right" }}>
             {formatCurrency(totalAfterDiscount)}
           </strong>
@@ -283,7 +215,6 @@ export default function CartItem({
           <button
             className={`btn btn-sm border-0 text-${theme}`}
             onClick={() => toggleNote(item.code)}
-            title={t("sales.note") || "Ghi chú"}
           >
             <i className="bi bi-pencil-square" />
           </button>
@@ -296,7 +227,7 @@ export default function CartItem({
             ref={noteRef}
             rows={2}
             className="form-control form-control-sm"
-            placeholder={t("sales.note") || "Ghi chú sản phẩm..."}
+            placeholder={t("sales.note")}
             value={item.note}
             onChange={(e) => setNote(item.code, e.target.value)}
             style={{

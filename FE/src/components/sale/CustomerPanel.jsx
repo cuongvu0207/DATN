@@ -207,18 +207,22 @@ export default function CustomerPanel({
                 style={{ borderRadius: controlRadius }}
 
               >
-
                 <span
-
-                  className={`d-inline-flex align-items-center justify-content-center rounded-circle bg-${theme} bg-opacity-10 text-${theme}`}
-
-                  style={{ width: 32, height: 32 }}
-
+                  className={`d-flex align-items-center justify-content-center bg-${theme} bg-opacity-10 text-${theme}`}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    minWidth: 32,
+                    minHeight: 32,
+                    borderRadius: 12,
+                    flexShrink: 0,     // ⭐ chống méo
+                    flexGrow: 0,       // ⭐ chống dãn
+                    display: "flex",   // ⭐ bảo đảm đúng box
+                  }}
                 >
-
-                  <i className="bi bi-person" />
-
+                  <i className="bi bi-person" style={{ fontSize: 16 }} />
                 </span>
+
 
                 <input
 

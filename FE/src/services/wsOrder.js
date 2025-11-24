@@ -1,41 +1,42 @@
 // wsOrder.js
 import SockJS from "sockjs-client/dist/sockjs";
 import { Stomp } from "@stomp/stompjs";
+import { API_BASE_URL_SOCKET } from "../services/api";
 
 let stompClient = null;
 const connectCallbacks = [];
 const listeners = new Set();
-const subscriptions = new Map(); // ✅ orderId -> subscription
+const subscriptions = new Map(); // orderId -> subscription instance
 
 export const connectWS = () => {
   if (stompClient && stompClient.connected) return;
 
-  // const socket = new SockJS("http://localhost:8888/ws-notify");
-  const socket = new SockJS("http://192.168.1.208:8888/ws-notify");
+  const socket = new SockJS(API_BASE_URL_SOCKET);
   stompClient = Stomp.over(socket);
   stompClient.debug = () => {};
 
   stompClient.connect({}, () => {
     console.log("🌐 WS CONNECTED");
+
     connectCallbacks.forEach((fn) => fn());
     connectCallbacks.length = 0;
   });
 };
 
-// lắng nghe WS chung
+// Listener chung cho tất cả order
 export const onOrderNotify = (callback) => {
   listeners.add(callback);
   return () => listeners.delete(callback);
 };
 
-// subscribe theo orderId
-export const subscribeOrder = (orderId, onSubscribed) => {
+// === SUBSCRIBE KHÔNG CALLBACK ===
+export const subscribeOrder = (orderId) => {
   if (!orderId) return;
 
   const doSubscribe = () => {
+    // ĐÃ SUB RỒI → BỎ QUA
     if (subscriptions.has(orderId)) {
       console.log("⚠️ Already subscribed:", orderId);
-      if (onSubscribed) onSubscribed();   // 🔥 Vẫn gọi callback nếu đã sub trước đó
       return;
     }
 
@@ -47,18 +48,14 @@ export const subscribeOrder = (orderId, onSubscribed) => {
         const data = JSON.parse(msg.body);
         console.log("📥 WS MESSAGE:", data);
         listeners.forEach((fn) => fn(data));
-      } catch (e) {
-        console.error("❌ WS parse error", e);
+      } catch (err) {
+        console.error("❌ WS parse error", err);
       }
     });
 
     subscriptions.set(orderId, sub);
-
-    // 🔥 Callback để báo FE biết SUBSCRIBE XONG
-    if (onSubscribed) onSubscribed();
   };
 
-  // Nếu WS chưa connected thì chờ
   if (!stompClient?.connected) {
     connectCallbacks.push(() => doSubscribe());
   } else {
@@ -66,7 +63,7 @@ export const subscribeOrder = (orderId, onSubscribed) => {
   }
 };
 
-// ✅ unsubscribe khi không cần nữa
+// Hủy sub
 export const unsubscribeOrder = (orderId) => {
   const sub = subscriptions.get(orderId);
   if (sub) {

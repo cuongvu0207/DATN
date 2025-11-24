@@ -57,7 +57,8 @@
     "close": "Đóng",
     "confirm": "Xác nhận",
     "rows": "hàng",
-    "show": "Hiển thị"
+    "show": "Hiển thị",
+    "saving": "Đang lưu"
   },
   "staff": {
     "title": "Danh sách Nhân viên",
@@ -210,7 +211,8 @@
     "inactive": "Không hoạt động",
     "createdDate": "Ngày tạo",
     "activate": "Kích hoạt",
-    "deactivate": "Vô hiệu hoá"
+    "deactivate": "Vô hiệu hoá",
+    "chooseImage" : "Tải ảnh sản phẩm"
   },
   "actions": {
     "apply": "Áp dụng",
@@ -228,6 +230,9 @@
   },
   "sales": {
     "addInvoice": "Thêm hóa đơn",
+    "tooltipAddInvoice" : "Thêm đơn hàng",
+    "tooltipBarcode" : "Nhập nhanh Barcode",
+    "noInvoice" : "Chưa có hoá đơn",
     "searchProduct": "Tìm sản phẩm ",
     "scanBarcode": "Quét mã sản phẩm...",
     "barcodeMode": "Chế độ mã vạch",
@@ -280,6 +285,8 @@
   },
   "import": {
     "title": "Nhập hàng",
+    "addNew" :"Thêm phiếu nhập",
+    "exportFile" :"Xuất file",
     "importList": "Danh sách phiếu nhập",
     "createImport": "Tạo phiếu nhập",
     "importCode": "Mã phiếu nhập",
@@ -352,6 +359,17 @@
       "quantity": "10",
       "price": "15000",
       "discount": "0"
+      
+    },
+    "confirm" :{
+      "title": "Xác nhận nhập",
+      "message1" : "Nhà cung cấp",
+      "noSupplier" :"Chưa có nhà cung cấp",
+      "itemCount" : "Đã nhập",
+      "items" : "Mặt hàng",
+      "totalAmount": "Tổng tiền",
+      "confirm":"Xác nhận",
+      "cancel":"Huỷ"
     }
   },
   "importProducts": {

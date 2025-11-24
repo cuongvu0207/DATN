@@ -211,8 +211,9 @@ export default function SalesPage() {
   }, [token, t]);
 
   /* ================== DRAFT TAB ================== */
-  const createDraftTab = useCallback(async ({ replace = false } = {}) => {
+  const createDraftTab = useCallback(async () => {
     let newOrderId = null;
+
     try {
       const res = await axios.post(
         `${API_BASE_URL}/order/draft`,
@@ -221,14 +222,14 @@ export default function SalesPage() {
       );
       newOrderId = res?.data?.orderId || null;
     } catch (err) {
-      console.error("Failed to fetch draft orders", err);
-      setTabs([]);       // ❗ không tự tạo tab nữa
-      await createDraftTab({ replace: true }); // ❗ chỉ tạo draft từ BE
-      setActiveTab(1);
+      console.error("Failed to create draft", err);
+      return;
     }
-    setTabs((prev) => {
-      const base = replace ? [] : prev;
-      const nextIndex = base.length + 1;
+
+    // 🔥 Tạo tab mới dựa trên số lượng tab hiện tại
+    setTabs(prev => {
+      const nextIndex = prev.length + 1;
+
       const newTab = createSalesTab(nextIndex, tabPrefix, {
         orderId: newOrderId,
         customerId: null,
@@ -236,22 +237,19 @@ export default function SalesPage() {
         invoiceDiscount: 0,
       });
 
-      if (newOrderId) {
-        draftSnapshotRef.current[newOrderId] = serializeDraftState({
-          orderId: newOrderId,
-          customerId: null,
-          paymentMethod: "CASH",
-          orderNote: "",
-          items: [],
-          invoiceDiscount: 0,
-        });
-      }
-
-      return [...base, newTab];
+      return [...prev, newTab];
     });
 
-    setActiveTab((prev) => (replace ? 1 : prev + 1));
+    // 🔥 Chọn tab mới NGAY LẬP TỨC
+    setActiveTab(tabsRef.current.length + 1);
+
+    // 🔥 Ghi nhớ orderId cho WS
+    currentOrderIdRef.current = newOrderId;
+
+    console.log("🟢 Tạo tab mới & chọn ngay:", newOrderId);
   }, [tabPrefix, token]);
+
+
 
   const loadDraftTabs = useCallback(async () => {
     lastDraftFetchRef.current = Date.now();
@@ -274,8 +272,14 @@ export default function SalesPage() {
       }
 
       const mapped = list.map((draft, idx) => {
-        const selectedCustomer = mapDraftCustomer(draft);
-        const customerId = selectedCustomer?.id || draft.customerId || null;
+        // ❌ Nếu là default_customer_id → không gắn selectedCustomer
+        let selectedCustomer = mapDraftCustomer(draft);
+        let customerId = selectedCustomer?.id || draft.customerId || null;
+
+        if (customerId === "default_customer_id") {
+          selectedCustomer = null;
+          customerId = null;
+        }
         const normalizedMethod = normalizePaymentMethod(draft.paymentMethod);
 
         return createSalesTab(idx + 1, tabPrefix, {
@@ -400,6 +404,15 @@ export default function SalesPage() {
   const currentCustomerId = selectedCustomer?.id ?? currentTab?.customerId ?? null;
   const paymentMethod = currentTab?.paymentMethod || "cash";
   const invoiceDiscount = Number(currentTab?.invoiceDiscount || 0);
+  useEffect(() => {
+    if (!currentOrderId) return;
+    console.log("🔔 SUBSCRIBE ACTIVE ORDER:", currentOrderId);
+    subscribeOrder(currentOrderId);
+    return () => {
+      console.log("❌ UNSUBSCRIBE ORDER:", currentOrderId);
+      unsubscribeOrder(currentOrderId);
+    };
+  }, [currentOrderId]);
 
 
   // update ref cho WS filter
@@ -437,15 +450,16 @@ export default function SalesPage() {
     const unsubscribe = onOrderNotify((data) => {
       const activeOrderId = currentOrderIdRef.current;
 
-      // 1️⃣ Phải có orderId hợp lệ
       if (!data.orderId) return;
 
-      // 2️⃣ Đơn phải còn tồn tại trong tabs hiện tại
       const existsInTabs = tabsRef.current.some((t) => t.orderId === data.orderId);
       if (!existsInTabs) return;
 
-      // 3️⃣ Đúng orderId đang active mới xử lý
       if (data.orderId !== activeOrderId) return;
+
+      // 🛑 CHẶN TOÀN BỘ MESSAGE KHÔNG PHẢI THANH TOÁN
+      if (!data.paymentStatus) return;
+      if (!["PENDING", "COMPLETED", "FAILED"].includes(data.paymentStatus)) return;
 
       console.log("🔥 PAYMENT WS EVENT:", data);
 
@@ -460,15 +474,7 @@ export default function SalesPage() {
       if (data.paymentStatus === "COMPLETED") {
         console.log("🎉 PAYMENT COMPLETE:", data.orderId);
         alert("Thanh toán hoàn tất!");
-        // 🖨 AUTO PRINT
-        // if (printRef.current) {
-        //   printRef.current();
-        // }
         setShowPaymentPopup(false);
-
-        // ❗ Bạn có thể gọi nút in hóa đơn tại đây nếu muốn
-        // if (printRef.current) printRef.current();
-
         unsubscribeOrder(data.orderId);
         handleAfterPaymentComplete(data.orderId);
       }
@@ -533,10 +539,10 @@ export default function SalesPage() {
 
   /* ================== TAB REMOVE ================== */
   const handleRemoveTab = async (id) => {
-    if (tabsRef.current.length <= 1) {
-      alert(t("sales.needOneTab"));
-      return;
-    }
+    // if (tabsRef.current.length <= 1) {
+    //   alert(t("sales.needOneTab"));
+    //   return;
+    // }
 
     const tabToRemove = tabsRef.current.find((tab) => tab.id === id);
 
@@ -560,7 +566,7 @@ export default function SalesPage() {
           name: `${tabPrefix} ${idx + 1}`,
         }));
 
-      return normalized.length > 0 ? normalized : [createSalesTab(1, tabPrefix)];
+      return normalized;
     });
 
     setActiveTab((prevActive) => {
@@ -904,6 +910,10 @@ export default function SalesPage() {
 
   const savePendingOrder = async () => {
     if (!currentOrderId) return;
+    if (!cartItems || cartItems.length === 0) {
+      alert("Đơn hàng của bạn đang trống!");
+      return;
+    }
 
 
     setPayLoading(true);
@@ -996,14 +1006,13 @@ export default function SalesPage() {
             style={{
               overflowY: "auto",
               overflowX: "hidden",
-              maxHeight: "calc(100vh - 240px)", // bạn có thể tăng/giảm nếu muốn
             }}
           >
 
             {loading ? (
               <div className="text-center text-muted mt-5">
                 <div className="spinner-border text-primary" />
-                <p>{t("sales.loadingProducts", { defaultValue: "Loading products..." })}</p>
+                {/* <p>{t("sales.loadingProducts", { defaultValue: "Loading products..." })}</p> */}
               </div>
             ) : error ? (
               <div className="text-danger text-center mt-5">{error}</div>
@@ -1029,7 +1038,7 @@ export default function SalesPage() {
 
                 {cartItems.length === 0 ? (
                   <div className="text-center text-muted mt-5">
-                    {t("sales.noItems", { defaultValue: "No items in the cart" })}
+                    {/* {t("sales.noItems", { defaultValue: "No items in the cart" })} */}
                   </div>
                 ) : (
                   cartItems.map((it, idx) => (
@@ -1118,8 +1127,6 @@ export default function SalesPage() {
 
         onConfirm={async () => {
           console.log("CLIENT SEND CONFIRM:", paymentData.orderId);
-
-
 
           try {
             await axios.post(

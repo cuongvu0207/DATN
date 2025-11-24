@@ -54,7 +54,8 @@
     "search": "Search...",
     "noData": "No data to display",
     "show": "Show",
-    "rows": "rows"
+    "rows": "rows",
+    "saving" : "Saving"
   },
   "menu": {
     "overview": "Overview",

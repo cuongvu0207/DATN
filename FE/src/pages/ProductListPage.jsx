@@ -119,14 +119,14 @@ export default function ProductListPage() {
 
   const handleBulkFileSelect = async (file) => {
     if (!file) return;
-  
+
     setBulkProcessing(true);
     setBulkStatus(null);
-  
+
     try {
       const formData = new FormData();
       formData.append("file", file);
-  
+
       const { data } = await axios.post(
         `${API_BASE_URL}/inventory/import-product/upload-excel`,
         formData,
@@ -137,18 +137,18 @@ export default function ProductListPage() {
           },
         }
       );
-  
+
       setBulkStatus({
         type: "success",
         message: data.message || "Nhập hàng thành công!",
         details: data.importDetails,
       });
-  
+
       // 🔥 reload lại danh sách sản phẩm sau khi import
       fetchProducts();
     } catch (err) {
       console.error("❌ Lỗi import:", err);
-  
+
       setBulkStatus({
         type: "error",
         message: "Import thất bại!",
@@ -157,7 +157,7 @@ export default function ProductListPage() {
       setBulkProcessing(false);
     }
   };
-  
+
 
   const handleSheetImport = (sheetUrl) => {
     if (!sheetUrl) return;
@@ -187,7 +187,6 @@ export default function ProductListPage() {
       formData.append("costOfCapital", newProduct.cost || 0);
       formData.append("quantityInStock", newProduct.stock);
       formData.append("isActive", true);
-
       formData.append("categoryId", newProduct.categoryId || 1);
       formData.append("brandId", newProduct.brandId || 1);
 
@@ -214,72 +213,90 @@ export default function ProductListPage() {
   /* ==============================
       🔹 SỬA SẢN PHẨM
      ============================== */
-     const handleEdit = async (updated) => {
-      try {
-        const formData = new FormData();
-    
-        // Các field text phải append vào FormData
-        formData.append("productId", updated.id);
-        formData.append("productName", updated.name);
-        formData.append("barcode", updated.barcode);
-        formData.append("unit", updated.unit || "");
-        formData.append("sellingPrice", updated.price || 0);
-        formData.append("costOfCapital", updated.cost || 0);
-        formData.append("quantityInStock", updated.stock || 0);
-        formData.append("isActive", updated.statusBoolean);
-    
-        formData.append("categoryId", updated.categoryId || "");
-        formData.append("brandId", updated.brandId || "");
-    
-        // 🔥 Nếu người dùng CHỌN ẢNH MỚI
-        if (updated.imageFile) {
-          formData.append("file", updated.imageFile); // quan trọng
-        }
-    
-        const token = localStorage.getItem("accessToken");
-    
-        await axios.put(
-          `${API_BASE_URL}/inventory/products/${updated.id}`,
-          formData,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,         
-              "Content-Type": "multipart/form-data",
-            },
-          }
-        );
-    
-        alert(t("products.updateSuccess"));
-        setEditingProduct(null);
-        fetchProducts();
-      } catch (err) {
-        console.error("❌ Lỗi cập nhật:", err);
-        alert(t("products.updateError"));
+  const handleEdit = async (updated) => {
+    try {
+      const formData = new FormData();
+
+      // Các field text phải append vào FormData
+
+      formData.append("productName", updated.name);
+      formData.append("barcode", updated.barcode);
+      formData.append("unit", updated.unit || "");
+      formData.append("sellingPrice", updated.price || 0);
+      formData.append("costOfCapital", updated.cost || 0);
+      formData.append("quantityInStock", updated.stock || 0);
+      formData.append("isActive", updated.statusBoolean);
+      formData.append("categoryId", updated.categoryId || "");
+      formData.append("brandId", updated.brandId || "");
+
+      // 🔥 Nếu người dùng CHỌN ẢNH MỚI
+      if (updated.imageFile) {
+        formData.append("file", updated.imageFile);
       }
-    };
-    
-    
-    
+
+      const token = localStorage.getItem("accessToken");
+
+      await axios.put(
+        `${API_BASE_URL}/inventory/products/${updated.id}`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+
+
+
+      alert(t("products.updateSuccess"));
+      setEditingProduct(null);
+      fetchProducts();
+    } catch (err) {
+      console.error("❌ Lỗi cập nhật:", err);
+      alert(t("products.updateError"));
+    }
+  };
+
+
+
 
   /* ==============================
       🔹 KÍCH HOẠT / VÔ HIỆU HOÁ
      ============================== */
      const handleToggleActive = async (product) => {
       try {
-        await axiosInstance.put(`/inventory/products/${product.id}`, {
-          productId: product.id,
-          productName: product.name,
-          categoryId: product.categoryId || null,
-          brandId: product.brandId || null,
-          unit: product.unit,
-          barcode: product.barcode,
-          sellingPrice: product.price,
-          quantityInStock: product.stock,
-          costOfCapital: product.cost,
+        const formData = new FormData();
     
-          // 🔥 Toggle trạng thái
-          isActive: !product.statusBoolean,
-        });
+        // --- Append các field text ---
+        formData.append("productName", product.name);
+        formData.append("barcode", product.barcode);
+        formData.append("unit", product.unit || "");
+        formData.append("sellingPrice", product.price || 0);
+        formData.append("costOfCapital", product.cost || 0);
+        formData.append("quantityInStock", product.stock || 0);
+    
+        // 🔥 Toggle trạng thái
+        formData.append("isActive", !product.statusBoolean);
+    
+        formData.append("categoryId", product.categoryId || "");
+        formData.append("brandId", product.brandId || "");
+    
+        // ❌ Không đổi ảnh nên KHÔNG append file
+    
+        const token = localStorage.getItem("accessToken");
+    
+        await axios.put(
+          `${API_BASE_URL}/inventory/products/${product.id}`,
+          formData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
     
         alert(
           !product.statusBoolean
@@ -294,6 +311,7 @@ export default function ProductListPage() {
       }
     };
     
+
 
   /* ==============================
       🔹 LỌC + TÌM KIẾM
@@ -323,8 +341,8 @@ export default function ProductListPage() {
       filters.stock === "all"
         ? true
         : filters.stock === "in"
-        ? p.stock > 0
-        : p.stock === 0;
+          ? p.stock > 0
+          : p.stock === 0;
 
     return (
       matchesQuery &&
@@ -363,15 +381,15 @@ export default function ProductListPage() {
           <h2>${t("products.barcodeTitle")}</h2>
           <div class="grid">
             ${selectedList
-              .map(
-                (p, i) => `
+        .map(
+          (p, i) => `
                   <div class="item">
                     <svg id="barcode-${i}"></svg>
                     <p>${p.name}</p>
                     <small>${p.barcode || p.id}</small>
                   </div>`
-              )
-              .join("")}
+        )
+        .join("")}
           </div>
           <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
           <script>

@@ -81,8 +81,8 @@ export default function ProductTable({
                 <th>{t("products.category")}</th>
                 <th>{t("products.brand")}</th>
                 <th>{t("products.unit")}</th>
-                <th>{t("products.sellingPrice")}</th>
                 <th>{t("products.costOfCapital")}</th>
+                <th>{t("products.sellingPrice")}</th>
                 <th>{t("products.stock")}</th>
                 <th>{t("products.status")}</th>
                 {/* <th>{t("products.createdDate")}</th> */}
@@ -142,11 +142,11 @@ export default function ProductTable({
                       {/* Đơn vị */}
                       <td>{p.unit || "-"}</td>
 
-                      {/* Giá bán */}
-                      <td>{formatCurrency(p.price)}</td>
-
                       {/* Giá vốn */}
                       <td>{formatCurrency(p.cost)}</td>
+
+                      {/* Giá bán */}
+                      <td>{formatCurrency(p.price)}</td>
 
                       {/* Tồn kho */}
                       <td>{p.stock}</td>

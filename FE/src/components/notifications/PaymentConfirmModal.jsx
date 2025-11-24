@@ -13,7 +13,7 @@ export default function PaymentConfirmModal({ show, data, onCancel, onConfirm })
     safeData.paymentMethod === "BANK" || safeData.paymentMethod === "TRANSFER";
   const isCash = safeData.paymentMethod === "CASH";
 
-  const isImageURL = /^https?:\/\//i.test(safeData.qrcodeUrl || "");
+  const isImageURL = /^https?:\/\//i.test(safeData.qrCodeUrl || "");
 
   const [receivedMoney, setReceivedMoney] = useState("");
   const [changeMoney, setChangeMoney] = useState(0);
@@ -47,7 +47,7 @@ export default function PaymentConfirmModal({ show, data, onCancel, onConfirm })
     show,
     isCash,
     safeData.totalPrice,
-    safeData.qrcodeUrl,        // ⭐ thêm dòng này
+    safeData.qrCodeUrl,        // ⭐ thêm dòng này
     safeData.paymentMethod     // ⭐ thêm dòng này
   ]);
 
@@ -102,7 +102,7 @@ export default function PaymentConfirmModal({ show, data, onCancel, onConfirm })
             {isImageURL && (
               <div className="text-center mt-3">
                 <img
-                  src={safeData.qrcodeUrl}
+                  src={safeData.qrCodeUrl}
                   alt="QR Payment"
                   style={{
                     maxWidth: "260px",

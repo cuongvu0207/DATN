@@ -96,53 +96,39 @@ export default function SetPricePage() {
   /* ================================
       API UPDATE GIÁ & GIẢM GIÁ
   ================================= */
-  const attemptPut = (segment, payload) =>
-    axios.put(`${API_BASE_URL}/inventory/products/${segment}`, payload, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
   const updatePrice = async (product, newPrice) => {
-    const payload = { sellingPrice: Number(newPrice) };
-
-    const candidates = [
-      product.id ? `${product.id}/price` : null,
-      product.barcode ? `${product.barcode}/price` : null,
-    ].filter(Boolean);
-
-    let lastError;
-    for (const path of candidates) {
-      try {
-        await attemptPut(path, payload);
-        return;
-      } catch (err) {
-        if (err?.response?.status !== 404) throw err;
-        lastError = err;
+    const formData = new FormData();
+    formData.append("sellingPrice", Number(newPrice));
+    const token = localStorage.getItem("accessToken");
+    await axios.put(
+      `${API_BASE_URL}/inventory/products/${product.id}`,
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
       }
-    }
-    if (lastError) throw lastError;
-    throw new Error("No valid identifier for price update.");
+    );
   };
 
   const updateDiscount = async (product, newDiscount) => {
-    const payload = { discount: Number(newDiscount) };
-
-    const candidates = [
-      product.id ? `${product.id}/discount` : null,
-      product.barcode ? `${product.barcode}/discount` : null,
-    ].filter(Boolean);
-
-    let lastError;
-    for (const path of candidates) {
-      try {
-        await attemptPut(path, payload);
-        return;
-      } catch (err) {
-        if (err?.response?.status !== 404) throw err;
-        lastError = err;
+    const formData = new FormData();
+    formData.append("sellingPrice", product.price || 0);
+    // Chỉ khác: thêm discount
+    formData.append("discount", Number(newDiscount));
+    const token = localStorage.getItem("accessToken");
+  
+    await axios.put(
+      `${API_BASE_URL}/inventory/products/${product.id}`,
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
       }
-    }
-    if (lastError) throw lastError;
-    throw new Error("No valid identifier for discount update.");
+    );
   };
 
   /* ================================

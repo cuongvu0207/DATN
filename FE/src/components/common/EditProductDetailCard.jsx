@@ -6,11 +6,11 @@ import CategoryAddCard from "../product/CategoryAddCard";
 import BrandAddCard from "../product/BrandAddCard";
 import { API_BASE_URL } from "../../services/api";
 import { validators } from "../../utils/validators";
+import useLoadingTimeout from "../../hooks/useLoadingTimeout";   // ⭐ thêm hook
 
 export default function EditProductDetailCard({ product, onClose, onSave }) {
   const { t } = useTranslation();
   const { theme } = useTheme();
-
   const token = localStorage.getItem("accessToken");
 
   const [form, setForm] = useState({ ...product });
@@ -23,11 +23,15 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
   const [rawBrands, setRawBrands] = useState([]);
 
   const [showModal, setShowModal] = useState(null);
+
+  // ⭐ Loading khi fetch category/brand
   const [loading, setLoading] = useState(false);
 
-  /* ==========================================================
-      🔹 FORMATTER SỐ DẤU CHẤM (1.200.000)
-  ========================================================== */
+  // ⭐ Loading khi SAVE
+  const [saving, setSaving] = useState(false);
+  const { showSpinner } = useLoadingTimeout(saving, { delayMs: 200 });
+
+  /* ====== FORMAT ====== */
   const formatCurrencyDots = (num) => {
     if (!num) return "";
     return String(num).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
@@ -35,23 +39,17 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
 
   const normalizeNumber = (str) => str.replace(/\./g, "");
 
-  /* ==========================================================
-      🔹 FETCH CATEGORY + BRAND
-  ========================================================== */
+  /* ====== FETCH CATEGORY & BRAND ====== */
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
         const [catRes, brandRes] = await Promise.all([
           fetch(`${API_BASE_URL}/inventory/category`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+            headers: { Authorization: `Bearer ${token}` },
           }),
           fetch(`${API_BASE_URL}/inventory/brand`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+            headers: { Authorization: `Bearer ${token}` },
           }),
         ]);
 
@@ -84,9 +82,7 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
     fetchData();
   }, [token]);
 
-  /* ==========================================================
-      🔹 GIỮ LẠI GIÁ TRỊ SELECT CŨ
-  ========================================================== */
+  /* ====== GIỮ LẠI GIÁ TRỊ SELECT ====== */
   useEffect(() => {
     if (categories.length > 0 && form.category) {
       const match = categories.find((c) => c.value === form.category);
@@ -100,47 +96,30 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
         setForm((p) => ({ ...p, brand: match.value }));
       }
     }
-  }, [categories, brands]);
+  }, [categories, brands]); // eslint-disable-line
 
-  /* ==========================================================
-      🔹 HANDLE TEXT INPUT
-  ========================================================== */
+  /* ====== INPUT ====== */
   const handleTextChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  /* ==========================================================
-      🔹 HANDLE NUMBER INPUT (validate currency)
-  ========================================================== */
   const handleNumberInput = (e) => {
     const { name, value } = e.target;
-
-    // Allow only numbers + dot
     if (!/^[0-9.]*$/.test(value)) return;
 
     const raw = normalizeNumber(value);
-
-    // validate số thập phân
-    if (value.includes(".")) {
-      if (!validators.decimal(raw)) return;
-    }
-
+    if (value.includes(".") && !validators.decimal(raw)) return;
     if (raw !== "" && Number(raw) < 0) return;
 
     setForm((prev) => ({ ...prev, [name]: raw }));
   };
 
-  /* ==========================================================
-      🔹 HANDLE SELECT
-  ========================================================== */
   const handleSelectChange = (type, opt) => {
     setForm((prev) => ({ ...prev, [type]: opt?.value || "" }));
   };
 
-  /* ==========================================================
-      🔹 HANDLE IMAGE
-  ========================================================== */
+  /* ====== IMAGE ====== */
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -152,11 +131,10 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
     setForm((prev) => ({ ...prev, imageFile: file }));
   };
 
-  /* ==========================================================
-      🔹 SUBMIT
-  ========================================================== */
-  const handleSubmit = (e) => {
+  /* ====== SUBMIT ====== */
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setSaving(true);  // ⭐ bật loading
 
     const resolvedCategoryId =
       form.categoryId ||
@@ -170,6 +148,7 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
 
     const payload = {
       ...form,
+      unit: form.unit || "", // ✅ đảm bảo luôn có unit
       categoryId: resolvedCategoryId ? String(resolvedCategoryId) : "",
       brandId: resolvedBrandId ? String(resolvedBrandId) : "",
       price: Number(form.price || 0),
@@ -177,41 +156,48 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
       stock: Number(form.stock || 0),
     };
 
-    onSave(payload);
-    onClose();
+    try {
+      await onSave(payload);
+    } finally {
+      setSaving(false);
+      onClose();
+    }
   };
 
-  /* ==========================================================
-      🔹 ADD CATEGORY / BRAND CALLBACK
-  ========================================================== */
+  /* ====== ADD CATEGORY / BRAND ====== */
   const handleCategoryAdded = (data) => {
     const val = { value: data.categoryName, label: data.categoryName };
-
     setCategories((prev) =>
       prev.find((x) => x.value === val.value) ? prev : [...prev, val]
     );
-
     setForm((prev) => ({ ...prev, category: val.value }));
     setShowModal(null);
   };
 
   const handleBrandAdded = (data) => {
     const val = { value: data.brandName, label: data.brandName };
-
     setBrands((prev) =>
       prev.find((x) => x.value === val.value) ? prev : [...prev, val]
     );
-
     setForm((prev) => ({ ...prev, brand: val.value }));
     setShowModal(null);
   };
 
-  /* ==========================================================
-      🔹 UI
-  ========================================================== */
   return (
     <>
-      <div className="position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex align-items-center justify-content-center"
+      {/* ⭐ LOADING OVERLAY khi SAVE */}
+      {showSpinner && (
+        <div
+          className="position-fixed top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center"
+          style={{ background: "rgba(255,255,255,0.65)", zIndex: 3000 }}
+        >
+          <div className="spinner-border text-primary" style={{ width: "3rem", height: "3rem" }} />
+          <div className="mt-3 fw-semibold fs-5">{t("common.saving") || "Đang lưu..."}</div>
+        </div>
+      )}
+
+      <div
+        className="position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex align-items-center justify-content-center"
         style={{ zIndex: 1050 }}
       >
         <div
@@ -226,22 +212,24 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
 
           {/* IMAGE */}
           <div className="text-center mb-4">
-            <img
-              src={preview || "https://via.placeholder.com/200x200?text=No+Image"}
-              style={{ maxHeight: 200, objectFit: "cover" }}
-              className="rounded shadow-sm mb-2"
-            />
-            <label className={`btn btn-outline-${theme} btn-sm`}>
-              <i className="bi bi-upload me-1" />
-              {t("products.chooseImage")}
-              <input type="file" hidden accept="image/*" onChange={handleImageChange} />
-            </label>
+            <div className="p-3 d-inline-block bg-light rounded-3">
+              <img
+                src={preview || "https://via.placeholder.com/200x200?text=No+Image"}
+                alt="preview"
+                className="img-fluid rounded mb-2"
+                style={{ objectFit: "cover", maxHeight: "200px" }}
+              />
+              <label className={`btn btn-outline-${theme} btn-sm w-100`}>
+                <i className="bi bi-upload me-1"></i>
+                {t("products.chooseImage")}
+                <input type="file" accept="image/*" hidden onChange={handleImageChange} />
+              </label>
+            </div>
           </div>
 
           {/* FORM */}
           <form onSubmit={handleSubmit}>
             <div className="row g-3 p-2">
-
               {/* ID */}
               <div className="col-md-6">
                 <label className="form-label">{t("products.productId")}</label>
@@ -267,6 +255,20 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
                   name="name"
                   value={form.name}
                   onChange={handleTextChange}
+                />
+              </div>
+
+              {/* ✅ Unit (ĐƠN VỊ TÍNH) */}
+              <div className="col-md-6">
+                <label className="form-label">
+                  {t("products.unit") || "Đơn vị tính"}
+                </label>
+                <input
+                  className="form-control"
+                  name="unit"
+                  value={form.unit || ""}
+                  onChange={handleTextChange}
+                  placeholder={t("products.unitPlaceholder") || "Ví dụ: cái, hộp, cây..."}
                 />
               </div>
 
@@ -312,7 +314,7 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
                 />
               </div>
 
-              {/* COST */}
+              {/* Cost */}
               <div className="col-md-6">
                 <label className="form-label">{t("products.costOfCapital")}</label>
                 <input
@@ -323,7 +325,7 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
                 />
               </div>
 
-              {/* PRICE */}
+              {/* Price */}
               <div className="col-md-6">
                 <label className="form-label">{t("products.sellingPrice")}</label>
                 <input
@@ -334,7 +336,7 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
                 />
               </div>
 
-              {/* STOCK */}
+              {/* Stock */}
               <div className="col-md-6">
                 <label className="form-label">{t("products.quantityInStock")}</label>
                 <input
@@ -346,7 +348,6 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
               </div>
             </div>
 
-            {/* BUTTONS */}
             <div className="d-flex justify-content-end mt-4 gap-2">
               <button type="button" className="btn btn-secondary" onClick={onClose}>
                 {t("common.cancel")}
@@ -359,7 +360,7 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
         </div>
       </div>
 
-      {/* Modal thêm category / brand */}
+      {/* Modal */}
       {showModal && (
         <div
           className="modal fade show"
@@ -369,7 +370,9 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">
-                  {showModal === "brand" ? t("products.addBrand") : t("products.addCategory")}
+                  {showModal === "brand"
+                    ? t("products.addBrand")
+                    : t("products.addCategory")}
                 </h5>
                 <button className="btn-close" onClick={() => setShowModal(null)} />
               </div>
