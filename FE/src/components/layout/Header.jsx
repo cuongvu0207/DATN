@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import ThemeSwitcher from "../navigation/ThemeSwitcher";
 import LanguageSwitcher from "../navigation/LanguageSwitcher";
 import { useTheme } from "../../context/ThemeContext";
@@ -9,6 +9,8 @@ export default function Header() {
   const { theme } = useTheme();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const accountRef = useRef(null);
 
   const handleLogout = () => {
     localStorage.removeItem("authToken");
@@ -17,16 +19,33 @@ export default function Header() {
 
   const handleAccount = () => {
     navigate("/account");
+    setOpen(false);
   };
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (open && accountRef.current && !accountRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    const handleEscape = (e) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [open]);
 
   return (
     <header className="bg-light border-bottom py-2">
-      {/*  Container canh giữa, mỗi bên lùi 1/12 */}
       <div
         className="container d-flex justify-content-between align-items-center"
         style={{ maxWidth: "83.33%" }}
       >
-        {/* --- Logo --- */}
         <div
           className="d-flex align-items-center"
           style={{ cursor: "pointer" }}
@@ -41,16 +60,11 @@ export default function Header() {
           />
         </div>
 
-        {/* --- Khu vực bên phải --- */}
         <div className="d-flex gap-3 align-items-center">
-          {/* Chủ đề */}
           <ThemeSwitcher />
-
-          {/* Ngôn ngữ */}
           <LanguageSwitcher />
 
-          {/* Tài khoản */}
-          <div className="dropdown">
+          <div className={`dropdown ${open ? "show" : ""}`} ref={accountRef}>
             <button
               className="btn rounded-4 d-flex align-items-center justify-content-center border-0"
               style={{
@@ -58,13 +72,14 @@ export default function Header() {
                 height: "40px",
                 backgroundColor: `var(--bs-${theme}-bg-subtle)`,
               }}
-              data-bs-toggle="dropdown"
-              aria-expanded="false"
+              aria-expanded={open}
+              onClick={() => setOpen((prev) => !prev)}
+              type="button"
             >
               <i className={`bi bi-person-fill text-${theme}`}></i>
             </button>
 
-            <ul className="dropdown-menu dropdown-menu-end">
+            <ul className={`dropdown-menu dropdown-menu-end ${open ? "show" : ""}`}>
               <li>
                 <button className="dropdown-item" onClick={handleAccount}>
                   <i className="bi bi-person me-2"></i> {t("account.profile")}

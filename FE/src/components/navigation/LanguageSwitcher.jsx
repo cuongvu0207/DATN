@@ -1,26 +1,46 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 export default function LanguageSwitcher() {
-  const { i18n } = useTranslation();
-  const {t} = useTranslation();
-  const currentLang = i18n.language === "vi" ? t("i18n.vietnamese") :  t("i18n.english");
+  const { i18n, t } = useTranslation();
+  const currentLang = i18n.language === "vi" ? t("i18n.vietnamese") : t("i18n.english");
+  const flagSrc = i18n.language === "vi" ? "/vn.png" : "/us.png";
+
+  const [open, setOpen] = useState(false);
+  const dropdownRef = useRef(null);
 
   const changeLanguage = (lng) => {
     i18n.changeLanguage(lng);
-    localStorage.setItem("appLang", lng); // lưu ngôn ngữ vào localStorage
+    localStorage.setItem("appLang", lng);
+    setOpen(false);
   };
 
-  const flagSrc = i18n.language === "vi" ? "/vn.png" : "/us.png";
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (open && dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    const handleEscape = (e) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [open]);
 
   return (
-    <div className="dropdown">
+    <div className={`dropdown ${open ? "show" : ""}`} ref={dropdownRef}>
       <button
         className="btn btn-light d-flex align-items-center text-black dropdown-toggle"
         type="button"
         id="languageDropdown"
-        data-bs-toggle="dropdown"
-        aria-expanded="false"
+        aria-expanded={open}
+        onClick={() => setOpen((prev) => !prev)}
       >
         <img
           src={flagSrc}
@@ -28,13 +48,13 @@ export default function LanguageSwitcher() {
           width="24"
           height="16"
           className="me-2"
-          style={{ borderRadius: 0 }} // ✅ bỏ bo góc quốc kỳ
+          style={{ borderRadius: 0 }}
         />
         {currentLang}
       </button>
 
       <ul
-        className="dropdown-menu dropdown-menu-end shadow-sm"
+        className={`dropdown-menu dropdown-menu-end shadow-sm ${open ? "show" : ""}`}
         aria-labelledby="languageDropdown"
       >
         <li>
@@ -48,7 +68,7 @@ export default function LanguageSwitcher() {
               width="24"
               height="16"
               className="me-2"
-              style={{ borderRadius: 0 }} 
+              style={{ borderRadius: 0 }}
             />
             {t("i18n.vietnamese")}
           </button>
@@ -64,7 +84,7 @@ export default function LanguageSwitcher() {
               width="24"
               height="16"
               className="me-2"
-              style={{ borderRadius: 0 }} 
+              style={{ borderRadius: 0 }}
             />
             {t("i18n.english")}
           </button>

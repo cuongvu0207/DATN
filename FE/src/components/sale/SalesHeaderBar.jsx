@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { useTheme } from "../../context/ThemeContext";
 import { useTranslation } from "react-i18next";
-import * as bootstrap from "bootstrap"; // ⭐ FIX TRẮNG TRANG
+import * as bootstrap from "bootstrap"; 
 
 export default function SalesHeaderBar({
   tabs,
