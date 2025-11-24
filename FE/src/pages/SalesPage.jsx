@@ -259,6 +259,7 @@ export default function SalesPage() {
       const res = await axios.get(`${API_BASE_URL}/order/drafts/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
       const payload = res?.data;
       const list = Array.isArray(payload)
         ? payload
@@ -267,7 +268,8 @@ export default function SalesPage() {
           : [];
 
       if (list.length === 0) {
-        await createDraftTab({ replace: true });
+        // ❗ KHÔNG tạo draft mới ở đây nữa
+        setTabs([]);
         return;
       }
 
@@ -308,10 +310,11 @@ export default function SalesPage() {
       }, {});
     } catch (err) {
       console.error("Failed to fetch draft orders", err);
-      setTabs((prev) => (prev.length > 0 ? prev : [createSalesTab(1, tabPrefix)]));
+      setTabs((prev) => (prev.length > 0 ? prev : []));
       setActiveTab(1);
     }
   }, [tabPrefix, token, createDraftTab]);
+
 
   /* ================== CUSTOMERS ================== */
   const fetchCustomers = useCallback(async () => {
@@ -400,6 +403,20 @@ export default function SalesPage() {
 
 
   // update ref cho WS filter
+
+  // ⭐ SUBSCRIBE ORDER KHI CHUYỂN TAB
+  useEffect(() => {
+    if (!currentOrderId) return;
+
+    console.log("🔔 SUBSCRIBE ACTIVE ORDER:", currentOrderId);
+    subscribeOrder(currentOrderId);
+
+    return () => {
+      console.log("❌ UNSUBSCRIBE ORDER:", currentOrderId);
+      unsubscribeOrder(currentOrderId);
+    };
+  }, [currentOrderId]);
+
   useEffect(() => {
     currentOrderIdRef.current = currentOrderId;
   }, [currentOrderId]);
@@ -574,11 +591,12 @@ export default function SalesPage() {
 
   // xử lý sau khi payment completed
   const handleAfterPaymentComplete = async (completedOrderId) => {
-    // 1️⃣ Xoá tab tương ứng trong FE
+
+    // 1️⃣ Xoá tab đơn vừa thanh toán
     removeTabByOrderIdSync(completedOrderId);
 
     try {
-      // 2️⃣ Gọi BE xem còn draft nào không
+      // 2️⃣ Kiểm tra draft còn lại
       const res = await axios.get(`${API_BASE_URL}/order/drafts/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -590,19 +608,20 @@ export default function SalesPage() {
           : [];
 
       if (list.length === 0) {
-        // 3️⃣ Không còn draft nào → tạo đơn mới
+        // Không còn draft nào → tạo tab mới
         await createDraftTab({ replace: true });
         console.log("🟢 No draft left → created a new draft");
       } else {
-        // 4️⃣ Còn draft → load lại toàn bộ FE từ BE
+        // Vẫn còn draft → chỉ reload, KHÔNG tạo thêm
         await loadDraftTabs();
-        console.log("🟡 Still has drafts → reload tabs");
+        console.log("🟡 Still has drafts → reloaded tabs");
       }
 
     } catch (err) {
       console.error("❌ Error checking remaining drafts:", err);
     }
   };
+
 
 
   /* ================== CUSTOMER UI LOGIC ================== */
@@ -919,18 +938,7 @@ export default function SalesPage() {
         invoiceDiscount,
       });
 
-      // 2️⃣ SUBSCRIBE ĐƠN NÀY ĐỂ LẮNG NGHE WS
-      subscribeOrder(currentOrderId, async () => {
-        console.log("📡 WS READY → NOW SEND PAY");
 
-        const res = await axios.post(
-          `${API_BASE_URL}/order/sale/${currentOrderId}/pay`,
-          { paymentMethod: paymentMethod.toUpperCase() },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-
-        console.log("💰 PAY SENT:", res.data);
-      });
       // 3️⃣ GỌI THANH TOÁN
       const res = await axios.post(
         `${API_BASE_URL}/order/sale/${currentOrderId}/pay`,
@@ -983,7 +991,15 @@ export default function SalesPage() {
       <div className="row gx-1 gy-1 m-0" style={{ height: "calc(100vh - 110px)" }}>
         {/* === GIỎ HÀNG === */}
         <div className="col-lg-8 col-md-7 p-2 d-flex flex-column">
-          <div className="flex-grow-1 overflow-auto position-relative">
+          <div
+            className="flex-grow-1 position-relative"
+            style={{
+              overflowY: "auto",
+              overflowX: "hidden",
+              maxHeight: "calc(100vh - 240px)", // bạn có thể tăng/giảm nếu muốn
+            }}
+          >
+
             {loading ? (
               <div className="text-center text-muted mt-5">
                 <div className="spinner-border text-primary" />

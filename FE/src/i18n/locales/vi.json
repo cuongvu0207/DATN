@@ -1,4 +1,8 @@
 ﻿{
+  "i18n": {
+    "english": "Tiếng Anh",
+    "vietnamese": "Tiếng Việt"
+  },
   "customer": {
     "title": "Khách hàng",
     "searchPlaceholder": "Tìm kiếm khách hàng...",
@@ -402,6 +406,7 @@
     "profit": "Lợi nhuận",
     "revenueTrend": "Xu hướng doanh thu",
     "topProducts": "Sản phẩm bán chạy",
+    "topCustomers": "Khách hàng thân thiết",
     "activity": "Nhật ký hoạt động",
     "orders": "Đơn hàng",
     "customers": "Khách hàng",

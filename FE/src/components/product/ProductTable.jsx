@@ -57,7 +57,15 @@ export default function ProductTable({
           style={{ maxHeight: "60vh", overflowX: "auto", overflowY: "auto" }}
         >
           <table className="table table-hover align-middle mb-0">
-            <thead className={`table-${theme}`}>
+            <thead
+              className={`table-${theme}`}
+              style={{
+                position: "sticky",
+                top: 0,
+                zIndex: 10,
+                backgroundColor: "var(--bs-body-bg)",
+              }}
+            >
               <tr>
                 <th style={{ width: 40 }}>
                   <input
@@ -77,10 +85,9 @@ export default function ProductTable({
                 <th>{t("products.costOfCapital")}</th>
                 <th>{t("products.stock")}</th>
                 <th>{t("products.status")}</th>
-                <th>{t("products.createdDate")}</th>
+                {/* <th>{t("products.createdDate")}</th> */}
               </tr>
             </thead>
-
             <tbody>
               {currentRows.length > 0 ? (
                 currentRows.map((p, index) => (
@@ -158,7 +165,7 @@ export default function ProductTable({
                       </td>
 
                       {/* Ngày tạo */}
-                      <td>{p.createdAt ? p.createdAt : "-"}</td>
+                      {/* <td>{p.createdAt ? p.createdAt : "-"}</td> */}
                     </tr>
 
                     {/* Row chi tiết */}

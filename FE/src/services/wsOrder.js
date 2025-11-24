@@ -10,7 +10,8 @@ const subscriptions = new Map(); // ✅ orderId -> subscription
 export const connectWS = () => {
   if (stompClient && stompClient.connected) return;
 
-  const socket = new SockJS("http://localhost:8888/ws-notify");
+  // const socket = new SockJS("http://localhost:8888/ws-notify");
+  const socket = new SockJS("http://192.168.1.208:8888/ws-notify");
   stompClient = Stomp.over(socket);
   stompClient.debug = () => {};
 

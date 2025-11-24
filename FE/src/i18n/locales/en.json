@@ -1,4 +1,8 @@
 {
+  "i18n": {
+    "english": "English",
+    "vietnamese": "Vietnamese"
+  },
   "customer": {
     "title": "Customers",
     "searchPlaceholder": "Search customers...",

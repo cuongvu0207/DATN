@@ -9,7 +9,7 @@ export default function PaymentNotification() {
   useEffect(() => {
     console.log("⏳ Đang kết nối tới ws-notify...");
 
-    const socket = new SockJS("http://localhost:8888/ws-notify");   // FIX!
+    const socket = new SockJS("http://192.168.1.208:8888/ws-notify");   // FIX!
     const stompClient = Stomp.over(socket);
     stompClient.debug = () => {};
 

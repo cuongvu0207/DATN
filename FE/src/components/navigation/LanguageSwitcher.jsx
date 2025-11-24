@@ -3,7 +3,8 @@ import { useTranslation } from "react-i18next";
 
 export default function LanguageSwitcher() {
   const { i18n } = useTranslation();
-  const currentLang = i18n.language === "vi" ? "Tiếng Việt" : "English";
+  const {t} = useTranslation();
+  const currentLang = i18n.language === "vi" ? t("i18n.vietnamese") :  t("i18n.english");
 
   const changeLanguage = (lng) => {
     i18n.changeLanguage(lng);
@@ -49,7 +50,7 @@ export default function LanguageSwitcher() {
               className="me-2"
               style={{ borderRadius: 0 }} 
             />
-            Tiếng Việt
+            {t("i18n.vietnamese")}
           </button>
         </li>
         <li>
@@ -65,7 +66,7 @@ export default function LanguageSwitcher() {
               className="me-2"
               style={{ borderRadius: 0 }} 
             />
-            English
+            {t("i18n.english")}
           </button>
         </li>
       </ul>
