@@ -44,7 +44,7 @@ export default function ProductDetailCard({ product, onEdit, onToggleActive }) {
         <div className="flex-grow-1 ms-3">
           <h5 className="fw-bold mb-1">{product.name}</h5>
           <p className="text-muted small mb-2">
-            {t("products.productId")}: {product.id}
+            {t("products.barcode")}: {product.barcode}
           </p>
 
           <div className="row g-2 small">
@@ -65,6 +65,10 @@ export default function ProductDetailCard({ product, onEdit, onToggleActive }) {
             <div className="col-md-4">
               <span className="text-muted">{t("products.quantityInStock")}: </span>
               <span className="fw-semibold">{product.stock}</span>
+            </div>
+            <div className="col-md-4">
+              <span className="text-muted">{t("products.minimumStock")}: </span>
+              <span className="fw-semibold">{product.minimumStock}</span>
             </div>
             <div className="col-md-4">
               <span className="text-muted">{t("products.createdAt")}: </span>
@@ -93,9 +97,8 @@ export default function ProductDetailCard({ product, onEdit, onToggleActive }) {
         {/* Nút toggle trạng thái */}
         <button
           onClick={() => onToggleActive?.(product)}
-          className={`btn ${
-            isActive ? "btn-danger" : "btn-success"
-          } text-white d-flex align-items-center gap-1`}
+          className={`btn ${isActive ? "btn-danger" : "btn-success"
+            } text-white d-flex align-items-center gap-1`}
           title={
             isActive
               ? t("products.deactivate")
@@ -103,9 +106,8 @@ export default function ProductDetailCard({ product, onEdit, onToggleActive }) {
           }
         >
           <i
-            className={`bi ${
-              isActive ? "bi-toggle-on" : "bi-toggle-off"
-            }`}
+            className={`bi ${isActive ? "bi-toggle-on" : "bi-toggle-off"
+              }`}
           ></i>
           <span>
             {isActive

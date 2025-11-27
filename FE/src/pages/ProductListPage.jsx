@@ -10,6 +10,7 @@ import ProductTable from "../components/product/ProductTable";
 import AddProductCard from "../components/common/AddProductCard";
 import ProductBulkUploadModal from "../components/product/ProductBulkUploadModal";
 
+
 export default function ProductListPage() {
   const { t } = useTranslation();
 
@@ -74,6 +75,7 @@ export default function ProductListPage() {
         price: p?.sellingPrice || 0,
         cost: p?.costOfCapital || 0,
         stock: p?.quantityInStock || 0,
+        minimumStock: p?.minimumStock || 0,
 
         statusBoolean: p?.isActive ?? true,
 
@@ -186,7 +188,8 @@ export default function ProductListPage() {
       formData.append("sellingPrice", newProduct.price);
       formData.append("costOfCapital", newProduct.cost || 0);
       formData.append("quantityInStock", newProduct.stock);
-      formData.append("isActive", true);
+      formData.append("minimumStock", newProduct.minimumStock || 0);
+      // formData.append("isActive", true);
       formData.append("categoryId", newProduct.categoryId || 1);
       formData.append("brandId", newProduct.brandId || 1);
 
@@ -225,7 +228,8 @@ export default function ProductListPage() {
       formData.append("sellingPrice", updated.price || 0);
       formData.append("costOfCapital", updated.cost || 0);
       formData.append("quantityInStock", updated.stock || 0);
-      formData.append("isActive", updated.statusBoolean);
+      formData.append("minimumStock", updated.minimumStock || 0);
+      // formData.append("isActive", updated.statusBoolean);
       formData.append("categoryId", updated.categoryId || "");
       formData.append("brandId", updated.brandId || "");
 
@@ -276,6 +280,7 @@ export default function ProductListPage() {
         formData.append("sellingPrice", product.price || 0);
         formData.append("costOfCapital", product.cost || 0);
         formData.append("quantityInStock", product.stock || 0);
+        formData.append("minimumStock", Number(product.minimumStock || 0));
     
         // 🔥 Toggle trạng thái
         formData.append("isActive", !product.statusBoolean);

@@ -123,6 +123,7 @@
     "sellingPrice": "Selling Price",
     "costOfCapital": "Cost of Capital",
     "quantityInStock": "In Stock",
+    "minimumStock" : "MinimumStock",
     "expectedOutOfStock": "Expected Out of Stock",
     "editProduct": "Edit Product",
     "unit": "Unit",

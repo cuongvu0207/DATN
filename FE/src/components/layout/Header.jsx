@@ -12,10 +12,34 @@ export default function Header() {
   const [open, setOpen] = useState(false);
   const accountRef = useRef(null);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      // Nếu có API logout thì gọi:
+      // await axios.post(`${API_BASE_URL}/auth/logout`, {
+      //   refreshToken: localStorage.getItem("refreshToken")
+      // });
+
+    } catch (err) {
+      console.warn("Logout API failed (ignored):", err);
+    }
+
+    // Xóa toàn bộ token / dữ liệu nhạy cảm
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
     localStorage.removeItem("authToken");
+    localStorage.removeItem("user");
+    localStorage.removeItem("role");
+
+    sessionStorage.clear();
+    localStorage.clear(); // Dọn toàn bộ app
+
+    // Điều hướng về login
     navigate("/login");
+
+    // Reload đảm bảo mọi state bị reset sạch
+    window.location.reload();
   };
+
 
   const handleAccount = () => {
     navigate("/account");

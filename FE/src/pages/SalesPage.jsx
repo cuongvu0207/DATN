@@ -11,7 +11,7 @@ import { API_BASE_URL } from "../services/api";
 import { formatCurrency } from "../utils/formatters";
 import PaymentConfirmModal from "../components/notifications/PaymentConfirmModal";
 import { connectWS, subscribeOrder, onOrderNotify, unsubscribeOrder } from "../services/wsOrder";
-
+import { PaymentSuccessToast } from "../components/notifications/PaymentSuccessToast";
 
 const createSalesTab = (id, labelPrefix, overrides = {}) => ({
   id,
@@ -472,11 +472,11 @@ export default function SalesPage() {
       }
 
       if (data.paymentStatus === "COMPLETED") {
-        console.log("🎉 PAYMENT COMPLETE:", data.orderId);
-        alert("Thanh toán hoàn tất!");
-        setShowPaymentPopup(false);
-        unsubscribeOrder(data.orderId);
-        handleAfterPaymentComplete(data.orderId);
+
+        setPaymentData(data);      // lưu data hóa đơn
+        setShowPaymentPopup(true); // mở popup thông báo
+
+        return;
       }
     });
 
@@ -1004,6 +1004,7 @@ export default function SalesPage() {
           <div
             className="flex-grow-1 position-relative"
             style={{
+              height: "calc(100vh - 260px)",
               overflowY: "auto",
               overflowX: "hidden",
             }}
@@ -1159,6 +1160,15 @@ export default function SalesPage() {
           <div className="spinner-border text-primary" style={{ width: "4rem", height: "4rem" }} />
         </div>
       )}
+
+      <PaymentSuccessToast
+        show={showPaymentPopup && paymentData?.paymentStatus === "COMPLETED"}
+        data={paymentData}
+        onClose={() => {
+          setShowPaymentPopup(false);
+          handleAfterPaymentComplete(paymentData.orderId);
+        }}
+      />
     </div>
   );
 }

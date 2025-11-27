@@ -84,6 +84,7 @@ export default function ProductTable({
                 <th>{t("products.costOfCapital")}</th>
                 <th>{t("products.sellingPrice")}</th>
                 <th>{t("products.stock")}</th>
+                <th>{t("products.minimumStock")}</th>
                 <th>{t("products.status")}</th>
                 {/* <th>{t("products.createdDate")}</th> */}
               </tr>
@@ -150,6 +151,9 @@ export default function ProductTable({
 
                       {/* Tồn kho */}
                       <td>{p.stock}</td>
+
+                      {/* Tồn kho */}
+                      <td>{p.minimumStock}</td>
 
                       {/* Trạng thái */}
                       <td

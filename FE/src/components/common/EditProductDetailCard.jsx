@@ -154,6 +154,7 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
       price: Number(form.price || 0),
       cost: Number(form.cost || 0),
       stock: Number(form.stock || 0),
+      minimumStock: Number(form.minimumStock || 0)
     };
 
     try {
@@ -343,6 +344,16 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
                   className="form-control"
                   name="stock"
                   value={formatCurrencyDots(form.stock)}
+                  onChange={handleNumberInput}
+                />
+              </div>
+              {/* Minimum Stock */}
+              <div className="col-md-6">
+                <label className="form-label">{t("products.minimumStock")}</label>
+                <input
+                  className="form-control"
+                  name="minimumStock"
+                  value={formatCurrencyDots(form.minimumStock)}
                   onChange={handleNumberInput}
                 />
               </div>

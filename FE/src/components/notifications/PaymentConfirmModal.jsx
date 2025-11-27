@@ -157,7 +157,7 @@ export default function PaymentConfirmModal({ show, data, onCancel, onConfirm })
 
           {/* Tổng tiền bên trái */}
           <div className="fw-bold fs-5 text-dark">
-            {t("payment.amount")}: {formatAmount(safeData.totalPrice)} đ
+            {/* {t("payment.amount")}: {formatAmount(safeData.totalPrice)} đ */}
           </div>
 
           {/* Nút bên phải */}

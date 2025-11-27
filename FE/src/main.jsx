@@ -1,5 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import "./services/axiosConfig";
 import App from "./App";
 import "bootstrap-icons/font/bootstrap-icons.css";
 

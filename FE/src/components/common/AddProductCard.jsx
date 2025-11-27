@@ -21,6 +21,7 @@ export default function AddProductCard({ onCancel, onSave }) {
     cost: "",
     price: "",
     stock: "",
+    minimumStock: "",
     barcode: "",
     imageFile: null,
   });
@@ -171,6 +172,7 @@ export default function AddProductCard({ onCancel, onSave }) {
         price: Number(form.price || 0),
         cost: Number(form.cost || 0),
         stock: Number(form.stock || 0),
+        minimumStocktock: Number(form.minimumStock || 0),
         barcode: form.barcode || generateBarcode(),
         id: "SPNEW" + Math.floor(Math.random() * 1000),
         createdAt: new Date().toLocaleDateString("vi-VN"),
@@ -372,6 +374,22 @@ export default function AddProductCard({ onCancel, onSave }) {
                   required
                 />
               </div>
+
+               {/*MINIMUM STOCK */}
+              <div className="col-md-4">
+                <label className="form-label">{t("products.minimumStock")}</label>
+                <input
+                  type="text"
+                  name="minimumStock"
+                  className="form-control"
+                  value={formatCurrencyDots(form.minimumStock)}
+                  onChange={handleNumberInput}
+                  placeholder="0"
+                  required
+                />
+              </div>
+
+              
             </div>
 
             {/* BUTTONS */}

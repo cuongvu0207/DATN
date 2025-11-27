@@ -33,6 +33,7 @@ export default function LoginPage() {
 
       const data = await res.json();
       localStorage.setItem("accessToken", data.accessToken);
+      localStorage.setItem("refreshToken", data.refreshToken);
       navigate(redirectPath);
     } catch (err) {
       console.error("❌ Lỗi đăng nhập:", err);
