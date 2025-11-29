@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { useTheme } from "../../context/ThemeContext";
 import { useTranslation } from "react-i18next";
-import * as bootstrap from "bootstrap"; 
+import * as bootstrap from "bootstrap";
 
 export default function SalesHeaderBar({
   tabs,
@@ -18,12 +18,13 @@ export default function SalesHeaderBar({
   const { theme } = useTheme();
   const { t } = useTranslation();
 
-  /* === Bootstrap tooltip init === */
+  /* === INIT TOOLTIP === */
   useEffect(() => {
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
     [...tooltipTriggerList].map((el) => new bootstrap.Tooltip(el));
   }, []);
 
+  /* === ENTER TO SCAN BARCODE === */
   const handleKeyDown = (e) => {
     if (barcodeMode && e.key === "Enter" && searchQuery.trim()) {
       onScanProduct(searchQuery.trim());
@@ -32,16 +33,24 @@ export default function SalesHeaderBar({
 
   return (
     <div
-      className={`d-flex align-items-center px-3 py-2 bg-${theme}`}
-      style={{ borderBottom: "1px solid rgba(255,255,255,.15)", minHeight: 52 }}
+      className={`d-flex align-items-center px-3 py-2 bg-${theme} flex-wrap`}
+      style={{
+        borderBottom: "1px solid rgba(255,255,255,.15)",
+        minHeight: 52,
+        gap: 8,
+      }}
     >
-      <div className="d-flex align-items-center gap-2 flex-grow-1">
+      {/* LEFT SIDE GROUP */}
+      <div className="d-flex align-items-center gap-2 flex-grow-1 flex-wrap">
 
-        {/* === Search box === */}
-        <div className="position-relative">
+        {/* === SEARCH BOX (RESPONSIVE) === */}
+        <div className="position-relative flex-shrink-0">
           <div
             className="d-flex align-items-center bg-white rounded-3 px-2"
-            style={{ width: 320, height: 38 }}
+            style={{
+              width: "clamp(180px, 28vw, 320px)",  // ⭐ tự co giãn
+              height: 38,
+            }}
           >
             <i className="bi bi-search text-muted me-2" />
             <input
@@ -50,7 +59,7 @@ export default function SalesHeaderBar({
                 barcodeMode ? t("sales.scanBarcode") : t("sales.searchProduct")
               }
               className="form-control border-0 shadow-none bg-transparent"
-              style={{ fontSize: 14 }}
+              style={{ fontSize: 14, minWidth: 0 }}  // tránh vỡ layout
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -58,7 +67,7 @@ export default function SalesHeaderBar({
           </div>
         </div>
 
-        {/* === Barcode toggle === */}
+        {/* === TOGGLE BARCODE SCAN === */}
         <button
           type="button"
           className={`btn ${
@@ -72,11 +81,16 @@ export default function SalesHeaderBar({
           <i className="bi bi-upc fs-6" />
         </button>
 
-        {/* === Invoice Tabs === */}
+        {/* === TABS (SCROLLABLE) === */}
         {tabs.length > 0 && (
           <div
-            className="d-flex align-items-center bg-white rounded-3 px-2"
-            style={{ height: 38, fontSize: 14 }}
+            className="d-flex align-items-center bg-white rounded-3 px-2 overflow-auto"
+            style={{
+              height: 38,
+              fontSize: 14,
+              maxWidth: "40vw", // ⭐ co giãn hợp lý
+              whiteSpace: "nowrap",
+            }}
           >
             <i
               className={`bi bi-receipt-cutoff text-${theme} me-2`}
@@ -92,10 +106,9 @@ export default function SalesHeaderBar({
                     ? "bg-light text-dark fw-semibold"
                     : "text-secondary"
                 }`}
-                style={{ cursor: "pointer", display: "flex", alignItems: "center" }}
+                style={{ cursor: "pointer", display: "inline-flex", alignItems: "center" }}
               >
                 {tab.name}
-
                 <i
                   className="bi bi-x-lg ms-2"
                   onClick={(e) => {
@@ -115,7 +128,7 @@ export default function SalesHeaderBar({
           </div>
         )}
 
-        {/* === Add new invoice === */}
+        {/* === ADD NEW TAB === */}
         <button
           type="button"
           className="btn btn-outline-light d-flex align-items-center justify-content-center rounded-3"
@@ -126,6 +139,7 @@ export default function SalesHeaderBar({
         >
           <i className="bi bi-plus-lg fs-5" />
         </button>
+
       </div>
     </div>
   );

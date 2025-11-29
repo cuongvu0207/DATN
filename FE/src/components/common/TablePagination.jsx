@@ -20,58 +20,53 @@ export default function TablePagination({
   const totalPages = Math.max(1, Math.ceil(totalItems / sanitizedRowsPerPage));
   const selectValue = rowsPerPageValue ?? rowsPerPage;
 
-  const handleRowsChange = (event) => {
-    onRowsPerPageChange && onRowsPerPageChange(event.target.value);
-  };
-
-  const handlePrev = () => {
-    if (currentPage > 1 && onPageChange) {
-      onPageChange(currentPage - 1);
-    }
-  };
-
-  const handleNext = () => {
-    if (currentPage < totalPages && onPageChange) {
-      onPageChange(currentPage + 1);
-    }
-  };
-
   return (
     <div className={`d-flex justify-content-between align-items-center mt-3 ${className}`}>
+      {/* LEFT */}
       <div className="d-flex align-items-center gap-2">
-        <span>{t("common.show") || "Hien thi"}</span>
+        <span>{t("common.show", "Hiển thị")}</span>
+
         <select
           className="form-select form-select-sm"
           style={{ width: 150 }}
           value={selectValue}
-          onChange={handleRowsChange}
+          onChange={(e) => onRowsPerPageChange(e.target.value)}
         >
           {rowsPerPageOptions.map((option) => (
             <option key={option} value={option}>
-              {option} {t("common.rows") || "dong"}
+              {option} {t("common.rows", "hàng")}
             </option>
           ))}
-          {showAllOption && <option value="all">{t("common.all") || "Tat ca"}</option>}
+
+          {showAllOption && (
+            <option value="all">{t("common.all", "Tất cả")}</option>
+          )}
         </select>
       </div>
 
+      {/* RIGHT */}
       <div className="d-flex align-items-center gap-3">
         <button
           className={`btn text-${theme} border-0 shadow-none`}
           style={{ fontSize: 28, lineHeight: 1 }}
           disabled={currentPage <= 1}
-          onClick={handlePrev}
+          onClick={() => onPageChange(currentPage - 1)}
         >
           &lsaquo;
         </button>
-        <span className={`fw-bold text-${theme}`} style={{ minWidth: 80, textAlign: "center" }}>
+
+        <span
+          className={`fw-bold text-${theme}`}
+          style={{ minWidth: 80, textAlign: "center" }}
+        >
           {currentPage}/{totalPages}
         </span>
+
         <button
           className={`btn text-${theme} border-0 shadow-none`}
           style={{ fontSize: 28, lineHeight: 1 }}
           disabled={currentPage >= totalPages}
-          onClick={handleNext}
+          onClick={() => onPageChange(currentPage + 1)}
         >
           &rsaquo;
         </button>

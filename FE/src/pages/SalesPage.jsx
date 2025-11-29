@@ -12,7 +12,7 @@ import { formatCurrency } from "../utils/formatters";
 import PaymentConfirmModal from "../components/notifications/PaymentConfirmModal";
 import { connectWS, subscribeOrder, onOrderNotify, unsubscribeOrder } from "../services/wsOrder";
 import { PaymentSuccessToast } from "../components/notifications/PaymentSuccessToast";
-
+import InventoryErrorModal from "../components/notifications/InventoryErrorModal";
 const createSalesTab = (id, labelPrefix, overrides = {}) => ({
   id,
   name: `${labelPrefix} ${id}`,
@@ -136,6 +136,8 @@ export default function SalesPage() {
   const printRef = useRef(null);
 
   const [payLoading, setPayLoading] = useState(false);
+  const [inventoryErrors, setInventoryErrors] = useState([]);
+  const [showInventoryPopup, setShowInventoryPopup] = useState(false);
 
   const tabPrefix = t("sales.tabPrefix", { defaultValue: "Order" });
   const token = localStorage.getItem("accessToken");
@@ -477,6 +479,15 @@ export default function SalesPage() {
         setShowPaymentPopup(true); // mở popup thông báo
 
         return;
+      }
+
+      if (data.paymentStatus === "FAILED") {
+        const errors = data.errorInventories || [];
+
+        setInventoryErrors(errors);
+        setShowInventoryPopup(true);
+
+        console.warn("⚠️ Lỗi tồn kho:", errors);
       }
     });
 
@@ -983,8 +994,10 @@ export default function SalesPage() {
 
   /* ================== RENDER ================== */
   return (
-    <div className="container-fluid bg-light p-0" style={{ height: "100vh", overflow: "hidden" }}>
+    <div className="container-fluid bg-light p-0" style={{ minHeight: "100vh", overflow: "hidden" }}>
       <Header />
+
+      {/* THANH TAB + TÌM KIẾM */}
       <SalesHeaderBar
         tabs={tabs}
         activeTab={activeTab}
@@ -998,31 +1011,28 @@ export default function SalesPage() {
         onScanProduct={handleScanProduct}
       />
 
-      <div className="row gx-1 gy-1 m-0" style={{ height: "calc(100vh - 110px)" }}>
-        {/* === GIỎ HÀNG === */}
-        <div className="col-lg-8 col-md-7 p-2 d-flex flex-column">
-          <div
-            className="flex-grow-1 position-relative"
-            style={{
-              height: "calc(100vh - 260px)",
-              overflowY: "auto",
-              overflowX: "hidden",
-            }}
-          >
+      {/* MAIN LAYOUT */}
+      <div className="row m-0 g-2" style={{ height: "calc(100vh - 110px)" }}>
+
+        {/* ==== GIỎ HÀNG ==== */}
+        <div className="col-12 col-lg-8 col-md-7 p-2 d-flex flex-column">
+
+          {/* LIST SẢN PHẨM */}
+          <div className="flex-grow-1 overflow-auto position-relative bg-white rounded-3 p-2">
 
             {loading ? (
               <div className="text-center text-muted mt-5">
                 <div className="spinner-border text-primary" />
-                {/* <p>{t("sales.loadingProducts", { defaultValue: "Loading products..." })}</p> */}
               </div>
             ) : error ? (
               <div className="text-danger text-center mt-5">{error}</div>
             ) : (
               <>
+                {/* GỢI Ý SẢN PHẨM */}
                 {filteredProducts.length > 0 && (
                   <div
-                    className="position-absolute bg-white shadow rounded-3 p-2"
-                    style={{ zIndex: 10, width: 300 }}
+                    className="position-absolute bg-white shadow rounded-3 p-2 w-50 h-80"
+                    style={{ zIndex: 10, top: 0 }}
                   >
                     {filteredProducts.map((p) => (
                       <button
@@ -1031,15 +1041,18 @@ export default function SalesPage() {
                         onClick={() => handleAddProduct(p)}
                       >
                         {p.name}{" "}
-                        <span className="text-success fw-semibold">{formatCurrency(p.price)}</span>
+                        <span className="text-success fw-semibold">
+                          {formatCurrency(p.price)}
+                        </span>
                       </button>
                     ))}
                   </div>
                 )}
 
+                {/* CART ITEMS */}
                 {cartItems.length === 0 ? (
                   <div className="text-center text-muted mt-5">
-                    {/* {t("sales.noItems", { defaultValue: "No items in the cart" })} */}
+                    {t("sales.noItems", "Chưa có sản phẩm")}
                   </div>
                 ) : (
                   cartItems.map((it, idx) => (
@@ -1059,46 +1072,56 @@ export default function SalesPage() {
             )}
           </div>
 
-          {/* Ghi chú hóa đơn */}
+          {/* GHI CHÚ HÓA ĐƠN */}
           <div className={`rounded-4 border border-${theme} border-opacity-25 bg-white p-3 mt-2`}>
             <div className="d-flex align-items-center">
               <i className="bi bi-pencil text-muted me-2" />
               <input
                 type="text"
                 className="form-control border-0 shadow-none"
-                placeholder={t("sales.orderNote", { defaultValue: "Order note..." })}
+                placeholder={t("sales.orderNote", "Ghi chú đơn hàng...")}
                 value={currentTab?.orderNote || ""}
                 onChange={(e) => setOrderNote(e.target.value)}
               />
             </div>
           </div>
+
         </div>
 
-        {/* === KHÁCH HÀNG === */}
-        <div className="col-lg-4 col-md-5 p-2 d-flex flex-column">
-          <CustomerPanel
-            customer={customer}
-            setCustomer={setCustomerInput}
-            filteredCustomers={filteredCustomers}
-            handleSelectCustomer={handleSelectCustomer}
-            totalAmount={totalAmount}
-            paymentMethod={paymentMethod}
-            setPaymentMethod={handlePaymentMethodChange}
-            onAddCustomerClick={handleOpenCustomerModal}
-            selectedCustomer={selectedCustomer}
-            onClearCustomer={handleClearCustomer}
-            invoiceDiscount={invoiceDiscount}
-            setInvoiceDiscount={handleInvoiceDiscountChange}
-            onPrint={() => console.log(t("sales.printAction", { defaultValue: "Print invoice" }))}
-            cartItems={cartItems}
-            orderNote={currentTab?.orderNote || ""}
-            onPay={savePendingOrder}
-            onPrintReady={(fn) => (printRef.current = fn)}
-          />
+        {/* ==== KHÁCH HÀNG ==== */}
+        <div className="col-12 col-md-5 col-lg-4 p-2 d-flex flex-column">
+
+          <div
+            className="flex-grow-1 overflow-auto rounded-3 bg-white p-2 d-flex"
+            style={{ height: "100%" }}
+          >
+            <CustomerPanel
+              customer={customer}
+              setCustomer={setCustomerInput}
+              filteredCustomers={filteredCustomers}
+              handleSelectCustomer={handleSelectCustomer}
+              totalAmount={totalAmount}
+              paymentMethod={paymentMethod}
+              setPaymentMethod={handlePaymentMethodChange}
+              onAddCustomerClick={handleOpenCustomerModal}
+              selectedCustomer={selectedCustomer}
+              onClearCustomer={handleClearCustomer}
+              invoiceDiscount={invoiceDiscount}
+              setInvoiceDiscount={handleInvoiceDiscountChange}
+              onPrint={() => console.log("Print")}
+              cartItems={cartItems}
+              orderNote={currentTab?.orderNote || ""}
+              onPay={savePendingOrder}
+              onPrintReady={(fn) => (printRef.current = fn)}
+            />
+          </div>
+
+
+
         </div>
       </div>
 
-      {/* Modal khách hàng */}
+      {/* MODAL KHÁCH */}
       <CustomerModal
         show={showCustomerModal}
         onClose={handleCloseCustomerModal}
@@ -1108,59 +1131,36 @@ export default function SalesPage() {
         saving={savingCustomer}
       />
 
+      {/* POPUP THANH TOÁN */}
       <PaymentConfirmModal
         show={showPaymentPopup}
         data={paymentData}
-
         onCancel={async () => {
           try {
-            const res = await axios.post(
+            await axios.post(
               `${API_BASE_URL}/order/sale/${paymentData.orderId}/cancel`,
               {},
               { headers: { Authorization: `Bearer ${token}` } }
             );
-            console.log("Đã hủy thanh toán:", res.data);
           } catch (err) {
             console.error("Failed to cancel:", err);
           }
           setShowPaymentPopup(false);
         }}
-
         onConfirm={async () => {
-          console.log("CLIENT SEND CONFIRM:", paymentData.orderId);
-
           try {
             await axios.post(
               `${API_BASE_URL}/order/sale/${paymentData.orderId}/confirm`,
               {},
               { headers: { Authorization: `Bearer ${token}` } }
             );
-
           } catch (e) {
             console.error("CONFIRM ERROR:", e);
           }
         }}
       />
 
-      {payLoading && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100vw",
-            height: "100vh",
-            background: "rgba(0,0,0,0.25)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 2000,
-          }}
-        >
-          <div className="spinner-border text-primary" style={{ width: "4rem", height: "4rem" }} />
-        </div>
-      )}
-
+      {/* POPUP HOÀN TẤT */}
       <PaymentSuccessToast
         show={showPaymentPopup && paymentData?.paymentStatus === "COMPLETED"}
         data={paymentData}
@@ -1169,6 +1169,13 @@ export default function SalesPage() {
           handleAfterPaymentComplete(paymentData.orderId);
         }}
       />
+      <InventoryErrorModal
+        show={showInventoryPopup}
+        onClose={() => setShowInventoryPopup(false)}
+        errors={inventoryErrors}
+      />
     </div>
   );
+
+
 }

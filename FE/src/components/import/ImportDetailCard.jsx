@@ -6,7 +6,7 @@ import { formatCurrency } from "../../utils/formatters";
 export default function ImportDetailCard({ data, onClose }) {
   const { theme } = useTheme();
   const { t } = useTranslation();
-  const [showItems, setShowItems] = useState(true); //  có thể ẩn/hiện phần hàng hóa
+  const [showItems, setShowItems] = useState(true); 
 
   if (!data) return null;
 
@@ -108,7 +108,7 @@ export default function ImportDetailCard({ data, onClose }) {
 
           {showItems && (
             <div className="table-responsive">
-              <table className="table table-sm table-bordered align-middle text-center mb-0">
+              <table className="table table-sm align-middle text-center mb-0">
                 <thead className={`table-${theme}`}>
                   <tr>
                     <th>{t("import.index") || "#"}</th>

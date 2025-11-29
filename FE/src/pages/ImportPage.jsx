@@ -3,7 +3,6 @@ import MainLayout from "../layouts/MainLayout";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../context/ThemeContext";
 import { useNavigate } from "react-router-dom";
-import ImportFilterPanel from "../components/import/ImportFilterPanel";
 import ImportTableList from "../components/import/ImportTableList";
 import TablePagination from "../components/common/TablePagination";
 import { API_BASE_URL } from "../services/api";
@@ -24,7 +23,6 @@ export default function ImportListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedRow, setExpandedRow] = useState(null);
 
-  // Nâng cấp bộ lọc
   const [filters, setFilters] = useState({
     status: "",
     startDate: "",
@@ -33,11 +31,10 @@ export default function ImportListPage() {
     supplier: "",
   });
 
-  // Danh sách người tạo & nhà cung cấp (đổ vào select)
   const [creators, setCreators] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
 
-  // Lấy danh sách import
+  // Load import list
   const fetchImports = async () => {
     setLoading(true);
     setError("");
@@ -48,9 +45,9 @@ export default function ImportListPage() {
 
       const formatted = (res.data || []).map((item) => ({
         id: item.importProductId || item.importCode || "PN000001",
-        supplierCode: item.supplierCode || "NCC0001",
+        supplierCode: item.supplierCode,
         supplier: item.supplierName || "",
-        employee: item.employeeName || "",
+        employee: item.employeeFullName || item.employeeName || "",
         total: Number(item.totalAmount) || 0,
         status: item.status || "DRAFT",
         createdAt: item.createdAt || new Date().toISOString(),
@@ -67,7 +64,7 @@ export default function ImportListPage() {
     }
   };
 
-  // Lấy danh sách người tạo & nhà cung cấp
+  // Load dropdowns
   const fetchDropdownData = async () => {
     try {
       const [empRes, supRes] = await Promise.all([
@@ -82,27 +79,34 @@ export default function ImportListPage() {
       setCreators(empRes.data || []);
       setSuppliers(supRes.data || []);
     } catch (err) {
-      console.error("Lỗi load dropdown:", err);
+      console.error("Failed to load dropdown", err);
     }
   };
 
   useEffect(() => {
     fetchImports();
     fetchDropdownData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Lọc dữ liệu
+  // FILTER LOGIC
   const filtered = importList.filter((p) => {
+    const q = query.toLowerCase();
+
     const matchQuery =
-      (p.id?.toString().toLowerCase().includes(query.toLowerCase()) ||
-        p.supplier?.toLowerCase().includes(query.toLowerCase())) ?? false;
+      p.id?.toString().toLowerCase().includes(q) ||
+      p.supplier?.toLowerCase().includes(q);
 
-    const matchStatus = !filters.status || (p.status || "").toLowerCase() === filters.status.toLowerCase();
-    const matchCreator = !filters.creator || (p.employee || "").toLowerCase().includes(filters.creator.toLowerCase());
-    const matchSupplier = !filters.supplier || (p.supplier || "").toLowerCase().includes(filters.supplier.toLowerCase());
+    const matchStatus =
+      !filters.status || p.status.toLowerCase() === filters.status.toLowerCase();
 
-    // Lọc theo thời gian (ISO)
+    const matchCreator =
+      !filters.creator ||
+      p.employee?.toLowerCase().includes(filters.creator.toLowerCase());
+
+    const matchSupplier =
+      !filters.supplier ||
+      p.supplier?.toLowerCase().includes(filters.supplier.toLowerCase());
+
     const created = new Date(p.createdAt);
     const okStart = !filters.startDate || created >= new Date(filters.startDate);
     const okEnd = !filters.endDate || created <= new Date(filters.endDate);
@@ -110,26 +114,30 @@ export default function ImportListPage() {
     return matchQuery && matchStatus && matchCreator && matchSupplier && okStart && okEnd;
   });
 
-  // Phân trang
-  const currentRows = filtered.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+  // PAGINATION
+  const currentRows = filtered.slice(
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage
+  );
+
   const rowsSelectValue = rowsPerPage > 100 ? "all" : rowsPerPage;
 
   const [selectedImports, setSelectedImports] = useState([]);
 
   const handleSelectAll = (checked) => {
     if (checked) {
-      const allIds = currentRows.map((p) => p.id);
-      setSelectedImports(allIds);
+      setSelectedImports(currentRows.map((p) => p.id));
     } else {
       setSelectedImports([]);
     }
   };
-  const handleSelectOne = (id) => {
-    setSelectedImports((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-  };
 
-  const handleToggleRow = (id) => {
-    setExpandedRow((prev) => (prev === id ? null : id));
+  const handleSelectOne = (id) => {
+    setSelectedImports((prev) =>
+      prev.includes(id)
+        ? prev.filter((x) => x !== id)
+        : [...prev, id]
+    );
   };
 
   const handleRowsPerPageChange = (value) => {
@@ -141,18 +149,28 @@ export default function ImportListPage() {
   return (
     <MainLayout>
       <div className="container-fluid py-3 position-relative">
+
         {/* HEADER */}
         <div className="row align-items-center gy-2 mb-2">
-          <div className="col-12 col-md-3 col-lg-2 d-flex align-items-center">
-            <h4 className="fw-bold text-capitalize mb-0">{t("import.title")}</h4>
+          <div className="col-12 col-md-3 col-lg-2">
+            <h4 className="fw-bold text-capitalize mb-0">
+              {t("import.title")}
+            </h4>
           </div>
 
-          {/* Ô tìm kiếm */}
+          {/* SEARCH */}
           <div className="col-12 col-md-5 col-lg-5">
-            <div className={`input-group border border-${theme} rounded-3 align-items-center`} style={{ height: "40px" }}>
-              <span className={`input-group-text bg-white border-0 text-${theme}`} style={{ borderRight: `1px solid var(--bs-${theme})`, height: "100%" }}>
+            <div
+              className={`input-group border border-${theme} rounded-3`}
+              style={{ height: "40px" }}
+            >
+              <span
+                className={`input-group-text bg-white border-0 text-${theme}`}
+                style={{ borderRight: `1px solid var(--bs-${theme})` }}
+              >
                 <i className="bi bi-search"></i>
               </span>
+
               <input
                 type="text"
                 value={query}
@@ -163,67 +181,119 @@ export default function ImportListPage() {
             </div>
           </div>
 
-          {/* Nút chức năng */}
+          {/* BUTTONS */}
           <div className="col-12 col-md-4 col-lg-5 d-flex justify-content-end gap-2 flex-wrap">
-            <button className={`btn btn-${theme} text-white fw-semibold d-flex align-items-center rounded-3 px-3`} onClick={() => navigate("/products/importdetail")}>
-              <i className="bi bi-plus-lg"></i>
-              <span className="ms-1 d-none d-sm-inline">{t("import.addNew")}</span>
-            </button>
             <button
-              className={`btn btn-outline-${theme} d-flex align-items-center fw-semibold rounded-3 px-3`}
+              className={`btn btn-${theme} text-white fw-semibold rounded-3 px-3`}
+              onClick={() => navigate("/products/importdetail")}
+            >
+              <i className="bi bi-plus-lg"></i>
+              <span className="ms-1 d-none d-sm-inline">
+                {t("import.addNew")}
+              </span>
+            </button>
+
+            <button
+              className={`btn btn-outline-${theme} fw-semibold rounded-3 px-3`}
               onClick={() => alert(t("import.alerts.exportInfo"))}
             >
               <i className="bi bi-download"></i>
-              <span className="ms-1 d-none d-md-inline">{t("import.exportFile")}</span>
+              <span className="ms-1 d-none d-md-inline">
+                {t("import.exportFile")}
+              </span>
             </button>
           </div>
         </div>
 
         {/* BODY */}
         <div className="row g-3 mt-1">
-          {/* Bộ lọc */}
+
+          {/* FILTER PANEL */}
           <aside className="col-lg-2 d-none d-lg-block">
             <div className="card shadow-sm border-0 h-100 p-3">
-              <h6 className="fw-bold mb-3">{t("import.filter")}</h6>
+              
 
-              {/* Trạng thái */}
+              {/* STATUS */}
               <div className="mb-3">
-                <label className="form-label fw-semibold">{t("import.status")}</label>
-                <select className="form-select form-select-sm" value={filters.status} onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}>
-                  <option value="">Tất cả</option>
-                  <option value="COMPLETED">Hoàn tất</option>
-                  <option value="DRAFT">Phiếu tạm</option>
+                <label className="form-label fw-semibold">
+                  {t("import.status")}
+                </label>
+                <select
+                  className="form-select form-select-sm"
+                  value={filters.status}
+                  onChange={(e) =>
+                    setFilters((f) => ({ ...f, status: e.target.value }))
+                  }
+                >
+                  <option value="">{t("common.all")}</option>
+                  <option value="COMPLETED">{t("import.status_completed")}</option>
+                  <option value="DRAFT">{t("import.status_draft")}</option>
                 </select>
               </div>
 
-              {/* Thời gian */}
+              {/* DATE */}
               <div className="mb-3">
-                <label className="form-label fw-semibold">Từ ngày</label>
-                <input type="date" className="form-control form-control-sm" value={filters.startDate} onChange={(e) => setFilters((f) => ({ ...f, startDate: e.target.value }))} />
-                <label className="form-label fw-semibold mt-2">Đến ngày</label>
-                <input type="date" className="form-control form-control-sm" value={filters.endDate} onChange={(e) => setFilters((f) => ({ ...f, endDate: e.target.value }))} />
+                <label className="form-label fw-semibold">
+                  {t("import.date_from")}
+                </label>
+                <input
+                  type="date"
+                  className="form-control form-control-sm"
+                  value={filters.startDate}
+                  onChange={(e) =>
+                    setFilters((f) => ({ ...f, startDate: e.target.value }))
+                  }
+                />
+
+                <label className="form-label fw-semibold mt-2">
+                  {t("import.date_to")}
+                </label>
+                <input
+                  type="date"
+                  className="form-control form-control-sm"
+                  value={filters.endDate}
+                  onChange={(e) =>
+                    setFilters((f) => ({ ...f, endDate: e.target.value }))
+                  }
+                />
               </div>
 
-              {/* Người tạo */}
+              {/* CREATOR */}
               <div className="mb-3">
-                <label className="form-label fw-semibold">Người tạo</label>
-                <select className="form-select form-select-sm" value={filters.creator} onChange={(e) => setFilters((f) => ({ ...f, creator: e.target.value }))}>
-                  <option value="">Tất cả</option>
+                <label className="form-label fw-semibold">
+                  {t("import.creator")}
+                </label>
+                <select
+                  className="form-select form-select-sm"
+                  value={filters.creator}
+                  onChange={(e) =>
+                    setFilters((f) => ({ ...f, creator: e.target.value }))
+                  }
+                >
+                  <option value="">{t("common.all")}</option>
                   {creators.map((c) => (
-                    <option key={c.id || c.userID} value={(c.fullName || c.username || "").toString()}>
-                      {c.fullName || c.username}
+                    <option key={c.id} value={c.fullName}>
+                      {c.fullName}
                     </option>
                   ))}
                 </select>
               </div>
 
-              {/* Nhà cung cấp */}
+              {/* SUPPLIER */}
               <div className="mb-3">
-                <label className="form-label fw-semibold">Nhà cung cấp</label>
-                <select className="form-select form-select-sm" value={filters.supplier} onChange={(e) => setFilters((f) => ({ ...f, supplier: e.target.value }))}>
-                  <option value="">Tất cả</option>
+                <label className="form-label fw-semibold">
+                  {t("import.supplier")}
+                </label>
+                <select
+                  className="form-select form-select-sm"
+                  value={filters.supplier}
+                  onChange={(e) =>
+                    setFilters((f) => ({ ...f, supplier: e.target.value }))
+                  }
+                >
+                  <option value="">{t("common.all")}</option>
                   {suppliers.map((s) => (
-                    <option key={s.supplierCode || s.supplierId} value={s.supplierName}>
+                    <option key={s.supplierId} value={s.supplierName}>
                       {s.supplierName}
                     </option>
                   ))}
@@ -232,7 +302,7 @@ export default function ImportListPage() {
             </div>
           </aside>
 
-          {/* Bảng danh sách */}
+          {/* TABLE */}
           <main className="col-lg-10 col-12">
             <div className="position-relative">
               <ImportTableList
@@ -241,7 +311,7 @@ export default function ImportListPage() {
                 onSelectOne={handleSelectOne}
                 onSelectAll={handleSelectAll}
                 expandedRow={expandedRow}
-                onExpand={handleToggleRow}
+                onExpand={setExpandedRow}
                 emptyMessage={error}
               />
 
@@ -250,9 +320,7 @@ export default function ImportListPage() {
                   className="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-75 rounded-3"
                   style={{ backdropFilter: "blur(2px)" }}
                 >
-                  <div className="spinner-border text-primary" role="status">
-                    <span className="visually-hidden">Loading...</span>
-                  </div>
+                  <div className="spinner-border text-primary" />
                 </div>
               )}
             </div>
@@ -267,9 +335,9 @@ export default function ImportListPage() {
               onRowsPerPageChange={handleRowsPerPageChange}
             />
           </main>
+
         </div>
       </div>
     </MainLayout>
   );
 }
-

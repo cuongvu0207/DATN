@@ -119,11 +119,11 @@ export default function InvoiceListPage() {
               paymentMethod: item.paymentMethod,
               status: item.status,
               createdAt: dateObj.toLocaleString("vi-VN", { hour12: false }),
-              createdAtRaw: dateObj.getTime(), // ⭐ DÙNG ĐỂ SORT
+              createdAtRaw: dateObj.getTime(), 
               seller: staff?.fullName || item.cashierId || "unknown",
             };
           })
-          .sort((a, b) => b.createdAtRaw - a.createdAtRaw); // ⭐ MỚI NHẤT → CŨ NHẤT
+          .sort((a, b) => b.createdAtRaw - a.createdAtRaw); 
 
         setInvoices(mapped);
       } catch (err) {

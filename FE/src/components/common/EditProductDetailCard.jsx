@@ -6,7 +6,7 @@ import CategoryAddCard from "../product/CategoryAddCard";
 import BrandAddCard from "../product/BrandAddCard";
 import { API_BASE_URL } from "../../services/api";
 import { validators } from "../../utils/validators";
-import useLoadingTimeout from "../../hooks/useLoadingTimeout";   // ⭐ thêm hook
+import useLoadingTimeout from "../../hooks/useLoadingTimeout";   
 
 export default function EditProductDetailCard({ product, onClose, onSave }) {
   const { t } = useTranslation();
@@ -24,10 +24,10 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
 
   const [showModal, setShowModal] = useState(null);
 
-  // ⭐ Loading khi fetch category/brand
+  //  Loading khi fetch category/brand
   const [loading, setLoading] = useState(false);
 
-  // ⭐ Loading khi SAVE
+  //  Loading khi SAVE
   const [saving, setSaving] = useState(false);
   const { showSpinner } = useLoadingTimeout(saving, { delayMs: 200 });
 
@@ -134,7 +134,7 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
   /* ====== SUBMIT ====== */
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSaving(true);  // ⭐ bật loading
+    setSaving(true);  // bật loading
 
     const resolvedCategoryId =
       form.categoryId ||
@@ -148,7 +148,7 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
 
     const payload = {
       ...form,
-      unit: form.unit || "", // ✅ đảm bảo luôn có unit
+      unit: form.unit || "", 
       categoryId: resolvedCategoryId ? String(resolvedCategoryId) : "",
       brandId: resolvedBrandId ? String(resolvedBrandId) : "",
       price: Number(form.price || 0),
@@ -259,7 +259,7 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
                 />
               </div>
 
-              {/* ✅ Unit (ĐƠN VỊ TÍNH) */}
+              {/*  Unit (ĐƠN VỊ TÍNH) */}
               <div className="col-md-6">
                 <label className="form-label">
                   {t("products.unit") || "Đơn vị tính"}

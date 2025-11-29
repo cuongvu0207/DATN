@@ -235,9 +235,9 @@ export default function AddProductCard({ onCancel, onSave }) {
 
           {/* FORM */}
           <form onSubmit={handleSubmit}>
-            <div className="row g-3">
 
-              {/* NAME */}
+            {/* HÀNG 1: Tên hàng + Mã vạch */}
+            <div className="row g-3">
               <div className="col-md-6">
                 <label className="form-label">{t("products.productName")}</label>
                 <input
@@ -250,7 +250,6 @@ export default function AddProductCard({ onCancel, onSave }) {
                 />
               </div>
 
-              {/* BARCODE */}
               <div className="col-md-6">
                 <label className="form-label">{t("products.barcode")}</label>
                 <input
@@ -261,8 +260,10 @@ export default function AddProductCard({ onCancel, onSave }) {
                   onChange={handleTextChange}
                 />
               </div>
+            </div>
 
-              {/* CATEGORY */}
+            {/* HÀNG 2: Danh mục + Thương hiệu */}
+            <div className="row g-3 mt-1">
               <div className="col-md-6">
                 <label className="form-label d-flex justify-content-between">
                   {t("products.category")}
@@ -291,7 +292,6 @@ export default function AddProductCard({ onCancel, onSave }) {
                 </select>
               </div>
 
-              {/* BRAND */}
               <div className="col-md-6">
                 <label className="form-label d-flex justify-content-between">
                   {t("products.brand")}
@@ -319,8 +319,10 @@ export default function AddProductCard({ onCancel, onSave }) {
                   ))}
                 </select>
               </div>
+            </div>
 
-              {/* UNIT */}
+            {/* HÀNG 3: Đơn vị + Giá vốn */}
+            <div className="row g-3 mt-1">
               <div className="col-md-6">
                 <label className="form-label">{t("products.unit")}</label>
                 <input
@@ -333,8 +335,7 @@ export default function AddProductCard({ onCancel, onSave }) {
                 />
               </div>
 
-              {/* COST */}
-              <div className="col-md-4">
+              <div className="col-md-6">
                 <label className="form-label">{t("products.costOfCapital")}</label>
                 <input
                   type="text"
@@ -346,9 +347,11 @@ export default function AddProductCard({ onCancel, onSave }) {
                   required
                 />
               </div>
+            </div>
 
-              {/* PRICE */}
-              <div className="col-md-4">
+            {/* HÀNG 4: Giá bán + Tồn kho */}
+            <div className="row g-3 mt-1">
+              <div className="col-md-6">
                 <label className="form-label">{t("products.sellingPrice")}</label>
                 <input
                   type="text"
@@ -361,8 +364,7 @@ export default function AddProductCard({ onCancel, onSave }) {
                 />
               </div>
 
-              {/* STOCK */}
-              <div className="col-md-4">
+              <div className="col-md-6">
                 <label className="form-label">{t("products.quantityInStock")}</label>
                 <input
                   type="text"
@@ -374,9 +376,11 @@ export default function AddProductCard({ onCancel, onSave }) {
                   required
                 />
               </div>
+            </div>
 
-               {/*MINIMUM STOCK */}
-              <div className="col-md-4">
+            {/* HÀNG 5: Tồn tối thiểu + Ô TRỐNG */}
+            <div className="row g-3 mt-1">
+              <div className="col-md-6">
                 <label className="form-label">{t("products.minimumStock")}</label>
                 <input
                   type="text"
@@ -389,7 +393,8 @@ export default function AddProductCard({ onCancel, onSave }) {
                 />
               </div>
 
-              
+              {/* Ô TRỐNG ĐÚNG NHƯ YÊU CẦU */}
+              <div className="col-md-6"></div>
             </div>
 
             {/* BUTTONS */}
@@ -401,7 +406,9 @@ export default function AddProductCard({ onCancel, onSave }) {
                 {t("common.save")}
               </button>
             </div>
+
           </form>
+
         </div>
       </div>
 

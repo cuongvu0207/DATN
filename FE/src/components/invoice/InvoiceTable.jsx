@@ -13,7 +13,7 @@ export default function InvoiceTable({
   selectedInvoices,
   onSelectOne,
   onSelectAll,
-  loading, // 👈 THÊM loading
+  loading, 
 }) {
   const { t } = useTranslation();
   const { theme } = useTheme();

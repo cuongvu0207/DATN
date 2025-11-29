@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { API_BASE_URL } from "../services/api";
 import { formatters } from "../utils/formatters";
 import { validators } from "../utils/validators";
+import ChangePasswordModal from "../components/account/ChangePasswordModal"; // ⭐ IMPORT modal
 
 export default function AccountPage() {
   const { theme } = useTheme();
@@ -17,8 +18,11 @@ export default function AccountPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
+  const [showChangePass, setShowChangePass] = useState(false); // ⭐ STATE MODAL
+
   const token = localStorage.getItem("accessToken");
-  // ===== Lấy thông tin tài khoản =====
+
+  // ===== Fetch account =====
   const fetchAccount = async () => {
     setLoading(true);
     try {
@@ -49,7 +53,7 @@ export default function AccountPage() {
     fetchAccount();
   }, []);
 
-  // ===== Cập nhật state khi chỉnh sửa =====
+  // ===== Handle form edit =====
   const handleChange = (e) => {
     setAccount({
       ...account,
@@ -57,7 +61,7 @@ export default function AccountPage() {
     });
   };
 
-  // ===== Cập nhật tài khoản =====
+  // ===== Update account =====
   const handleUpdate = async () => {
     try {
       if (!token) {
@@ -97,12 +101,12 @@ export default function AccountPage() {
     }
   };
 
-  // ===== Hiển thị khi đang tải =====
+  // ===== Loading UI =====
   if (loading)
     return (
       <MainLayout>
         <div className="text-center py-4">
-          <div className="spinner-border text-primary" role="status"></div>
+          <div className="spinner-border text-primary"></div>
           <p className="mt-2">{t("common.loading")}</p>
         </div>
       </MainLayout>
@@ -111,17 +115,15 @@ export default function AccountPage() {
   return (
     <MainLayout>
       <div className="container-fluid py-3 px-4">
-        {/* === Tiêu đề === */}
+
+        {/* TITLE */}
         <div className="d-flex align-items-center justify-content-between mb-3">
-          <h4 className={`fw-bold text-black mb-0`}>
-            {t("account.title")}
-          </h4>
+          <h4 className="fw-bold text-black">{t("account.title")}</h4>
         </div>
 
-        {/* === Nội dung chính === */}
         <div className="bg-white border rounded-3 shadow-sm p-4">
-          {error && <p className="text-danger mb-2">{error}</p>}
-          {message && <p className="text-success mb-2">{message}</p>}
+          {error && <p className="text-danger">{error}</p>}
+          {message && <p className="text-success">{message}</p>}
 
           {account && (
             <div className="row g-3">
@@ -138,6 +140,7 @@ export default function AccountPage() {
                 <div key={field.name} className="col-md-6">
                   <label className="form-label fw-semibold">{field.label}</label>
 
+                  {/* EDIT MODE */}
                   {editing ? (
                     field.name === "gender" ? (
                       <select
@@ -151,10 +154,7 @@ export default function AccountPage() {
                             : "Nữ"
                         }
                         onChange={(e) =>
-                          setAccount({
-                            ...account,
-                            gender: e.target.value,
-                          })
+                          setAccount({ ...account, gender: e.target.value })
                         }
                       >
                         <option value="Nam">{t("account.male")}</option>
@@ -163,24 +163,29 @@ export default function AccountPage() {
                     ) : field.name === "dateOfBirth" ? (
                       <input
                         type="date"
-                        name="dateOfBirth"
                         className="form-control"
-                        value={formatters.date.toISO(account.dateOfBirth || "")}
-                        onChange={(e) => setAccount({ ...account, dateOfBirth: formatters.date.toDisplay(e.target.value) })}
+                        value={formatters.date.toISO(account.dateOfBirth)}
+                        onChange={(e) =>
+                          setAccount({
+                            ...account,
+                            dateOfBirth: formatters.date.toDisplay(e.target.value),
+                          })
+                        }
                       />
                     ) : field.name === "role" ? (
-                      <p className="form-control mb-0 bg-light">{account.role}</p>
+                      <p className="form-control bg-light">{account.role}</p>
                     ) : (
                       <input
                         type="text"
                         name={field.name}
+                        className="form-control"
                         value={account[field.name] || ""}
                         onChange={handleChange}
-                        className="form-control"
                       />
                     )
                   ) : (
-                    <p className="form-control mb-0 bg-light">
+                    /* VIEW MODE */
+                    <p className="form-control bg-light">
                       {field.name === "gender"
                         ? account.gender === 1 ||
                           account.gender === "1" ||
@@ -208,17 +213,30 @@ export default function AccountPage() {
             </div>
           )}
 
-          {/* === Nút hành động === */}
+          {/* ACTION BUTTONS */}
           <div className="mt-4 d-flex justify-content-end gap-2">
+
             {!editing ? (
-              <button className={`btn btn-${theme}`} onClick={() => setEditing(true)}>
-                {t("account.edit")}
-              </button>
+              <>
+                {/* Edit */}
+                <button className={`btn btn-${theme}`} onClick={() => setEditing(true)}>
+                  {t("account.edit")}
+                </button>
+
+                {/* Change password (modal) */}
+                <button
+                  className="btn btn-warning"
+                  onClick={() => setShowChangePass(true)} // ⭐ MỞ MODAL
+                >
+                  {t("account.changePassword")}
+                </button>
+              </>
             ) : (
               <>
                 <button className={`btn btn-${theme}`} onClick={handleUpdate}>
                   {t("account.save")}
                 </button>
+
                 <button className="btn btn-secondary" onClick={() => setEditing(false)}>
                   {t("account.cancel")}
                 </button>
@@ -227,8 +245,13 @@ export default function AccountPage() {
           </div>
         </div>
       </div>
+
+      {/* ⭐ MODAL ĐỔI MẬT KHẨU */}
+      <ChangePasswordModal
+        show={showChangePass}
+        onClose={() => setShowChangePass(false)}
+      />
+
     </MainLayout>
   );
 }
-
-

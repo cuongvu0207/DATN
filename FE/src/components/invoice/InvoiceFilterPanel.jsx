@@ -13,7 +13,6 @@ export default function InvoiceFilterPanel({ filters, onChange, sellerList }) {
     <aside className="col-lg-2 d-none d-lg-block">
       <div className="card shadow-sm border-0 h-100">
         <div className="card-body">
-          <h6 className="fw-bold mb-4">{t("invoices.filterTitle")}</h6>
 
           {/* ===== Trạng thái ===== */}
           <div className="mb-4">
