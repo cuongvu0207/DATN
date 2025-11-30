@@ -135,6 +135,8 @@
       "sheetPlaceholder": "Nhập link Google Sheet...",
       "addProducts": "Thêm sản phẩm"
     },
+    "addCategory": "Thêm danh mục",
+    "addBrand": "Thêm thương hiệu",
     "title": "Hàng hoá",
     "quantity": "Số lượng",
     "subtotal": "Thành tiền",
@@ -307,6 +309,28 @@
       "email": "Nhập email liên hệ...",
       "address": "Nhập địa chỉ...",
       "note": "Nhập ghi chú..."
+    }
+  },
+  "category": {
+    "categoryName": "Tên danh mục",
+    "description": "Mô tả",
+    "enterName": "Vui lòng nhập tên danh mục!",
+    "addSuccess": "Thêm danh mục thành công!",
+    "addFail": "Không thể thêm danh mục!",
+    "placeholder": {
+      "name": "Nhập tên danh mục...",
+      "description": "Nhập mô tả danh mục..."
+    }
+  },
+  "brand": {
+    "brandName": "Tên thương hiệu",
+    "description": "Mô tả",
+    "enterName": "Vui lòng nhập tên thương hiệu!",
+    "addSuccess": "Thêm thương hiệu thành công!",
+    "addFail": "Không thể thêm thương hiệu!",
+    "placeholder": {
+      "name": "Nhập tên thương hiệu...",
+      "description": "Nhập mô tả thương hiệu..."
     }
   },
   "import": {
@@ -491,5 +515,22 @@
       "userNotFound": "Không tìm thấy người dùng",
       "serverError": "Lỗi hệ thống"
     }
+  },
+  "forgot": {
+    "resetTitle": "Đặt lại mật khẩu",
+    "emailPlaceholder": "Nhập email ...",
+    "otpPlaceholder": "Nhập mã OTP...",
+    "sendOtp": "Gửi OTP",
+    "loading": "Đang xử lý...",
+    "success": "Đã gửi OTP thành công! Vui lòng kiểm tra email.",
+    "fail": "Không thể gửi OTP hoặc sai email. Vui lòng thử lại!",
+    "reset": "Đặt lại mật khẩu",
+    "resetSuccess": "Đặt lại mật khẩu thành công!",
+    "resetFail": "Không thể đặt lại mật khẩu! Vui lòng thử lại.",
+    "newPassword": "Mật khẩu mới",
+    "confirmPassword": "Xác nhận mật khẩu",
+    "backToLogin": "Quay lại đăng nhập",
+    "resendIn" : "⟳"
   }
+  
 }

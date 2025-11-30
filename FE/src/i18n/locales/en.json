@@ -55,7 +55,7 @@
     "noData": "No data to display",
     "show": "Show",
     "rows": "rows",
-    "saving" : "Saving"
+    "saving": "Saving"
   },
   "menu": {
     "overview": "Overview",
@@ -123,7 +123,7 @@
     "sellingPrice": "Selling Price",
     "costOfCapital": "Cost of Capital",
     "quantityInStock": "In Stock",
-    "minimumStock" : "MinimumStock",
+    "minimumStock": "MinimumStock",
     "expectedOutOfStock": "Expected Out of Stock",
     "editProduct": "Edit Product",
     "unit": "Unit",
@@ -211,7 +211,8 @@
     "loadError": "Failed to load account.",
     "invalidDate": "Invalid date format.",
     "updateSuccess": "Account updated successfully!",
-    "updateFail": "Failed to update account!"
+    "updateFail": "Failed to update account!",
+    "changePassword": "Change Password"
   },
   "roles": {
     "admin": "Admin",
@@ -403,21 +404,16 @@
     "selectToExport": "Please select invoices to export.",
     "selectToPrint": "Please select invoices to print."
   },
-    "changePassword": {
+  "changePassword": {
     "title": "Change Password",
-
     "currentPassword": "Current Password",
     "currentPasswordPlaceholder": "Enter your current password",
-
     "newPassword": "New Password",
     "newPasswordPlaceholder": "Enter your new password",
-
     "confirmPassword": "Confirm Password",
     "confirmPasswordPlaceholder": "Re-enter your new password",
-
     "save": "Save",
     "success": "Password changed successfully!",
-
     "requirements": "Your password must contain",
     "require": {
       "minLength": "At least 8 characters",
@@ -426,7 +422,6 @@
       "number": "At least 1 number (0–9)",
       "special": "At least 1 special character"
     },
-
     "errors": {
       "weakPassword": "Your new password is not strong enough",
       "mismatch": "Confirm password does not match",
@@ -436,6 +431,21 @@
       "userNotFound": "User not found",
       "serverError": "A server error occurred"
     }
+  },
+  "forgot": {
+    "resetTitle": "Reset Password",
+    "emailPlaceholder": "Enter email...",
+    "otpPlaceholder": "Enter OTP code...",
+    "sendOtp": "Send OTP",
+    "loading": "Processing...",
+    "success": "OTP sent successfully! Please check your email.",
+    "fail": "Failed to send OTP. Please try again!",
+    "reset": "Reset Password",
+    "resetSuccess": "Password reset successfully!",
+    "resetFail": "Failed to reset password. Please try again.",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm Password",
+    "backToLogin": "Back to Login",
+    "resendIn" : "⟳"
   }
-  
 }

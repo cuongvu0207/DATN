@@ -118,8 +118,9 @@ export default function ProductTable({
                       <td>{p.code || p.barcode || "-"}</td>
 
                       {/* Tên + Ảnh */}
-                      <td>
+                      <td className="text-wrap" style={{ maxWidth: "220px" }}>
                         <div className="d-flex align-items-center gap-2">
+
                           <img
                             src={p.image || "/no-image.png"}
                             alt={p.name}

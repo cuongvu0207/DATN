@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import InputField from "../components/InputField";
 import LanguageSwitcher from "../components/navigation/LanguageSwitcher";
-import { API_BASE_URL } from "../services/api"; // ✅ dùng biến API gateway
+import { API_BASE_URL } from "../services/api";
 import "bootstrap/dist/css/bootstrap.min.css";
 import bgLogin from "../assets/img/bg-login.jpg";
 
@@ -108,7 +108,11 @@ export default function LoginPage() {
                 {t("login.remember")}
               </label>
             </div>
-            <a href="#" className="small text-primary">
+            <a
+              href="/forgot-password"
+              className="small text-primary"
+              style={{ cursor: "pointer" }}
+            >
               {t("login.forgotPassword")}
             </a>
           </div>

@@ -115,16 +115,16 @@ export default function ProductFilterPanel({ filters, onChange }) {
                 value={
                   filters.category
                     ? { value: filters.category, label: filters.category }
-                    : { value: "all", label: t("common.all") || "Tất cả" }
+                    : { value:  t("common.all"), label: t("common.all")  }
                 }
                 onChange={(opt) =>
-                  onChange.change("category", opt ? opt.value : "all")
+                  onChange.change("category", opt ? opt.value : t("common.all"))
                 }
                 options={[
-                  { value: "all", label: t("common.all") || "Tất cả" },
+                  { value:  t("common.all"), label: t("common.all") },
                   ...categories,
                 ]}
-                placeholder={t("products.selectCategory") || "Chọn danh mục..."}
+                placeholder={t("products.selectCategory") }
                 isSearchable
               />
             </div>
@@ -150,16 +150,16 @@ export default function ProductFilterPanel({ filters, onChange }) {
                 value={
                   filters.brand
                     ? { value: filters.brand, label: filters.brand }
-                    : { value: "all", label: t("common.all") || "Tất cả" }
+                    : { value:  t("common.all") , label: t("common.all")  }
                 }
                 onChange={(opt) =>
-                  onChange.change("brand", opt ? opt.value : "all")
+                  onChange.change("brand", opt ? opt.value :t("common.all") )
                 }
                 options={[
-                  { value: "all", label: t("common.all") || "Tất cả" },
+                  { value:  t("common.all"), label: t("common.all")  },
                   ...brands,
                 ]}
-                placeholder={t("products.selectBrand") || "Chọn thương hiệu..."}
+                placeholder={t("products.selectBrand") }
                 isSearchable
               />
             </div>

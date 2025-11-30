@@ -18,13 +18,16 @@ import SupplierPage from "./pages/SupplierPage";
 import ProtectedRoute from "./components/auth/ProtectedRoute"; 
 import CustomerPage from "./pages/CustomerPage";
 import PaymentNotification from "./pages/PaymentNotification";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 export default function App() {
   return (
     <ThemeProvider>
       <Router>
         <Routes>
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           {/* ✅ Trang Login — cho phép truy cập tự do */}
           <Route path="/login" element={<LoginPage />} />
+          
 
           {/* ✅ Tất cả các route khác đều yêu cầu có token */}
           <Route
