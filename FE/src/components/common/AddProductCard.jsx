@@ -45,6 +45,13 @@ export default function AddProductCard({ onCancel, onSave }) {
 
   const normalizeNumber = (str) => str.replace(/\./g, "");
 
+  // ✅ Dấu bắt buộc
+  const ReqMark = () => (
+    <span className="text-danger ms-1" title={t("common.required", "Bắt buộc")}>
+      *
+    </span>
+  );
+
   /* ================================
      Fetch Category + Brand
   ================================= */
@@ -195,8 +202,13 @@ export default function AddProductCard({ onCancel, onSave }) {
           className="position-fixed top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center"
           style={{ background: "rgba(255,255,255,0.65)", zIndex: 3000 }}
         >
-          <div className="spinner-border text-primary" style={{ width: "3rem", height: "3rem" }}></div>
-          <div className="mt-3 fw-semibold fs-5">{t("common.saving") || "Đang lưu sản phẩm..."}</div>
+          <div
+            className="spinner-border text-primary"
+            style={{ width: "3rem", height: "3rem" }}
+          ></div>
+          <div className="mt-3 fw-semibold fs-5">
+            {t("common.saving") || "Đang lưu sản phẩm..."}
+          </div>
         </div>
       )}
 
@@ -207,14 +219,24 @@ export default function AddProductCard({ onCancel, onSave }) {
       >
         <div
           className="bg-white rounded-4 shadow-lg p-4 position-relative"
-          style={{ width: "90%", maxWidth: "950px", maxHeight: "90%", overflowY: "auto" }}
+          style={{
+            width: "90%",
+            maxWidth: "950px",
+            maxHeight: "90%",
+            overflowY: "auto",
+          }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* HEADER */}
-          <div className="d-flex justify-content-between align-items-center mb-3">
-            <h5 className={`fw-bold text-${theme} m-0`}>{t("products.addProduct")}</h5>
+          <div className="d-flex justify-content-between align-items-center mb-2">
+            <h5 className={`fw-bold text-${theme} m-0`}>
+              {t("products.addProduct")}
+            </h5>
             <button type="button" className="btn-close" onClick={onCancel}></button>
           </div>
+
+          {/* NOTE REQUIRED */}
+
 
           {/* IMAGE */}
           <div className="text-center mb-4">
@@ -235,11 +257,13 @@ export default function AddProductCard({ onCancel, onSave }) {
 
           {/* FORM */}
           <form onSubmit={handleSubmit}>
-
             {/* HÀNG 1: Tên hàng + Mã vạch */}
             <div className="row g-3">
               <div className="col-md-6">
-                <label className="form-label">{t("products.productName")}</label>
+                <label className="form-label">
+                  {t("products.productName")}
+                  <ReqMark />
+                </label>
                 <input
                   type="text"
                   name="name"
@@ -266,7 +290,10 @@ export default function AddProductCard({ onCancel, onSave }) {
             <div className="row g-3 mt-1">
               <div className="col-md-6">
                 <label className="form-label d-flex justify-content-between">
-                  {t("products.category")}
+                  <span>
+                    {t("products.category")}
+                    <ReqMark />
+                  </span>
                   <button
                     type="button"
                     className={`btn btn-outline-${theme} btn-sm rounded-circle p-0`}
@@ -294,7 +321,10 @@ export default function AddProductCard({ onCancel, onSave }) {
 
               <div className="col-md-6">
                 <label className="form-label d-flex justify-content-between">
-                  {t("products.brand")}
+                  <span>
+                    {t("products.brand")}
+                    <ReqMark />
+                  </span>
                   <button
                     type="button"
                     className={`btn btn-outline-${theme} btn-sm rounded-circle p-0`}
@@ -324,7 +354,10 @@ export default function AddProductCard({ onCancel, onSave }) {
             {/* HÀNG 3: Đơn vị + Giá vốn */}
             <div className="row g-3 mt-1">
               <div className="col-md-6">
-                <label className="form-label">{t("products.unit")}</label>
+                <label className="form-label">
+                  {t("products.unit")}
+                  <ReqMark />
+                </label>
                 <input
                   type="text"
                   name="unit"
@@ -336,7 +369,10 @@ export default function AddProductCard({ onCancel, onSave }) {
               </div>
 
               <div className="col-md-6">
-                <label className="form-label">{t("products.costOfCapital")}</label>
+                <label className="form-label">
+                  {t("products.costOfCapital")}
+                  <ReqMark />
+                </label>
                 <input
                   type="text"
                   name="cost"
@@ -352,7 +388,10 @@ export default function AddProductCard({ onCancel, onSave }) {
             {/* HÀNG 4: Giá bán + Tồn kho */}
             <div className="row g-3 mt-1">
               <div className="col-md-6">
-                <label className="form-label">{t("products.sellingPrice")}</label>
+                <label className="form-label">
+                  {t("products.sellingPrice")}
+                  <ReqMark />
+                </label>
                 <input
                   type="text"
                   name="price"
@@ -365,7 +404,10 @@ export default function AddProductCard({ onCancel, onSave }) {
               </div>
 
               <div className="col-md-6">
-                <label className="form-label">{t("products.quantityInStock")}</label>
+                <label className="form-label">
+                  {t("products.quantityInStock")}
+                  <ReqMark />
+                </label>
                 <input
                   type="text"
                   name="stock"
@@ -381,7 +423,10 @@ export default function AddProductCard({ onCancel, onSave }) {
             {/* HÀNG 5: Tồn tối thiểu + Ô TRỐNG */}
             <div className="row g-3 mt-1">
               <div className="col-md-6">
-                <label className="form-label">{t("products.minimumStock")}</label>
+                <label className="form-label">
+                  {t("products.minimumStock")}
+                  <ReqMark />
+                </label>
                 <input
                   type="text"
                   name="minimumStock"
@@ -393,7 +438,7 @@ export default function AddProductCard({ onCancel, onSave }) {
                 />
               </div>
 
-              {/* Ô TRỐNG ĐÚNG NHƯ YÊU CẦU */}
+              {/* Ô TRỐNG */}
               <div className="col-md-6"></div>
             </div>
 
@@ -406,22 +451,29 @@ export default function AddProductCard({ onCancel, onSave }) {
                 {t("common.save")}
               </button>
             </div>
-
           </form>
-
         </div>
       </div>
 
       {/* MODAL ADD CATEGORY / BRAND */}
       {showModal && (
-        <div className="modal fade show" style={{ display: "block", background: "rgba(0,0,0,.4)" }}>
+        <div
+          className="modal fade show"
+          style={{ display: "block", background: "rgba(0,0,0,.4)" }}
+        >
           <div className="modal-dialog modal-dialog-centered">
             <div className="modal-content border-0 shadow">
               <div className="modal-header">
                 <h5 className="modal-title">
-                  {showModal === "brand" ? t("products.addBrand") : t("products.addCategory")}
+                  {showModal === "brand"
+                    ? t("products.addBrand")
+                    : t("products.addCategory")}
                 </h5>
-                <button type="button" className="btn-close" onClick={() => setShowModal(null)}></button>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setShowModal(null)}
+                ></button>
               </div>
               <div className="modal-body">
                 {showModal === "brand" ? (

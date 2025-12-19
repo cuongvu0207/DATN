@@ -26,7 +26,10 @@
     "phoneRequired": "Vui lòng nhập số điện thoại!",
     "genderMale": "Nam",
     "genderFemale": "Nữ",
-    "genderUnknown": "Chưa xác định"
+    "genderUnknown": "Chưa xác định",
+    "walkIn": "Khách lẻ",
+    "anonymous": "Khách #{0}",
+    "defaultName": "Khách hàng"
   },
   "login": {
     "title": "VPOS",
@@ -58,7 +61,12 @@
     "confirm": "Xác nhận",
     "rows": "hàng",
     "show": "Hiển thị",
-    "saving": "Đang lưu"
+    "saving": "Đang lưu",
+    "currency": "₫",
+    "orders": "đơn hàng",
+    "billion": "tỷ",
+    "dateFormat": "YYYY-MM-DD",
+    "refresh": "Làm mới"
   },
   "staff": {
     "title": "Danh sách nhân viên",
@@ -133,8 +141,10 @@
       "note": "Lưu ý: Vui lòng dùng file mẫu để đảm bảo đúng định dạng.",
       "sheetTitle": "Tải lên từ Google Sheet",
       "sheetPlaceholder": "Nhập link Google Sheet...",
-      "addProducts": "Thêm sản phẩm"
+      "addProducts": "Thêm sản phẩm",
+      "noData": "Không có dữ liệu để hiển thị"
     },
+    "noData": "Không có dữ liệu để hiển thị",
     "addCategory": "Thêm danh mục",
     "addBrand": "Thêm thương hiệu",
     "title": "Hàng hoá",
@@ -218,7 +228,8 @@
     "createdDate": "Ngày tạo",
     "activate": "Kích hoạt",
     "deactivate": "Vô hiệu hoá",
-    "chooseImage": "Tải ảnh sản phẩm"
+    "chooseImage": "Tải ảnh sản phẩm",
+    "defaultName": "Sản phẩm"
   },
   "actions": {
     "apply": "Áp dụng",
@@ -320,7 +331,8 @@
     "placeholder": {
       "name": "Nhập tên danh mục...",
       "description": "Nhập mô tả danh mục..."
-    }
+    },
+    "other": "Khác"
   },
   "brand": {
     "brandName": "Tên thương hiệu",
@@ -357,6 +369,7 @@
     "draft": "Phiếu tạm",
     "completed": "Đã nhập hàng",
     "total": "Tổng cộng",
+    "noItems": "Chưa có sản phẩm nào!",
     "selectsupplier": "Chọn nhà cung cấp",
     "searchPlaceholder": "Tìm theo mã phiếu nhập hoặc nhà cung cấp...",
     "noProducts": "Chưa có sản phẩm nào. Vui lòng thêm sản phẩm trước.",
@@ -469,16 +482,82 @@
   },
   "dashboard": {
     "title": "Tổng quan",
+    "subtitle": "Tổng quan doanh nghiệp",
+    "timePeriod": "Khoảng thời gian",
+    "today": "Hôm nay",
+    "last7Days": "7 ngày",
+    "last30Days": "30 ngày",
+    "thisYear": "Năm nay",
+    "fetchError": "Không tải được dữ liệu dashboard",
+    "summary": {
+      "revenue": "Doanh thu",
+      "revenueDesc": "Tổng doanh thu bán hàng",
+      "cost": "Chi phí",
+      "costDesc": "Tổng giá vốn hàng bán",
+      "profit": "Lợi nhuận",
+      "profitDesc": "Lợi nhuận sau khi trừ giá vốn",
+      "totalOrders": "Tổng đơn hàng",
+      "totalOrdersDesc": "Số hóa đơn đã bán",
+      "averageOrderValue": "Trung bình/đơn",
+      "averageOrderValueDesc": "Giá trị trung bình mỗi đơn hàng"
+    },
+    "charts": {
+      "revenueTrend": "Xu hướng doanh thu",
+      "revenue": "Doanh thu",
+      "amount": "Số tiền",
+      "chartType": "Kiểu biểu đồ",
+      "barChart": "Biểu đồ cột",
+      "lineChart": "Biểu đồ đường",
+      "paymentMethods": "Phương thức thanh toán",
+      "total": "Tổng",
+      "categoryRevenue": "Doanh thu theo danh mục",
+      "topCategories": "Top {{count}} danh mục"
+    },
+    "table": {
+      "productName": "Tên sản phẩm",
+      "quantity": "SL",
+      "revenue": "Doanh thu",
+      "customerName": "Tên khách hàng",
+      "orders": "Đơn hàng",
+      "totalSpent": "Tổng chi tiêu",
+      "category": "Danh mục",
+      "barcode": "Mã vạch",
+      "currentStock": "Tồn hiện tại",
+      "minStock": "Tồn tối thiểu",
+      "difference": "Chênh lệch",
+      "status": "Trạng thái"
+    },
+    "topProducts": "Sản phẩm bán chạy",
+    "topCustomers": "Khách hàng tiêu biểu",
+    "lowStockAlert": "Cảnh báo tồn kho thấp",
+    "needToImport": "Cần nhập {{count}} sản phẩm",
+    "allProductsInStock": "Tất cả sản phẩm đều có đủ tồn kho",
+    "status": {
+      "outOfStock": "Hết hàng",
+      "lowStock": "Sắp hết"
+    },
     "revenue": "Doanh thu",
     "cost": "Chi phí",
     "profit": "Lợi nhuận",
-    "revenueTrend": "Xu hướng doanh thu",
-    "topProducts": "Sản phẩm bán chạy",
-    "topCustomers": "Khách hàng thân thiết",
-    "activity": "Nhật ký hoạt động",
     "orders": "Đơn hàng",
     "customers": "Khách hàng",
-    "products": "Sản phẩm"
+    "products": "Sản phẩm",
+    "periodLabel": "Theo",
+    "period": {
+      "day": "Ngày",
+      "week": "Tuần",
+      "month": "Tháng",
+      "year": "Năm"
+    },
+    "lowStockQuickBadge": "{{count}} sản phẩm sắp hết hàng",
+    "lowStockTitle": "Cảnh báo tồn kho",
+    "lowStockNeedImportBadge": "{{count}} sản phẩm cần nhập",
+    "lowStockEmpty": "Không có sản phẩm nào dưới mức tồn tối thiểu",
+    "lowStockCurrentStock": "Tồn hiện tại",
+    "lowStockMinStock": "Tồn tối thiểu",
+    "lowStockStatus": "Trạng thái",
+    "lowStockStatusOut": "Hết hàng",
+    "lowStockStatusCritical": "Sắp hết"
   },
   "payment": {
     "amount": "Tổng số tiền",
@@ -530,7 +609,113 @@
     "newPassword": "Mật khẩu mới",
     "confirmPassword": "Xác nhận mật khẩu",
     "backToLogin": "Quay lại đăng nhập",
-    "resendIn" : "⟳"
+    "resendIn": "⟳"
+  },
+  "finance": {
+    "title": "Tài chính - Thuế & Kế toán",
+    "subtitle": "Báo cáo tài chính và tính thuế tự động",
+    "period": "Kỳ",
+    "customPeriod": "Tùy chỉnh",
+    "displayDate": "Hiển thị",
+    "industry": {
+      "groceryStationery": "Tạp hóa & Văn phòng phẩm"
+    },
+    "tabs": {
+      "overview": "Tổng quan",
+      "taxCalculator": "Tính thuế",
+      "transactions": "Giao dịch"
+    },
+    "summary": {
+      "revenueDesc": "Tổng doanh thu bán hàng",
+      "costDesc": "Tổng giá vốn hàng bán",
+      "profitDesc": "Lợi nhuận sau khi trừ giá vốn",
+      "invoicesDesc": "Số hóa đơn đã bán",
+      "marginDesc": "Tỷ suất lợi nhuận",
+      "margin": "Tỷ suất lợi nhuận"
+    },
+    "charts": {
+      "revenueTrend": "Xu hướng doanh thu",
+      "revenue": "Doanh thu",
+      "orders": "đơn hàng",
+      "paymentMethods": "Phương thức thanh toán",
+      "categoryRevenue": "Doanh thu theo danh mục",
+      "topCategories": "Top danh mục"
+    },
+    "taxCalculator": {
+      "title": "Tính thuế phải nộp",
+      "period": "Kỳ tính thuế",
+      "monthly": "Theo tháng",
+      "quarterly": "Theo quý",
+      "yearly": "Theo năm",
+      "revenue": "Doanh thu tính thuế",
+      "revenuePlaceholder": "Nhập tổng doanh thu",
+      "useCurrent": "Dùng doanh thu hiện tại",
+      "inputVat": "Thuế VAT đầu vào",
+      "inputVatPlaceholder": "Nhập thuế VAT đầu vào",
+      "inputVatDesc": "Tổng thuế VAT trên hóa đơn mua vào",
+      "vatCreditOnly": "Phương pháp khấu trừ thuế GTGT",
+      "vatCreditDesc": "Áp dụng cho hộ kinh doanh doanh thu từ 500 triệu/năm. VAT phải nộp = VAT đầu ra - VAT đầu vào.",
+      "yearlyEstimateLabel": "Ước tính doanh thu năm",
+      "taxFreeThreshold": "Ngưỡng miễn thuế",
+      "threshold": "Ngưỡng: {{amount}}",
+      "belowThreshold": "Dưới ngưỡng chịu thuế",
+      "aboveThreshold": "Đã đạt ngưỡng chịu thuế",
+      "outputVat": "VAT đầu ra",
+      "vatToPay": "VAT phải nộp",
+      "vatAmount": "Thuế GTGT phải nộp",
+      "pitAmount": "Thuế TNCN phải nộp",
+      "totalTax": "Tổng thuế phải nộp",
+      "effectiveRate": "Thuế suất hiệu dụng",
+      "taxExemption": "Miễn thuế",
+      "exemptionDetails": "Doanh thu ước tính {{amount}} dưới ngưỡng {{threshold}} nên được miễn thuế.",
+      "disclaimer": "Đây là công cụ tính toán nội bộ, không thay thế tư vấn thuế chính thức.",
+      "guideTitle": "Hướng dẫn sử dụng",
+      "guideStep1": "Chọn kỳ tính thuế (tháng/quý/năm)",
+      "guideStep2": "Nhập doanh thu tương ứng",
+      "guideStep3": "Nhập thuế VAT đầu vào (nếu có)",
+      "guideStep4": "Hệ thống tự động tính thuế phải nộp"
+    },
+    "taxCalendar": {
+      "title": "Lịch kê khai thuế 2026",
+      "q1": "Quý I",
+      "q1Deadline": "Trước 30/4",
+      "q2": "Quý II",
+      "q2Deadline": "Trước 30/7",
+      "q3": "Quý III",
+      "q3Deadline": "Trước 30/10",
+      "q4": "Quý IV",
+      "q4Deadline": "Trước 30/1/2027",
+      "annualSettlement": "Quyết toán năm",
+      "annualDeadline": "Trước 31/3/2027"
+    },
+    "accounting": {
+      "fromDate": "Từ ngày",
+      "toDate": "Đến ngày",
+      "7days": "7 ngày",
+      "30days": "30 ngày",
+      "90days": "90 ngày",
+      "exportCSV": "Xuất CSV",
+      "revenue": "Doanh thu",
+      "cost": "Chi phí",
+      "profit": "Lợi nhuận",
+      "invoices": "Số hóa đơn",
+      "searchPlaceholder": "Tìm theo mã, đối tác, ngày...",
+      "date": "Ngày",
+      "type": "Loại",
+      "code": "Mã chứng từ",
+      "partner": "Đối tác",
+      "amount": "Số tiền",
+      "note": "Ghi chú",
+      "noData": "Không có dữ liệu",
+      "records": "bản ghi"
+    },
+    "transactionTypes": {
+      "sale": "Bán hàng",
+      "purchase": "Mua hàng",
+      "expense": "Chi phí",
+      "income": "Thu nhập",
+      "other": "Khác"
+    },
+    "fetchError": "Không tải được dữ liệu tài chính"
   }
-  
 }

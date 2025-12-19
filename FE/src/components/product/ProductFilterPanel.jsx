@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Select from "react-select";
 import axios from "axios";
 import { useTranslation } from "react-i18next";
@@ -18,6 +18,12 @@ export default function ProductFilterPanel({ filters, onChange }) {
   const [showModal, setShowModal] = useState(null); // "category" | "brand"
   const [loading, setLoading] = useState(false);
 
+  // ✅ value phải là "all" để filter hoạt động ổn định, label mới i18n
+  const allOption = useMemo(
+    () => ({ value: "all", label: t("common.all", "Tất cả") }),
+    [t]
+  );
+
   // === GỌI API ===
   const fetchData = async () => {
     setLoading(true);
@@ -32,15 +38,19 @@ export default function ProductFilterPanel({ filters, onChange }) {
       ]);
 
       // ✅ Chuẩn hóa dữ liệu từ BE
-      const normalizedCats = (catRes.data || []).map((c, i) => ({
-        value: c.categoryName || c.name || c,
-        label: c.categoryName || c.name || c,
-      }));
+      const normalizedCats = (catRes.data || [])
+        .map((c) => ({
+          value: c.categoryName || c.name || c,
+          label: c.categoryName || c.name || c,
+        }))
+        .filter((x) => x.value); // tránh null/undefined
 
-      const normalizedBrands = (brandRes.data || []).map((b, i) => ({
-        value: b.brandName || b.name || b,
-        label: b.brandName || b.name || b,
-      }));
+      const normalizedBrands = (brandRes.data || [])
+        .map((b) => ({
+          value: b.brandName || b.name || b,
+          label: b.brandName || b.name || b,
+        }))
+        .filter((x) => x.value);
 
       setCategories(normalizedCats);
       setBrands(normalizedBrands);
@@ -53,6 +63,7 @@ export default function ProductFilterPanel({ filters, onChange }) {
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   // === Styles cho Select ===
@@ -75,7 +86,7 @@ export default function ProductFilterPanel({ filters, onChange }) {
   // === Callback thêm mới Category / Brand ===
   const handleCategoryAdded = async (data) => {
     if (data?.categoryName) {
-      await fetchData(); // gọi lại API để cập nhật danh sách mới nhất
+      await fetchData();
       onChange?.reload?.("category", data);
     }
     setShowModal(null);
@@ -89,6 +100,34 @@ export default function ProductFilterPanel({ filters, onChange }) {
     setShowModal(null);
   };
 
+  // ===== Options Mức tồn =====
+  const stockOptions = useMemo(
+    () => [
+      allOption,
+      { value: "above", label: t("products.stockAboveMin", "Trên mức tồn") },
+      { value: "below", label: t("products.stockBelowMin", "Dưới mức tồn") },
+    ],
+    [allOption, t]
+  );
+
+  // ✅ build options + helper pick
+  const categoryOptions = useMemo(
+    () => [allOption, ...categories],
+    [allOption, categories]
+  );
+  const brandOptions = useMemo(
+    () => [allOption, ...brands],
+    [allOption, brands]
+  );
+
+  const pickOption = (val, options) =>
+    options.find((o) => o.value === (val || "all")) || allOption;
+
+  const stockValue = useMemo(
+    () => pickOption(filters?.stockLevel, stockOptions),
+    [filters?.stockLevel, stockOptions, allOption]
+  );
+
   return (
     <>
       <aside className="col-lg-2 d-none d-lg-block">
@@ -98,33 +137,26 @@ export default function ProductFilterPanel({ filters, onChange }) {
             <div className="mb-4">
               <div className="d-flex justify-content-between align-items-center mb-2">
                 <label className="form-label fw-semibold mb-0">
-                  {t("products.category") || "Danh mục"}
+                  {t("products.category", "Danh mục")}
                 </label>
                 <button
                   className={`btn btn-outline-${theme} btn-sm p-0 rounded-circle`}
                   style={{ width: 22, height: 22 }}
                   onClick={() => setShowModal("category")}
-                  title={t("products.addCategory") || "Thêm danh mục"}
+                  title={t("products.addCategory", "Thêm danh mục")}
+                  type="button"
                 >
-                  <i className="bi bi-plus-lg" style={{ fontSize: "11px" }}></i>
+                  <i className="bi bi-plus-lg" style={{ fontSize: "11px" }} />
                 </button>
               </div>
+
               <Select
                 isLoading={loading}
                 styles={customSelectStyles}
-                value={
-                  filters.category
-                    ? { value: filters.category, label: filters.category }
-                    : { value:  t("common.all"), label: t("common.all")  }
-                }
-                onChange={(opt) =>
-                  onChange.change("category", opt ? opt.value : t("common.all"))
-                }
-                options={[
-                  { value:  t("common.all"), label: t("common.all") },
-                  ...categories,
-                ]}
-                placeholder={t("products.selectCategory") }
+                value={pickOption(filters?.category, categoryOptions)}
+                onChange={(opt) => onChange.change("category", opt?.value || "all")}
+                options={categoryOptions}
+                placeholder={t("products.selectCategory", "Chọn danh mục")}
                 isSearchable
               />
             </div>
@@ -133,41 +165,50 @@ export default function ProductFilterPanel({ filters, onChange }) {
             <div className="mb-4">
               <div className="d-flex justify-content-between align-items-center mb-2">
                 <label className="form-label fw-semibold mb-0">
-                  {t("products.brand") || "Thương hiệu"}
+                  {t("products.brand", "Thương hiệu")}
                 </label>
                 <button
                   className={`btn btn-outline-${theme} btn-sm p-0 rounded-circle`}
                   style={{ width: 22, height: 22 }}
                   onClick={() => setShowModal("brand")}
-                  title={t("products.addBrand") || "Thêm thương hiệu"}
+                  title={t("products.addBrand", "Thêm thương hiệu")}
+                  type="button"
                 >
-                  <i className="bi bi-plus-lg" style={{ fontSize: "11px" }}></i>
+                  <i className="bi bi-plus-lg" style={{ fontSize: "11px" }} />
                 </button>
               </div>
+
               <Select
                 isLoading={loading}
                 styles={customSelectStyles}
-                value={
-                  filters.brand
-                    ? { value: filters.brand, label: filters.brand }
-                    : { value:  t("common.all") , label: t("common.all")  }
-                }
-                onChange={(opt) =>
-                  onChange.change("brand", opt ? opt.value :t("common.all") )
-                }
-                options={[
-                  { value:  t("common.all"), label: t("common.all")  },
-                  ...brands,
-                ]}
-                placeholder={t("products.selectBrand") }
+                value={pickOption(filters?.brand, brandOptions)}
+                onChange={(opt) => onChange.change("brand", opt?.value || "all")}
+                options={brandOptions}
+                placeholder={t("products.selectBrand", "Chọn thương hiệu")}
                 isSearchable
+              />
+            </div>
+
+            {/* ===== MỨC TỒN ===== */}
+            <div className="mb-4">
+              <label className="form-label fw-semibold mb-2">
+                {t("products.stockLevel", "Mức tồn")}
+              </label>
+
+              <Select
+                styles={customSelectStyles}
+                value={stockValue}
+                onChange={(opt) => onChange.change("stockLevel", opt?.value || "all")}
+                options={stockOptions}
+                placeholder={t("products.stockLevel", "Mức tồn")}
+                isSearchable={false}
               />
             </div>
 
             {/* ===== NGÀY TẠO ===== */}
             <div>
               <label className="form-label fw-semibold mb-2">
-                {t("products.createdAt") || "Ngày tạo"}
+                {t("products.createdAt", "Ngày tạo")}
               </label>
               <input
                 type="date"
@@ -192,14 +233,14 @@ export default function ProductFilterPanel({ filters, onChange }) {
               <div className="modal-header">
                 <h5 className="modal-title">
                   {showModal === "category"
-                    ? t("products.addCategory") || "Thêm danh mục"
-                    : t("products.addBrand") || "Thêm thương hiệu"}
+                    ? t("products.addCategory", "Thêm danh mục")
+                    : t("products.addBrand", "Thêm thương hiệu")}
                 </h5>
                 <button
                   type="button"
                   className="btn-close"
                   onClick={() => setShowModal(null)}
-                ></button>
+                />
               </div>
               <div className="modal-body">
                 {showModal === "category" ? (

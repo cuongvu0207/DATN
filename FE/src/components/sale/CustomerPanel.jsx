@@ -215,9 +215,9 @@ export default function CustomerPanel({
                     minWidth: 32,
                     minHeight: 32,
                     borderRadius: 12,
-                    flexShrink: 0,     // ⭐ chống méo
-                    flexGrow: 0,       // ⭐ chống dãn
-                    display: "flex",   // ⭐ bảo đảm đúng box
+                    flexShrink: 0,     //  chống méo
+                    flexGrow: 0,       //  chống dãn
+                    display: "flex",   // bảo đảm đúng box
                   }}
                 >
                   <i className="bi bi-person" style={{ fontSize: 16 }} />

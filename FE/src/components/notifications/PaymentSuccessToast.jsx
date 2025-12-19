@@ -37,7 +37,7 @@ export function PaymentSuccessToast({ show, data, onClose }) {
 
         {/* HEADER */}
         <h4 className="text-success fw-bold text-center">
-          🎉 Thanh toán thành công!
+          Thanh toán thành công!
         </h4>
 
         <p className="text-center text-muted mb-2">
@@ -110,7 +110,7 @@ export function PaymentSuccessToast({ show, data, onClose }) {
           </button>
 
           <button className="btn btn-primary" onClick={handlePrint}>
-            🖨 In hóa đơn
+            In hóa đơn
           </button>
         </div>
 

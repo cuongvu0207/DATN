@@ -21,6 +21,31 @@ const normalizeGender = (value) => {
   return "unknown";
 };
 
+// Hàm validate số điện thoại Việt Nam
+const validateVietnamesePhone = (phone) => {
+  const phoneStr = String(phone || "").trim();
+  
+  // Bỏ dấu +84 nếu có
+  const normalizedPhone = phoneStr.replace(/^\+84/, '0');
+  
+  // Các mẫu số điện thoại Việt Nam hợp lệ
+  const phonePatterns = [
+    /^(0[3|5|7|8|9])[0-9]{8}$/, // 10 số: 03x, 05x, 07x, 08x, 09x
+    /^(84[3|5|7|8|9])[0-9]{8}$/, // 11 số với 84
+    /^(\+84[3|5|7|8|9])[0-9]{8}$/, // 12 số với +84
+  ];
+  
+  if (!phoneStr) {
+    return "Số điện thoại là bắt buộc";
+  }
+  
+  if (!phonePatterns.some(pattern => pattern.test(normalizedPhone))) {
+    return "Số điện thoại không hợp lệ. Ví dụ: 0912345678 hoặc 0381234567";
+  }
+  
+  return "";
+};
+
 export default function CustomerPage() {
   const { t } = useTranslation();
   const { theme } = useTheme();
@@ -33,6 +58,8 @@ export default function CustomerPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [form, setForm] = useState(initialFormState);
+  const [phoneError, setPhoneError] = useState("");
+  const [formErrors, setFormErrors] = useState({});
 
   const token = localStorage.getItem("accessToken");
 
@@ -52,7 +79,7 @@ export default function CustomerPage() {
       }));
       setCustomers(formatted);
     } catch {
-      setError(t("customer.loadError"));
+      setError(t("customer.loadError") || "Không thể tải danh sách khách hàng");
     } finally {
       setLoading(false);
     }
@@ -74,13 +101,39 @@ export default function CustomerPage() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    
+    if (name === "phoneNumber") {
+      // Tự động thêm tiền tố 0 nếu bắt đầu bằng các đầu số Việt Nam
+      let processedValue = value;
+      if (value.length === 1 && ["3", "5", "7", "8", "9"].includes(value)) {
+        processedValue = `0${value}`;
+      }
+      
+      setForm(prev => ({ ...prev, [name]: processedValue }));
+      
+      // Validate real-time
+      if (processedValue.length >= 3) {
+        const error = validateVietnamesePhone(processedValue);
+        setPhoneError(error);
+      } else {
+        setPhoneError("");
+      }
+    } else {
+      setForm(prev => ({ ...prev, [name]: value }));
+    }
+    
+    // Xóa lỗi của trường đang được sửa
+    if (formErrors[name]) {
+      setFormErrors(prev => ({ ...prev, [name]: "" }));
+    }
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingCustomer(null);
     setForm(initialFormState);
+    setPhoneError("");
+    setFormErrors({});
   };
 
   const handleEditClick = (customer) => {
@@ -92,11 +145,36 @@ export default function CustomerPage() {
       address: customer.address || "",
       gender: customer.gender === "female" ? "female" : "male",
     });
+    setPhoneError("");
+    setFormErrors({});
     setShowModal(true);
+  };
+
+  const validateForm = () => {
+    const errors = {};
+    
+    if (!form.fullName?.trim()) {
+      errors.fullName = t("customer.fullNameRequired") || "Họ và tên là bắt buộc";
+    }
+    
+    const phoneValidation = validateVietnamesePhone(form.phoneNumber);
+    if (phoneValidation) {
+      errors.phoneNumber = phoneValidation;
+      setPhoneError(phoneValidation);
+    }
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate form
+    if (!validateForm()) {
+      return;
+    }
+
     try {
       const payload = {
         name: (form.fullName || "").trim(),
@@ -132,11 +210,19 @@ export default function CustomerPage() {
       setError("");
     } catch (err) {
       console.error("Create customer error", err);
-      setError(
-        editingCustomer
+      let errorMessage = "";
+      
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.response?.status === 409) {
+        errorMessage = t("customer.phoneExists") || "Số điện thoại đã tồn tại trong hệ thống";
+      } else {
+        errorMessage = editingCustomer
           ? t("customer.updateError") || "Không thể cập nhật khách hàng."
-          : t("customer.addError") || "Không thể thêm khách hàng."
-      );
+          : t("customer.addError") || "Không thể thêm khách hàng.";
+      }
+      
+      setError(errorMessage);
       setMessage("");
     }
   };
@@ -178,7 +264,7 @@ export default function CustomerPage() {
         <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
           <div className="d-flex align-items-center gap-3 flex-wrap">
             <h4 className={`fw-bold text-${theme} mb-0`}>
-              {t("customer.title")}
+              {t("customer.title") || "Quản lý khách hàng"}
             </h4>
             <div className="position-relative" style={{ width: 420 }}>
               <i
@@ -202,18 +288,34 @@ export default function CustomerPage() {
             </div>
           </div>
 
-          <button className={`btn btn-${theme}`} onClick={() => {
-            setEditingCustomer(null);
-            setForm(initialFormState);
-            setShowModal(true);
-          }}>
+          <button 
+            className={`btn btn-${theme}`} 
+            onClick={() => {
+              setEditingCustomer(null);
+              setForm(initialFormState);
+              setPhoneError("");
+              setFormErrors({});
+              setShowModal(true);
+            }}
+          >
             <i className="bi bi-person-plus me-1" />
             {t("customer.add") || "Thêm khách hàng"}
           </button>
         </div>
 
-        {message && <div className="alert alert-success">{message}</div>}
-        {error && <div className="alert alert-danger">{error}</div>}
+        {message && (
+          <div className="alert alert-success alert-dismissible fade show">
+            {message}
+            <button type="button" className="btn-close" onClick={() => setMessage("")}></button>
+          </div>
+        )}
+        
+        {error && (
+          <div className="alert alert-danger alert-dismissible fade show">
+            {error}
+            <button type="button" className="btn-close" onClick={() => setError("")}></button>
+          </div>
+        )}
 
         <CustomerTable
           customers={filteredCustomers}
@@ -226,7 +328,7 @@ export default function CustomerPage() {
         {showModal && (
           <div
             className="modal fade show"
-            style={{ display: "block", background: "rgba(0,0,0,.4)" }}
+            style={{ display: "block", background: "rgba(0,0,0,.4)", zIndex: 1050 }}
           >
             <div className="modal-dialog modal-dialog-centered">
               <div className="modal-content border-0 shadow">
@@ -247,31 +349,45 @@ export default function CustomerPage() {
                     <div className="mb-3">
                       <label className="form-label">
                         {t("customer.fullName") || "Họ và tên"}
+                        <span className="text-danger ms-1">*</span>
                       </label>
                       <input
                         type="text"
                         name="fullName"
-                        className="form-control"
-                        placeholder={t("customer.fullName")}
+                        className={`form-control ${formErrors.fullName ? "is-invalid" : ""}`}
+                        placeholder={t("customer.fullName") || "Nhập họ và tên"}
                         value={form.fullName}
                         onChange={handleChange}
-                        required
                       />
+                      {formErrors.fullName && (
+                        <div className="invalid-feedback d-block">{formErrors.fullName}</div>
+                      )}
                     </div>
+                    
                     <div className="mb-3">
                       <label className="form-label">
                         {t("customer.phoneNumber") || "Số điện thoại"}
+                        <span className="text-danger ms-1">*</span>
                       </label>
                       <input
                         type="tel"
                         name="phoneNumber"
-                        className="form-control"
-                        placeholder={t("customer.phoneNumber")}
+                        className={`form-control ${phoneError || formErrors.phoneNumber ? "is-invalid" : ""}`}
+                        placeholder={t("customer.phoneExample") || "Ví dụ: 0912345678"}
                         value={form.phoneNumber}
                         onChange={handleChange}
-                        required
+                        maxLength="15"
                       />
+                      {(phoneError || formErrors.phoneNumber) && (
+                        <div className="invalid-feedback d-block">
+                          {phoneError || formErrors.phoneNumber}
+                        </div>
+                      )}
+                      <div className="form-text text-muted">
+                        {t("customer.phoneFormat") || "Số điện thoại 10 số bắt đầu bằng 03, 05, 07, 08, 09"}
+                      </div>
                     </div>
+                    
                     <div className="mb-3">
                       <label className="form-label">
                         {t("customer.email") || "Email"}
@@ -280,11 +396,12 @@ export default function CustomerPage() {
                         type="email"
                         name="email"
                         className="form-control"
-                        placeholder={t("customer.email")}
+                        placeholder={t("customer.email") || "Nhập email"}
                         value={form.email}
                         onChange={handleChange}
                       />
                     </div>
+                    
                     <div className="mb-3">
                       <label className="form-label">
                         {t("customer.address") || "Địa chỉ"}
@@ -293,11 +410,12 @@ export default function CustomerPage() {
                         type="text"
                         name="address"
                         className="form-control"
-                        placeholder={t("customer.address")}
+                        placeholder={t("customer.address") || "Nhập địa chỉ"}
                         value={form.address}
                         onChange={handleChange}
                       />
                     </div>
+                    
                     <div className="mb-0">
                       <label className="form-label">
                         {t("customer.gender") || "Giới tính"}
@@ -309,10 +427,10 @@ export default function CustomerPage() {
                         onChange={handleChange}
                       >
                         <option value="male">
-                          {t("customer.genderMale") }
+                          {t("customer.genderMale") || "Nam"}
                         </option>
                         <option value="female">
-                          {t("customer.genderFemale") }
+                          {t("customer.genderFemale") || "Nữ"}
                         </option>
                       </select>
                     </div>
@@ -328,6 +446,7 @@ export default function CustomerPage() {
                     <button
                       type="submit"
                       className={`btn btn-${theme} text-white`}
+                      disabled={!!phoneError}
                     >
                       {t("common.save") || "Lưu"}
                     </button>

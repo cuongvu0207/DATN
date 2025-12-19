@@ -31,6 +31,13 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
   const [saving, setSaving] = useState(false);
   const { showSpinner } = useLoadingTimeout(saving, { delayMs: 200 });
 
+  /* ====== Dấu bắt buộc ====== */
+  const ReqMark = () => (
+    <span className="text-danger ms-1" title={t("common.required", "Bắt buộc")}>
+      *
+    </span>
+  );
+
   /* ====== FORMAT ====== */
   const formatCurrencyDots = (num) => {
     if (!num) return "";
@@ -131,9 +138,52 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
     setForm((prev) => ({ ...prev, imageFile: file }));
   };
 
+  /* ====== VALIDATION ====== */
+  const validateForm = () => {
+    if (!form.name?.trim()) {
+      alert(t("products.enterProductName", "Vui lòng nhập tên sản phẩm"));
+      return false;
+    }
+    if (!form.category) {
+      alert(t("products.chooseCategory", "Vui lòng chọn danh mục"));
+      return false;
+    }
+    if (!form.brand) {
+      alert(t("products.chooseBrand", "Vui lòng chọn thương hiệu"));
+      return false;
+    }
+    if (!form.unit?.trim()) {
+      alert(t("products.enterUnit", "Vui lòng nhập đơn vị tính"));
+      return false;
+    }
+    if (!form.price || Number(form.price) <= 0) {
+      alert(t("products.enterValidPrice", "Vui lòng nhập giá bán hợp lệ"));
+      return false;
+    }
+    if (!form.cost || Number(form.cost) <= 0) {
+      alert(t("products.enterValidCost", "Vui lòng nhập giá vốn hợp lệ"));
+      return false;
+    }
+    if (form.stock === "" || Number(form.stock) < 0) {
+      alert(t("products.enterValidStock", "Vui lòng nhập tồn kho hợp lệ"));
+      return false;
+    }
+    if (form.minimumStock === "" || Number(form.minimumStock) < 0) {
+      alert(t("products.enterValidMinStock", "Vui lòng nhập tồn tối thiểu hợp lệ"));
+      return false;
+    }
+    return true;
+  };
+
   /* ====== SUBMIT ====== */
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate form trước khi submit
+    if (!validateForm()) {
+      return;
+    }
+    
     setSaving(true);  // bật loading
 
     const resolvedCategoryId =
@@ -206,10 +256,11 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
           style={{ width: "90%", maxWidth: "950px", maxHeight: "90%", overflowY: "auto" }}
         >
           {/* HEADER */}
-          <div className="d-flex justify-content-between mb-3">
-            <h5 className={`fw-bold text-${theme}`}>{t("products.editProduct")}</h5>
+          <div className="d-flex justify-content-between align-items-center mb-2">
+            <h5 className={`fw-bold text-${theme} m-0`}>{t("products.editProduct")}</h5>
             <button className="btn-close" onClick={onClose}></button>
           </div>
+
 
           {/* IMAGE */}
           <div className="text-center mb-4">
@@ -250,12 +301,16 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
 
               {/* Name */}
               <div className="col-md-6">
-                <label className="form-label">{t("products.productName")}</label>
+                <label className="form-label">
+                  {t("products.productName")}
+                  <ReqMark />
+                </label>
                 <input
                   className="form-control"
                   name="name"
                   value={form.name}
                   onChange={handleTextChange}
+                  required
                 />
               </div>
 
@@ -263,6 +318,7 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
               <div className="col-md-6">
                 <label className="form-label">
                   {t("products.unit") || "Đơn vị tính"}
+                  <ReqMark />
                 </label>
                 <input
                   className="form-control"
@@ -270,13 +326,17 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
                   value={form.unit || ""}
                   onChange={handleTextChange}
                   placeholder={t("products.unitPlaceholder") || "Ví dụ: cái, hộp, cây..."}
+                  required
                 />
               </div>
 
               {/* Category */}
               <div className="col-md-6">
                 <label className="form-label d-flex justify-content-between">
-                  {t("products.category")}
+                  <span>
+                    {t("products.category")}
+                    <ReqMark />
+                  </span>
                   <button
                     type="button"
                     className={`btn btn-outline-${theme} btn-sm rounded-circle p-0`}
@@ -291,13 +351,18 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
                   isLoading={loading}
                   value={categories.find((x) => x.value === form.category) || null}
                   onChange={(opt) => handleSelectChange("category", opt)}
+                  isClearable={false}
+                  required
                 />
               </div>
 
               {/* Brand */}
               <div className="col-md-6">
                 <label className="form-label d-flex justify-content-between">
-                  {t("products.brand")}
+                  <span>
+                    {t("products.brand")}
+                    <ReqMark />
+                  </span>
                   <button
                     type="button"
                     className={`btn btn-outline-${theme} btn-sm rounded-circle p-0`}
@@ -312,49 +377,68 @@ export default function EditProductDetailCard({ product, onClose, onSave }) {
                   isLoading={loading}
                   value={brands.find((x) => x.value === form.brand) || null}
                   onChange={(opt) => handleSelectChange("brand", opt)}
+                  isClearable={false}
+                  required
                 />
               </div>
 
               {/* Cost */}
               <div className="col-md-6">
-                <label className="form-label">{t("products.costOfCapital")}</label>
+                <label className="form-label">
+                  {t("products.costOfCapital")}
+                  <ReqMark />
+                </label>
                 <input
                   className="form-control"
                   name="cost"
                   value={formatCurrencyDots(form.cost)}
                   onChange={handleNumberInput}
+                  required
                 />
               </div>
 
               {/* Price */}
               <div className="col-md-6">
-                <label className="form-label">{t("products.sellingPrice")}</label>
+                <label className="form-label">
+                  {t("products.sellingPrice")}
+                  <ReqMark />
+                </label>
                 <input
                   className="form-control"
                   name="price"
                   value={formatCurrencyDots(form.price)}
                   onChange={handleNumberInput}
+                  required
                 />
               </div>
 
               {/* Stock */}
               <div className="col-md-6">
-                <label className="form-label">{t("products.quantityInStock")}</label>
+                <label className="form-label">
+                  {t("products.quantityInStock")}
+                  <ReqMark />
+                </label>
                 <input
                   className="form-control"
                   name="stock"
                   value={formatCurrencyDots(form.stock)}
                   onChange={handleNumberInput}
+                  required
                 />
               </div>
+              
               {/* Minimum Stock */}
               <div className="col-md-6">
-                <label className="form-label">{t("products.minimumStock")}</label>
+                <label className="form-label">
+                  {t("products.minimumStock")}
+                  <ReqMark />
+                </label>
                 <input
                   className="form-control"
                   name="minimumStock"
                   value={formatCurrencyDots(form.minimumStock)}
                   onChange={handleNumberInput}
+                  required
                 />
               </div>
             </div>

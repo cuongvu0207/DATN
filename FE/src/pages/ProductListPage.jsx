@@ -24,10 +24,10 @@ export default function ProductListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [filters, setFilters] = useState({
-    category: "",
-    brand: "",
-    supplier: "",
-    stock: "all",
+    category: "all",
+    brand: "all",
+    supplier: "all",
+    stockLevel: "all", // ✅ all | above | below
   });
 
   const [editingProduct, setEditingProduct] = useState(null);
@@ -269,53 +269,53 @@ export default function ProductListPage() {
   /* ==============================
       🔹 KÍCH HOẠT / VÔ HIỆU HOÁ
      ============================== */
-     const handleToggleActive = async (product) => {
-      try {
-        const formData = new FormData();
-    
-        // --- Append các field text ---
-        formData.append("productName", product.name);
-        formData.append("barcode", product.barcode);
-        formData.append("unit", product.unit || "");
-        formData.append("sellingPrice", product.price || 0);
-        formData.append("costOfCapital", product.cost || 0);
-        formData.append("quantityInStock", product.stock || 0);
-        formData.append("minimumStock", Number(product.minimumStock || 0));
-    
-        // 🔥 Toggle trạng thái
-        formData.append("isActive", !product.statusBoolean);
-    
-        formData.append("categoryId", product.categoryId || "");
-        formData.append("brandId", product.brandId || "");
-    
-        // ❌ Không đổi ảnh nên KHÔNG append file
-    
-        const token = localStorage.getItem("accessToken");
-    
-        await axios.put(
-          `${API_BASE_URL}/inventory/products/${product.id}`,
-          formData,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "multipart/form-data",
-            },
-          }
-        );
-    
-        alert(
-          !product.statusBoolean
-            ? t("products.activated") || "Đã kích hoạt!"
-            : t("products.deactivated") || "Đã vô hiệu hóa!"
-        );
-    
-        fetchProducts();
-      } catch (err) {
-        console.error("❌ Toggle Error:", err);
-        alert(t("products.updateError") || "Không thể cập nhật sản phẩm!");
-      }
-    };
-    
+  const handleToggleActive = async (product) => {
+    try {
+      const formData = new FormData();
+
+      // --- Append các field text ---
+      formData.append("productName", product.name);
+      formData.append("barcode", product.barcode);
+      formData.append("unit", product.unit || "");
+      formData.append("sellingPrice", product.price || 0);
+      formData.append("costOfCapital", product.cost || 0);
+      formData.append("quantityInStock", product.stock || 0);
+      formData.append("minimumStock", Number(product.minimumStock || 0));
+
+      // 🔥 Toggle trạng thái
+      formData.append("isActive", !product.statusBoolean);
+
+      formData.append("categoryId", product.categoryId || "");
+      formData.append("brandId", product.brandId || "");
+
+      // ❌ Không đổi ảnh nên KHÔNG append file
+
+      const token = localStorage.getItem("accessToken");
+
+      await axios.put(
+        `${API_BASE_URL}/inventory/products/${product.id}`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      alert(
+        !product.statusBoolean
+          ? t("products.activated") || "Đã kích hoạt!"
+          : t("products.deactivated") || "Đã vô hiệu hóa!"
+      );
+
+      fetchProducts();
+    } catch (err) {
+      console.error("❌ Toggle Error:", err);
+      alert(t("products.updateError") || "Không thể cập nhật sản phẩm!");
+    }
+  };
+
 
 
   /* ==============================
@@ -342,19 +342,22 @@ export default function ProductListPage() {
     const matchesSupplier =
       !filters.supplier || filters.supplier === "all" || p.supplier === filters.supplier;
 
-    const matchesStock =
-      filters.stock === "all"
+    const stock = Number(p.stock || 0);
+    const minStock = Number(p.minimumStock || 0);
+
+    const matchesStockLevel =
+      !filters.stockLevel || filters.stockLevel === "all"
         ? true
-        : filters.stock === "in"
-          ? p.stock > 0
-          : p.stock === 0;
+        : filters.stockLevel === "above"
+          ? stock > minStock
+          : stock <= minStock; // below
 
     return (
       matchesQuery &&
       matchesCategory &&
       matchesBrand &&
       matchesSupplier &&
-      matchesStock
+      matchesStockLevel
     );
   });
 

@@ -6,6 +6,19 @@ import { useTranslation } from "react-i18next";
 import { API_BASE_URL } from "../services/api";
 import { formatCurrency, formatters } from "../utils/formatters";
 import TablePagination from "../components/common/TablePagination";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell
+} from "recharts";
 
 export default function FinancePage() {
   const { theme } = useTheme();
@@ -13,48 +26,100 @@ export default function FinancePage() {
   const token = localStorage.getItem("accessToken");
 
   // ===== TAB STATE =====
-  const [activeTab, setActiveTab] = useState("tax-overview"); // 'tax-overview' | 'tax-calculator' | 'accounting'
+  const [activeTab, setActiveTab] = useState("overview");
 
-  // ===== DATE FILTERS (CHO TAB KẾ TOÁN) =====
+  // ===== DATE FILTERS =====
   const todayISO = new Date().toISOString().slice(0, 10);
-
   const [startDate, setStartDate] = useState(todayISO);
   const [endDate, setEndDate] = useState(todayISO);
 
-  const [startDisplay, setStartDisplay] = useState(
-    formatters.date.toDisplay(todayISO)
-  );
-  const [endDisplay, setEndDisplay] = useState(
-    formatters.date.toDisplay(todayISO)
-  );
-
-  // ===== DATA KẾ TOÁN =====
+  // ===== DASHBOARD DATA =====
   const [summary, setSummary] = useState({
     revenue: 0,
     cost: 0,
     profit: 0,
     invoicesCount: 0,
+    averageOrderValue: 0,
+    profitMargin: 0
   });
-  const [transactions, setTransactions] = useState([]);
 
+  const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
-
   const [rowsPerPage, setRowsPerPage] = useState(15);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // ===== TAX CALCULATOR STATE (TAB 2) =====
+  // ===== CHART DATA =====
+  const [chartData, setChartData] = useState({
+    dailyRevenue: [],
+    paymentMethods: [],
+    categoryRevenue: []
+  });
+
+  // ===== TAX CALCULATOR STATE =====
   const [taxPeriod, setTaxPeriod] = useState("QUARTER"); // MONTH | QUARTER | YEAR
   const [taxRevenue, setTaxRevenue] = useState(0);
-  const [taxVatRate, setTaxVatRate] = useState(0); // %
-  const [taxPitRate, setTaxPitRate] = useState(0); // %
+  const [inputVat, setInputVat] = useState(0); // Thuế VAT đầu vào
+  const [vatMethod, setVatMethod] = useState("credit"); // Chỉ còn phương pháp khấu trừ
 
-  const vatAmount = (Number(taxRevenue) * Number(taxVatRate || 0)) / 100;
-  const pitAmount = (Number(taxRevenue) * Number(taxPitRate || 0)) / 100;
-  const totalTax = vatAmount + pitAmount;
-  const effectiveRate =
-    Number(taxRevenue) > 0 ? (totalTax / Number(taxRevenue)) * 100 : 0;
+  // Cấu hình thuế - Chỉ giữ lại phương pháp khấu trừ
+  const TAX_CONFIG = {
+    industry: t("finance.industry.groceryStationery"),
+    minRevenue: 500000000, // 500 triệu VNĐ - ngưỡng miễn thuế
+    vatRate: 8,    // 8% GTGT phương pháp khấu trừ
+    pitRate: 1.5,  // 1.5% TNCN
+    applyFrom: "2026-01-01"
+  };
+
+  const [isAboveThreshold, setIsAboveThreshold] = useState(false);
+  const [yearlyRevenueEstimate, setYearlyRevenueEstimate] = useState(0);
+
+  // Tính toán thuế
+  useEffect(() => {
+    const multipliers = { MONTH: 12, QUARTER: 4, YEAR: 1 };
+    const yearlyEstimate = taxRevenue * multipliers[taxPeriod];
+    setYearlyRevenueEstimate(yearlyEstimate);
+    setIsAboveThreshold(yearlyEstimate >= TAX_CONFIG.minRevenue);
+  }, [taxRevenue, taxPeriod, TAX_CONFIG.minRevenue]);
+
+  // Hàm tính thuế - CHỈ CÒN PHƯƠNG PHÁP KHẤU TRỪ
+  const calculateTax = () => {
+    if (!isAboveThreshold) {
+      return {
+        taxableRevenue: 0,
+        vatAmount: 0,
+        pitAmount: 0,
+        totalTax: 0,
+        outputVat: 0,
+        inputVat: inputVat,
+        vatToPay: 0
+      };
+    }
+
+    const taxableRevenue = Math.max(0, yearlyRevenueEstimate - TAX_CONFIG.minRevenue);
+    
+    // Tính thuế VAT theo phương pháp khấu trừ
+    const outputVat = taxableRevenue * (TAX_CONFIG.vatRate / 100);
+    const vatToPay = Math.max(0, outputVat - inputVat); // Chỉ nộp nếu dương
+    const vatAmount = vatToPay;
+    
+    // Thuế TNCN
+    const pitAmount = taxableRevenue * (TAX_CONFIG.pitRate / 100);
+
+    return {
+      taxableRevenue,
+      vatAmount,
+      pitAmount,
+      totalTax: vatAmount + pitAmount,
+      outputVat,
+      inputVat: inputVat,
+      vatToPay
+    };
+  };
+
+  const taxResult = calculateTax();
+  const effectiveRate = taxRevenue > 0 ? (taxResult.totalTax / yearlyRevenueEstimate) * 100 : 0;
 
   // ===== AXIOS INSTANCE =====
   const axiosInstance = useMemo(
@@ -69,89 +134,189 @@ export default function FinancePage() {
     [token]
   );
 
-  // ===== QUICK RANGE (TAB KẾ TOÁN) =====
-  const quickRange = (days) => {
-    const end = new Date();
-    const start = new Date();
-    start.setDate(end.getDate() - (days - 1));
-
-    const sISO = start.toISOString().slice(0, 10);
-    const eISO = end.toISOString().slice(0, 10);
-
-    setStartDate(sISO);
-    setEndDate(eISO);
-    setStartDisplay(formatters.date.toDisplay(sISO));
-    setEndDisplay(formatters.date.toDisplay(eISO));
-    setCurrentPage(1);
-  };
-
-  // ===== FETCH SUMMARY (CHỈ DÙNG CHO TAB KẾ TOÁN) =====
-  const fetchSummary = async () => {
-    try {
-      const { data } = await axiosInstance.get("/finance/summary", {
-        params: {
-          startDate,
-          endDate,
-        },
-      });
-
-      setSummary({
-        revenue: Number(data?.revenue || 0),
-        cost: Number(data?.cost || 0),
-        profit: Number(data?.profit || 0),
-        invoicesCount: Number(data?.invoicesCount || 0),
-      });
-    } catch (err) {
-      console.warn("Finance summary not available", err);
-    }
-  };
-
-  // ===== FETCH TRANSACTIONS (CHỈ DÙNG CHO TAB KẾ TOÁN) =====
-  const fetchTransactions = async () => {
+  // ===== FETCH DASHBOARD DATA (giống trang Home) =====
+  const fetchDashboardData = async () => {
     setLoading(true);
     setError("");
 
     try {
-      const { data } = await axiosInstance.get("/finance/transactions", {
-        params: {
-          startDate,
-          endDate,
-        },
+      // Gọi API hóa đơn và sản phẩm giống trang Home
+      const [invoicesRes, productsRes, customersRes] = await Promise.all([
+        axiosInstance.get("/order/static/allCompleted"),
+        axiosInstance.get("/inventory/products"),
+        axiosInstance.get("/customer")
+      ]);
+
+      const allInvoices = Array.isArray(invoicesRes.data) ? invoicesRes.data : [];
+      const products = Array.isArray(productsRes.data) ? productsRes.data : [];
+      const customers = Array.isArray(customersRes.data) ? customersRes.data : [];
+
+      // Lọc hóa đơn theo khoảng thời gian
+      const fromDate = new Date(startDate);
+      const toDate = new Date(endDate);
+      toDate.setHours(23, 59, 59, 999);
+
+      const filteredInvoices = allInvoices.filter((inv) => {
+        const invoiceDate = new Date(inv.createdAt);
+        return invoiceDate >= fromDate && invoiceDate <= toDate;
       });
 
-      const list = (data || []).map((x, i) => ({
-        id: x.id || i + 1,
-        date: x.date || todayISO,
-        type: x.type || "SALE",
-        code: x.code || "--",
-        partner: x.partner || "",
-        note: x.note || "",
-        amount: Number(x.amount || 0),
+      // Tính toán summary
+      const totalRevenue = filteredInvoices.reduce(
+        (sum, inv) => sum + Number(inv.totalPrice || 0), 
+        0
+      );
+
+      // Tạo map giá vốn từ sản phẩm
+      const costMap = {};
+      products.forEach((p) => {
+        if (p.barcode) {
+          costMap[p.barcode] = Number(p.costOfCapital || p.costPrice || 0);
+        }
+      });
+
+      let totalCost = 0;
+      filteredInvoices.forEach((invoice) => {
+        (invoice.orderItemDTOs || []).forEach((item) => {
+          const barcode = item.barcode;
+          const qty = Number(item.quantity || 0);
+          const unitCost = costMap[barcode] ?? 0;
+          totalCost += qty * unitCost;
+        });
+      });
+
+      const totalProfit = totalRevenue - totalCost;
+      const totalOrders = filteredInvoices.length;
+      const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+      const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
+
+      setSummary({
+        revenue: totalRevenue,
+        cost: totalCost,
+        profit: totalProfit,
+        invoicesCount: totalOrders,
+        averageOrderValue,
+        profitMargin
+      });
+
+      // Chuẩn bị dữ liệu cho biểu đồ
+      // 1. Doanh thu hàng ngày
+      const dailyData = {};
+      filteredInvoices.forEach((invoice) => {
+        const date = new Date(invoice.createdAt);
+        const dateKey = date.toISOString().split('T')[0];
+        
+        if (!dailyData[dateKey]) {
+          dailyData[dateKey] = {
+            date: dateKey,
+            displayDate: formatters.date.toDisplay(dateKey),
+            revenue: 0,
+            invoices: 0
+          };
+        }
+        
+        dailyData[dateKey].revenue += Number(invoice.totalPrice || 0);
+        dailyData[dateKey].invoices += 1;
+      });
+
+      const dailyRevenue = Object.values(dailyData)
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      // 2. Phương thức thanh toán
+      const paymentMethods = {};
+      filteredInvoices.forEach((invoice) => {
+        const method = invoice.paymentMethod || "UNKNOWN";
+        const amount = Number(invoice.totalPrice || 0);
+        
+        if (!paymentMethods[method]) {
+          paymentMethods[method] = {
+            name: method,
+            value: 0,
+            count: 0
+          };
+        }
+        
+        paymentMethods[method].value += amount;
+        paymentMethods[method].count += 1;
+      });
+
+      const paymentMethodsData = Object.values(paymentMethods).map(pm => ({
+        ...pm,
+        percentage: totalRevenue > 0 ? (pm.value / totalRevenue) * 100 : 0
       }));
 
-      setTransactions(list);
+      // 3. Doanh thu theo danh mục
+      const categoryMap = {};
+      products.forEach((p) => {
+        if (p.barcode && p.categoryName) {
+          categoryMap[p.barcode] = p.categoryName;
+        }
+      });
+
+      const categoryRevenue = {};
+      filteredInvoices.forEach((invoice) => {
+        (invoice.orderItemDTOs || []).forEach((item) => {
+          const category = categoryMap[item.barcode] || t("category.other", "Khác");
+          const revenue = item.subTotal || 
+            (Number(item.price || 0) * Number(item.quantity || 0));
+          
+          if (!categoryRevenue[category]) {
+            categoryRevenue[category] = {
+              category,
+              revenue: 0,
+              items: 0
+            };
+          }
+          
+          categoryRevenue[category].revenue += revenue;
+          categoryRevenue[category].items += Number(item.quantity || 0);
+        });
+      });
+
+      const categoryData = Object.values(categoryRevenue)
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 10);
+
+      setChartData({
+        dailyRevenue,
+        paymentMethods: paymentMethodsData,
+        categoryRevenue: categoryData
+      });
+
+      // Chuẩn bị dữ liệu giao dịch
+      const transactionList = filteredInvoices.map((inv, index) => ({
+        id: inv.orderId || index + 1,
+        date: inv.createdAt,
+        type: "SALE",
+        code: inv.orderId || `INV-${index + 1}`,
+        partner: inv.customerId === "default_customer_id" 
+          ? t("customer.walkIn", "Khách lẻ")
+          : customers.find(c => c.id === inv.customerId)?.name || `Khách #${inv.customerId?.substring(0, 6)}`,
+        note: "",
+        amount: Number(inv.totalPrice || 0)
+      }));
+
+      setTransactions(transactionList);
+
+      // Cập nhật tax calculator với doanh thu hiện tại
+      setTaxRevenue(totalRevenue);
+
     } catch (err) {
-      console.warn("Finance transactions fetch failed", err);
-      setTransactions([]);
-      setError(
-        t("finance.fetchError") ||
-          "Không thể tải dữ liệu giao dịch tài chính."
-      );
+      console.error("Finance dashboard fetch failed:", err);
+      setError(t("finance.fetchError", "Không tải được dữ liệu tài chính"));
     } finally {
       setLoading(false);
     }
   };
 
-  // ===== REFRESH KHI DATE HOẶC TAB KẾ TOÁN ACTIVE =====
+  // ===== REFRESH KHI DATE HOẶC TAB THAY ĐỔI =====
   useEffect(() => {
-    if (activeTab === "accounting") {
-      fetchSummary();
-      fetchTransactions();
+    if (activeTab === "overview" || activeTab === "transactions") {
+      fetchDashboardData();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startDate, endDate, activeTab]);
 
-  // ===== FILTER SEARCH (TAB KẾ TOÁN) =====
+  // ===== FILTER SEARCH =====
   const filtered = transactions.filter((x) => {
     const q = query.toLowerCase();
     return (
@@ -170,13 +335,11 @@ export default function FinancePage() {
   const rowsSelectValue = rowsPerPage > 100 ? "all" : rowsPerPage;
 
   const handleRowsPerPageChange = (value) => {
-    setRowsPerPage(
-      value === "all" ? Number.MAX_SAFE_INTEGER : Number(value)
-    );
+    setRowsPerPage(value === "all" ? Number.MAX_SAFE_INTEGER : Number(value));
     setCurrentPage(1);
   };
 
-  // ===== EXPORT CSV (TAB KẾ TOÁN) =====
+  // ===== EXPORT CSV =====
   const exportCSV = () => {
     const rows = [
       ["Date", "Type", "Code", "Partner", "Amount", "Note"],
@@ -191,646 +354,914 @@ export default function FinancePage() {
     ];
 
     const csv = rows
-      .map((r) =>
-        r.map((c) => `"${String(c).replaceAll('"', '""')}"`).join(",")
-      )
+      .map((r) => r.map((c) => `"${String(c).replaceAll('"', '""')}"`).join(","))
       .join("\n");
 
-    const blob = new Blob(["\ufeff" + csv], {
-      type: "text/csv;charset=utf-8;",
-    });
-
+    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-
     a.href = url;
     a.download = `finance_${startDate}_${endDate}.csv`;
     a.click();
-
     URL.revokeObjectURL(url);
   };
 
-  const headerCellStyle = { whiteSpace: "nowrap" };
+  // ===== CHART COLORS =====
+  const CHART_COLORS = {
+    primary: "#3b82f6",
+    secondary: "#10b981",
+    danger: "#ef4444",
+    warning: "#f59e0b",
+    light: "#e5e7eb"
+  };
+
+  // ===== CUSTOM TOOLTIP =====
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-3 border rounded shadow-sm">
+          <p className="fw-semibold mb-2">{label}</p>
+          {payload.map((entry, index) => (
+            <p key={index} className="mb-1" style={{ color: entry.color }}>
+              {entry.name}: {entry.dataKey === 'revenue' ? formatCurrency(entry.value) : entry.value}
+            </p>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * Math.PI / 180);
+    const y = cy + radius * Math.sin(-midAngle * Math.PI / 180);
+
+    return (
+      <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central">
+        {`${(percent * 100).toFixed(0)}%`}
+      </text>
+    );
+  };
 
   return (
     <MainLayout>
       <div className="container-fluid py-3">
-        {/* ===== PAGE TITLE ===== */}
-        <div className="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+        {/* ===== PAGE HEADER ===== */}
+        <div className="d-flex justify-content-between align-items-center mb-3">
           <div>
-            <h4 className="fw-bold mb-1">
-              {t("finance.title") || "Tài chính - Thuế & Kế toán"}
+            <h4 className="fw-bold mb-0">
+              {t("finance.title")}
             </h4>
             <div className="text-muted small">
-              Hộ kinh doanh nhóm 2 (Doanh thu từ 200 triệu đến dưới 3 tỷ)
+              {t("finance.subtitle")}
             </div>
           </div>
         </div>
 
         {/* ===== TABS ===== */}
-        <ul className="nav nav-tabs mb-3">
-          <li className="nav-item">
+        <div className="mb-3">
+          <div className="btn-group w-100" role="group">
             <button
-              className={`nav-link ${
-                activeTab === "tax-overview" ? "active" : ""
-              }`}
-              onClick={() => setActiveTab("tax-overview")}
+              type="button"
+              className={`btn btn-outline-${theme} ${activeTab === "overview" ? "active" : ""}`}
+              onClick={() => setActiveTab("overview")}
             >
-              Thuế hộ kinh doanh 2026
+              {t("finance.tabs.overview")}
             </button>
-          </li>
-          <li className="nav-item">
             <button
-              className={`nav-link ${
-                activeTab === "tax-calculator" ? "active" : ""
-              }`}
+              type="button"
+              className={`btn btn-outline-${theme} ${activeTab === "tax-calculator" ? "active" : ""}`}
               onClick={() => setActiveTab("tax-calculator")}
             >
-              Tính thuế phải nộp
+              {t("finance.tabs.taxCalculator")}
             </button>
-          </li>
-          <li className="nav-item">
             <button
-              className={`nav-link ${
-                activeTab === "accounting" ? "active" : ""
-              }`}
-              onClick={() => setActiveTab("accounting")}
+              type="button"
+              className={`btn btn-outline-${theme} ${activeTab === "transactions" ? "active" : ""}`}
+              onClick={() => setActiveTab("transactions")}
             >
-              Thống kê & Sổ kế toán
+              {t("finance.tabs.transactions")}
             </button>
-          </li>
-        </ul>
-
-        {/* =========================
-            TAB 1: TỔNG QUAN THUẾ
-        ========================== */}
-        {activeTab === "tax-overview" && (
-          <div className="row g-3">
-            {/* Nhóm 2 - chính của bạn */}
-            <div className="col-12 col-lg-8">
-              <div className="card shadow-sm border-0 rounded-3 h-100">
-                <div className="card-body">
-                  <h5 className={`fw-bold text-${theme} mb-3`}>
-                    Nhóm 2 – Doanh thu từ 200 triệu đến 3 tỷ
-                  </h5>
-
-                  <div className="mb-3">
-                    <h6 className="fw-semibold">Thuế GTGT</h6>
-                    <ul className="mb-2">
-                      <li>
-                        Áp dụng{" "}
-                        <strong>phương pháp trực tiếp trên doanh thu</strong>.
-                      </li>
-                      <li>
-                        Công thức:{" "}
-                        <code>
-                          Thuế GTGT phải nộp = Doanh thu × Tỷ lệ %
-                        </code>{" "}
-                        (tùy ngành nghề theo quy định).
-                      </li>
-                      <li>
-                        Có thể{" "}
-                        <strong>
-                          tự nguyện đăng ký phương pháp khấu trừ
-                        </strong>{" "}
-                        nếu đủ điều kiện.
-                      </li>
-                    </ul>
-                  </div>
-
-                  <div className="mb-3">
-                    <h6 className="fw-semibold">Thuế TNCN</h6>
-                    <ul className="mb-2">
-                      <li>
-                        Tính theo <strong>tỷ lệ % trên doanh thu</strong> theo
-                        từng ngành nghề.
-                      </li>
-                      <li>
-                        Công thức:{" "}
-                        <code>
-                          Thuế TNCN phải nộp = Doanh thu × Tỷ lệ %
-                        </code>
-                        .
-                      </li>
-                    </ul>
-                  </div>
-
-                  <div className="mb-3">
-                    <h6 className="fw-semibold">Kê khai & Hóa đơn</h6>
-                    <ul className="mb-2">
-                      <li>
-                        <strong>Kê khai theo quý</strong> (4 lần/năm) và{" "}
-                        <strong>quyết toán năm</strong>.
-                      </li>
-                      <li>
-                        Nếu doanh thu &gt; 1 tỷ và có bán hàng trực tiếp cho
-                        người tiêu dùng →{" "}
-                        <strong>
-                          bắt buộc hóa đơn điện tử khởi tạo từ máy tính tiền
-                        </strong>
-                        .
-                      </li>
-                    </ul>
-                  </div>
-
-                  <div className="mb-3">
-                    <h6 className="fw-semibold">Tài khoản ngân hàng</h6>
-                    <ul className="mb-2">
-                      <li>
-                        <strong>Bắt buộc mở tài khoản riêng</strong> phục vụ
-                        kinh doanh.
-                      </li>
-                    </ul>
-                  </div>
-
-                  <div className="mb-3">
-                    <h6 className="fw-semibold">
-                      Kinh doanh qua sàn TMĐT / nền tảng
-                    </h6>
-                    <ul className="mb-2">
-                      <li>
-                        Nếu <strong>sàn có chức năng thanh toán</strong>:
-                        <ul>
-                          <li>
-                            Sàn <strong>khấu trừ, kê khai và nộp thay</strong>{" "}
-                            thuế GTGT, TNCN theo tỷ lệ % trên doanh thu.
-                          </li>
-                          <li>
-                            Nếu doanh thu cuối năm &lt; 200 triệu: có thể{" "}
-                            <strong>
-                              được hoàn số thuế đã nộp thừa theo quy định
-                            </strong>
-                            .
-                          </li>
-                        </ul>
-                      </li>
-                      <li>
-                        Nếu <strong>sàn không có chức năng thanh toán</strong>:
-                        <ul>
-                          <li>
-                            Cá nhân/hộ kinh doanh{" "}
-                            <strong>tự kê khai, nộp thuế</strong> theo từng lần
-                            phát sinh, tháng hoặc quý.
-                          </li>
-                        </ul>
-                      </li>
-                    </ul>
-                  </div>
-
-                  <div className="alert alert-info mb-0">
-                    Lưu ý: Các thông tin trên chỉ mang tính chất{" "}
-                    <strong>tham khảo & mô phỏng giao diện</strong>. Khi áp
-                    dụng thực tế cần đối chiếu văn bản pháp luật hiện hành và
-                    trao đổi với cơ quan thuế/kế toán.
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Nhóm 1 & 3 - Coming soon */}
-            <div className="col-12 col-lg-4">
-              <div className="card shadow-sm border-0 rounded-3 mb-3">
-                <div className="card-body">
-                  <h6 className="fw-bold mb-1">
-                    Nhóm 1 – Doanh thu ≤ 200 triệu
-                  </h6>
-                  <div className="text-muted small mb-2">
-                    Miễn thuế GTGT & TNCN (theo ngưỡng doanh thu 200 triệu/năm).
-                  </div>
-                  <span className="badge bg-secondary">Coming soon</span>
-                </div>
-              </div>
-
-              <div className="card shadow-sm border-0 rounded-3">
-                <div className="card-body">
-                  <h6 className="fw-bold mb-1">
-                    Nhóm 3 – Doanh thu &gt; 3 tỷ
-                  </h6>
-                  <div className="text-muted small mb-2">
-                    Áp dụng như doanh nghiệp: khấu trừ thuế GTGT, kê khai đầy
-                    đủ, chế độ kế toán DN.
-                  </div>
-                  <span className="badge bg-secondary">Coming soon</span>
-                </div>
-              </div>
-            </div>
           </div>
+        </div>
+
+        {/* THÔNG BÁO LỖI (nếu có) */}
+        {error && (
+          <div className="alert alert-warning py-2 small mb-3">{error}</div>
         )}
 
         {/* =========================
-            TAB 2: TÍNH THUẾ PHẢI NỘP
+            TAB 1: TỔNG QUAN
         ========================== */}
-        {activeTab === "tax-calculator" && (
-          <div className="row g-3">
-            <div className="col-12 col-lg-7">
-              <div className="card shadow-sm border-0 rounded-3">
-                <div className="card-body">
-                  <h5 className={`fw-bold text-${theme} mb-3`}>
-                    Máy tính thuế – Nhóm 2 (200 triệu &lt; Doanh thu ≤ 3 tỷ)
-                  </h5>
-
-                  <div className="row g-3">
-                    {/* Kỳ tính thuế */}
-                    <div className="col-12 col-md-4">
-                      <label className="form-label">
-                        Kỳ tính thuế (tham khảo)
-                      </label>
-                      <select
-                        className="form-select"
-                        value={taxPeriod}
-                        onChange={(e) => setTaxPeriod(e.target.value)}
-                      >
-                        <option value="MONTH">Theo tháng</option>
-                        <option value="QUARTER">Theo quý</option>
-                        <option value="YEAR">Theo năm</option>
-                      </select>
-                    </div>
-
-                    {/* Doanh thu */}
-                    <div className="col-12 col-md-8">
-                      <label className="form-label">
-                        Doanh thu kỳ tính thuế (VNĐ)
-                      </label>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={taxRevenue}
-                        min={0}
-                        onChange={(e) => setTaxRevenue(e.target.value)}
-                        placeholder="Nhập tổng doanh thu chịu thuế"
-                      />
-                    </div>
-
-                    {/* Thuế suất GTGT */}
-                    <div className="col-12 col-md-6">
-                      <label className="form-label">
-                        Tỷ lệ GTGT tính trên doanh thu (%)
-                      </label>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={taxVatRate}
-                        min={0}
-                        step="0.1"
-                        onChange={(e) => setTaxVatRate(e.target.value)}
-                        placeholder="Ví dụ: 1; 2; 3..."
-                      />
-                      <div className="form-text">
-                        Nhập theo ngành nghề thực tế theo quy định.
-                      </div>
-                    </div>
-
-                    {/* Thuế suất TNCN */}
-                    <div className="col-12 col-md-6">
-                      <label className="form-label">
-                        Tỷ lệ TNCN tính trên doanh thu (%)
-                      </label>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={taxPitRate}
-                        min={0}
-                        step="0.1"
-                        onChange={(e) => setTaxPitRate(e.target.value)}
-                        placeholder="Ví dụ: 0.5; 1.5..."
-                      />
-                      <div className="form-text">
-                        Nhập theo biểu thuế hiện hành của ngành.
-                      </div>
-                    </div>
-                  </div>
-
-                  <hr />
-
-                  <div className="row g-3">
-                    <div className="col-12 col-md-4">
-                      <div className="border rounded-3 p-3 bg-light">
-                        <div className="text-muted small mb-1">
-                          Thuế GTGT ước tính
-                        </div>
-                        <div className="fw-bold fs-5">
-                          {formatCurrency(vatAmount)}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="col-12 col-md-4">
-                      <div className="border rounded-3 p-3 bg-light">
-                        <div className="text-muted small mb-1">
-                          Thuế TNCN ước tính
-                        </div>
-                        <div className="fw-bold fs-5">
-                          {formatCurrency(pitAmount)}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="col-12 col-md-4">
-                      <div className="border rounded-3 p-3 bg-light">
-                        <div className="text-muted small mb-1">
-                          Tổng thuế phải nộp
-                        </div>
-                        <div className="fw-bold fs-5 text-danger">
-                          {formatCurrency(totalTax)}
-                        </div>
-                        <div className="text-muted small mt-1">
-                          Thuế suất hiệu dụng:{" "}
-                          <strong>{effectiveRate.toFixed(2)}%</strong>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="alert alert-warning mt-3 mb-0">
-                    Đây là công cụ tính toán <strong>mang tính nội bộ</strong>{" "}
-                    cho hộ kinh doanh, không thay thế tư vấn thuế chính thức.
-                    Bạn cần đối chiếu lại số liệu với kế toán hoặc cơ quan thuế
-                    khi thực hiện kê khai.
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Coming soon cho Nhóm 1 & 3 nếu sau này tách riêng công thức */}
-            <div className="col-12 col-lg-5">
-              <div className="card shadow-sm border-0 rounded-3 mb-3">
-                <div className="card-body">
-                  <h6 className="fw-bold mb-1">
-                    Máy tính thuế – Nhóm 1 (≤ 200 triệu)
-                  </h6>
-                  <p className="text-muted small mb-2">
-                    Hộ kinh doanh doanh thu không vượt 200 triệu/năm thường
-                    được miễn thuế GTGT & TNCN.
-                  </p>
-                  <span className="badge bg-secondary">Coming soon</span>
-                </div>
-              </div>
-
-              <div className="card shadow-sm border-0 rounded-3">
-                <div className="card-body">
-                  <h6 className="fw-bold mb-1">
-                    Máy tính thuế – Nhóm 3 (&gt; 3 tỷ)
-                  </h6>
-                  <p className="text-muted small mb-2">
-                    Áp dụng cơ chế tính thuế như doanh nghiệp: khấu trừ GTGT,
-                    thuế TNDN/TNCN theo thu nhập tính thuế.
-                  </p>
-                  <span className="badge bg-secondary">Coming soon</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* =========================
-            TAB 3: THỐNG KÊ & SỔ KẾ TOÁN
-        ========================== */}
-        {activeTab === "accounting" && (
+        {activeTab === "overview" && (
           <>
-            {/* Header bộ lọc ngày + quick range + export */}
-            <div className="row align-items-center gy-2 mb-3">
-              <div className="col-12 col-md-5">
-                <div className="row g-2">
-                  <div className="col">
-                    <label className="form-label small mb-1">
-                      Từ ngày
-                    </label>
-                    <input
-                      type="date"
-                      className="form-control"
-                      value={startDate}
-                      onChange={(e) => {
-                        setStartDate(e.target.value);
-                        setStartDisplay(
-                          formatters.date.toDisplay(e.target.value)
-                        );
-                        setCurrentPage(1);
-                      }}
-                    />
-                  </div>
-                  <div className="col">
-                    <label className="form-label small mb-1">
-                      Đến ngày
-                    </label>
-                    <input
-                      type="date"
-                      className="form-control"
-                      value={endDate}
-                      onChange={(e) => {
-                        setEndDate(e.target.value);
-                        setEndDisplay(
-                          formatters.date.toDisplay(e.target.value)
-                        );
-                        setCurrentPage(1);
-                      }}
-                    />
+            {/* Date Filter */}
+            <div className="card shadow-sm border-0 mb-3">
+              <div className="card-body">
+                <div className="row align-items-center g-3">
+                  <div className="col-12">
+                    <div className="row g-2">
+                      <div className="col-md-3">
+                        <label className="form-label small mb-1">
+                          <i className="bi bi-calendar3 me-1"></i>
+                          {t("finance.accounting.fromDate")}
+                        </label>
+                        <div className="input-group input-group-sm">
+                          <input
+                            type="date"
+                            className="form-control"
+                            value={startDate}
+                            onChange={(e) => {
+                              setStartDate(e.target.value);
+                              setCurrentPage(1);
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <div className="col-md-3">
+                        <label className="form-label small mb-1">
+                          <i className="bi bi-calendar3 me-1"></i>
+                          {t("finance.accounting.toDate")}
+                        </label>
+                        <div className="input-group input-group-sm">
+                          <input
+                            type="date"
+                            className="form-control"
+                            value={endDate}
+                            onChange={(e) => {
+                              setEndDate(e.target.value);
+                              setCurrentPage(1);
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              <div className="col-12 col-md-4 d-flex flex-wrap gap-1">
-                <div className="btn-group">
-                  <button
-                    className={`btn btn-outline-${theme} btn-sm`}
-                    onClick={() => quickRange(7)}
-                  >
-                    7 ngày
-                  </button>
-                  <button
-                    className={`btn btn-outline-${theme} btn-sm`}
-                    onClick={() => quickRange(30)}
-                  >
-                    30 ngày
-                  </button>
-                  <button
-                    className={`btn btn-outline-${theme} btn-sm`}
-                    onClick={() => quickRange(90)}
-                  >
-                    90 ngày
-                  </button>
-                </div>
-              </div>
-
-              <div className="col-12 col-md-3 d-flex justify-content-end">
-                <button
-                  className={`btn btn-${theme} text-white btn-sm`}
-                  onClick={exportCSV}
-                >
-                  <i className="bi bi-download me-1" /> Xuất CSV
-                </button>
               </div>
             </div>
 
             {/* Summary cards */}
-            <div className="row g-3 mb-3">
+            <div className="row g-3 mb-4">
               {[
                 {
-                  label: "Doanh thu",
+                  label: t("finance.accounting.revenue"),
                   value: formatCurrency(summary.revenue),
-                  icon: "bi-graph-up",
-                  className: "text-success",
+                  icon: "bi-currency-dollar",
+                  color: "success",
+                  description: t("finance.summary.revenueDesc"),
+                  currencyUnit: t("common.currency")
                 },
                 {
-                  label: "Chi phí",
+                  label: t("finance.accounting.cost"),
                   value: formatCurrency(summary.cost),
                   icon: "bi-cash-stack",
-                  className: "text-danger",
+                  color: "danger",
+                  description: t("finance.summary.costDesc"),
+                  currencyUnit: t("common.currency")
                 },
                 {
-                  label: "Lợi nhuận",
+                  label: t("finance.accounting.profit"),
                   value: formatCurrency(summary.profit),
-                  icon: "bi-wallet2",
-                  className: "text-primary",
+                  icon: "bi-graph-up-arrow",
+                  color: "primary",
+                  description: t("finance.summary.profitDesc"),
+                  currencyUnit: t("common.currency")
                 },
                 {
-                  label: "Số hóa đơn",
+                  label: t("finance.accounting.invoices"),
                   value: summary.invoicesCount,
                   icon: "bi-receipt",
-                  className: "text-secondary",
+                  color: "info",
+                  description: t("finance.summary.invoicesDesc"),
+                  unit: t("common.orders")
                 },
-              ].map((c, i) => (
-                <div key={i} className="col-12 col-md-3">
-                  <div className="card shadow-sm border-0 h-100">
-                    <div className="card-body d-flex align-items-center justify-content-between">
-                      <div>
-                        <div className="text-muted small">{c.label}</div>
-                        <div className={`fw-bold fs-5 ${c.className}`}>
-                          {c.value}
+                {
+                  label: t("finance.summary.margin"),
+                  value: `${summary.profitMargin.toFixed(1)}%`,
+                  icon: "bi-percent",
+                  color: "warning",
+                  description: t("finance.summary.marginDesc"),
+                  unit: "%"
+                }
+              ].map((card, index) => (
+                <div key={index} className="col-12 col-sm-6 col-md-4 col-lg">
+                  <div className="card border-0 shadow-sm h-100">
+                    <div className="card-body">
+                      <div className="d-flex align-items-start">
+                        <div className="me-3">
+                          <i className={`bi ${card.icon} fs-3 text-${card.color}`}></i>
+                        </div>
+                        <div className="flex-grow-1">
+                          <div className="text-muted small mb-1">{card.label}</div>
+                          <div className={`fw-bold fs-4 text-${card.color}`}>
+                            {card.value}
+                            {card.currencyUnit && (
+                              <span className="fs-6 ms-1 text-muted">{card.currencyUnit}</span>
+                            )}
+                          </div>
+                          <div className="small text-muted mt-1">{card.description}</div>
                         </div>
                       </div>
-                      <i
-                        className={`bi ${c.icon} fs-3 ${c.className}`}
-                      ></i>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* Search + error */}
-            <div className="row align-items-center gy-2 mb-2">
-              <div className="col-12 col-md-6">
-                <div className="input-group">
-                  <span
-                    className={`input-group-text bg-white border-${theme}`}
-                  >
-                    <i className="bi bi-search" />
-                  </span>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Tìm theo mã chứng từ / đối tác / ngày…"
-                    value={query}
-                    onChange={(e) => {
-                      setQuery(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                  />
+            {/* Charts */}
+            <div className="row g-3 mb-4">
+              {/* Revenue Trend */}
+              <div className="col-12 col-lg-8">
+                <div className="card border-0 shadow-sm h-100">
+                  <div className="card-header bg-white border-0">
+                    <div className="d-flex justify-content-between align-items-center">
+                      <h5 className="fw-bold mb-0">
+                        <i className="bi bi-graph-up me-2"></i>
+                        {t("finance.charts.revenueTrend")}
+                      </h5>
+                      <div className="text-muted small">
+                        <span className="text-success me-3">
+                          {formatCurrency(summary.revenue)} {t("common.currency")}
+                        </span>
+                        <span className="text-primary">
+                          {summary.invoicesCount} {t("finance.charts.orders")}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="card-body">
+                    {loading ? (
+                      <div className="text-center py-5">
+                        <div className="spinner-border text-primary"></div>
+                        <p className="text-muted mt-2">{t("common.loading")}</p>
+                      </div>
+                    ) : chartData.dailyRevenue.length > 0 ? (
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={chartData.dailyRevenue}>
+                          <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.light} />
+                          <XAxis 
+                            dataKey="displayDate" 
+                            fontSize={12}
+                          />
+                          <YAxis 
+                            tickFormatter={(value) => formatCurrency(value).replace('₫', '')}
+                            fontSize={12}
+                            unit={t("common.currency")}
+                          />
+                          <Tooltip 
+                            content={<CustomTooltip />}
+                            formatter={(value) => [formatCurrency(value), t("finance.charts.revenue")]}
+                          />
+                          <Bar 
+                            name={`${t("finance.charts.revenue")} (${t("common.currency")})`}
+                            dataKey="revenue" 
+                            fill={CHART_COLORS.primary} 
+                            radius={[4, 4, 0, 0]}
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="text-muted text-center py-5">
+                        <i className="bi bi-bar-chart fs-1 mb-3"></i>
+                        <p>{t("common.noData")}</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-              <div className="col-12 col-md-6 text-end">
-                {error && (
-                  <span className="text-danger small">{error}</span>
-                )}
+
+              {/* Payment Methods */}
+              <div className="col-12 col-lg-4">
+                <div className="card border-0 shadow-sm h-100">
+                  <div className="card-header bg-white border-0">
+                    <div className="d-flex justify-content-between align-items-center">
+                      <h5 className="fw-bold mb-0">
+                        <i className="bi bi-credit-card me-2"></i>
+                        {t("finance.charts.paymentMethods")}
+                      </h5>
+                    </div>
+                  </div>
+                  <div className="card-body">
+                    {loading ? (
+                      <div className="text-center py-5">
+                        <div className="spinner-border text-primary"></div>
+                        <p className="text-muted mt-2">{t("common.loading")}</p>
+                      </div>
+                    ) : chartData.paymentMethods.length > 0 ? (
+                      <div className="h-100 d-flex flex-column justify-content-center">
+                        {chartData.paymentMethods.map((pm, index) => (
+                          <div key={pm.name} className="mb-3">
+                            <div className="d-flex justify-content-between align-items-center mb-1">
+                              <div className="d-flex align-items-center">
+                                <div className="rounded-circle me-2" 
+                                  style={{
+                                    width: 12,
+                                    height: 12,
+                                    backgroundColor: CHART_COLORS.primary
+                                  }}
+                                />
+                                <span className="small fw-semibold">{pm.name}</span>
+                              </div>
+                              <span className="small">
+                                {formatCurrency(pm.value)} {t("common.currency")}
+                              </span>
+                            </div>
+                            <div className="d-flex justify-content-between small text-muted">
+                              <span>{pm.count} {t("finance.charts.orders")}</span>
+                              <span>{pm.percentage.toFixed(1)}%</span>
+                            </div>
+                            <div className="progress" style={{ height: 6 }}>
+                              <div 
+                                className="progress-bar" 
+                                role="progressbar" 
+                                style={{ 
+                                  width: `${pm.percentage}%`,
+                                  backgroundColor: CHART_COLORS.primary
+                                }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-muted text-center py-5">
+                        <i className="bi bi-pie-chart fs-1 mb-3"></i>
+                        <p>{t("common.noData")}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Category Revenue */}
+            <div className="row g-3">
+              <div className="col-12">
+                <div className="card border-0 shadow-sm">
+                  <div className="card-header bg-white border-0">
+                    <div className="d-flex justify-content-between align-items-center">
+                      <h5 className="fw-bold mb-0">
+                        <i className="bi bi-tags me-2"></i>
+                        {t("finance.charts.categoryRevenue")}
+                      </h5>
+                      <div className="text-muted small">
+                        {t("finance.charts.topCategories")}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="card-body">
+                    {loading ? (
+                      <div className="text-center py-5">
+                        <div className="spinner-border text-primary"></div>
+                        <p className="text-muted mt-2">{t("common.loading")}</p>
+                      </div>
+                    ) : chartData.categoryRevenue.length > 0 ? (
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart 
+                          data={chartData.categoryRevenue}
+                          margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.light} />
+                          <XAxis 
+                            dataKey="category"
+                            angle={-45}
+                            textAnchor="end"
+                            height={60}
+                            fontSize={12}
+                          />
+                          <YAxis 
+                            tickFormatter={(value) => formatCurrency(value).replace('₫', '')}
+                            fontSize={12}
+                            unit={t("common.currency")}
+                          />
+                          <Tooltip formatter={(value) => formatCurrency(value)} />
+                          <Bar 
+                            name={`${t("finance.charts.revenue")} (${t("common.currency")})`}
+                            dataKey="revenue" 
+                            fill={CHART_COLORS.primary} 
+                            radius={[4, 4, 0, 0]}
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="text-muted text-center py-5">
+                        <i className="bi bi-tags fs-1 mb-3"></i>
+                        <p>{t("common.noData")}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* =========================
+            TAB 2: TÍNH THUẾ PHẢI NỘP (CHỈ CÒN PHƯƠNG PHÁP KHẤU TRỪ)
+        ========================== */}
+        {activeTab === "tax-calculator" && (
+          <div className="row g-3">
+            <div className="col-12 col-xl-8">
+              <div className="card shadow-sm border-0 h-100">
+                <div className="card-header bg-white border-0">
+                  <div className="d-flex justify-content-between align-items-center">
+                    <h5 className="fw-bold mb-0">
+                      {t("finance.taxCalculator.title")}
+                    </h5>
+                    <div className="d-flex align-items-center gap-2">
+                      <span className="text-muted small">
+                        {t("finance.taxCalculator.period")}:
+                      </span>
+                      <select
+                        className={`form-select form-select-sm border-${theme}`}
+                        value={taxPeriod}
+                        onChange={(e) => setTaxPeriod(e.target.value)}
+                        style={{ minWidth: 130 }}
+                      >
+                        <option value="MONTH">{t("finance.taxCalculator.monthly")}</option>
+                        <option value="QUARTER">{t("finance.taxCalculator.quarterly")}</option>
+                        <option value="YEAR">{t("finance.taxCalculator.yearly")}</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="card-body">
+                  {/* Thông báo phương pháp khấu trừ */}
+                  <div className="alert alert-info mb-4">
+                    <i className="bi bi-info-circle me-2"></i>
+                    <strong>{t("finance.taxCalculator.vatCreditOnly")}</strong><br/>
+                    {t("finance.taxCalculator.vatCreditDesc")}
+                  </div>
+
+                  <div className="row g-3">
+                    {/* Doanh thu */}
+                    <div className="col-12 col-md-6">
+                      <label className="form-label fw-semibold">
+                        {t("finance.taxCalculator.revenue")}
+                      </label>
+                      <div className="input-group">
+                        <input
+                          type="number"
+                          className="form-control"
+                          value={taxRevenue}
+                          min={0}
+                          onChange={(e) => setTaxRevenue(Number(e.target.value))}
+                          placeholder={t("finance.taxCalculator.revenuePlaceholder")}
+                        />
+                        <span className="input-group-text">
+                          {t("common.currency")}
+                        </span>
+                        <button
+                          className="btn btn-outline-secondary"
+                          type="button"
+                          onClick={() => setTaxRevenue(summary.revenue)}
+                        >
+                          {t("finance.taxCalculator.useCurrent")}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Thuế VAT đầu vào */}
+                    <div className="col-12 col-md-6">
+                      <label className="form-label fw-semibold">
+                        {t("finance.taxCalculator.inputVat")}
+                      </label>
+                      <div className="input-group">
+                        <input
+                          type="number"
+                          className="form-control"
+                          value={inputVat}
+                          min={0}
+                          onChange={(e) => setInputVat(Number(e.target.value))}
+                          placeholder={t("finance.taxCalculator.inputVatPlaceholder")}
+                        />
+                        <span className="input-group-text">
+                          {t("common.currency")}
+                        </span>
+                      </div>
+                      <small className="text-muted d-block mt-1">
+                        {t("finance.taxCalculator.inputVatDesc")}
+                      </small>
+                    </div>
+                  </div>
+
+                  {/* Thông tin ước tính */}
+                  <div className="mt-4">
+                    <div className="alert alert-light">
+                      <div className="row">
+                        <div className="col-6">
+                          <div className="small text-muted">
+                            {t("finance.taxCalculator.yearlyEstimateLabel")}
+                          </div>
+                          <div className="fw-bold">
+                            {formatCurrency(yearlyRevenueEstimate)} {t("common.currency")}
+                          </div>
+                        </div>
+                        <div className="col-6">
+                          <div className="small text-muted">
+                            {t("finance.taxCalculator.taxFreeThreshold")}
+                          </div>
+                          <div className="fw-bold text-success">
+                            {formatCurrency(TAX_CONFIG.minRevenue)} {t("common.currency")}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Thanh tiến trình */}
+                    {taxRevenue > 0 && (
+                      <div className="mt-3">
+                        <div className="d-flex justify-content-between small mb-2">
+                          <span>0 {t("common.currency")}</span>
+                          <span className="fw-bold">
+                            {t("finance.taxCalculator.threshold", { amount: formatCurrency(TAX_CONFIG.minRevenue) })}
+                          </span>
+                          <span>3 {t("common.billion")} {t("common.currency")}</span>
+                        </div>
+                        <div className="progress" style={{ height: "8px", borderRadius: "4px" }}>
+                          <div
+                            className={`progress-bar ${isAboveThreshold ? "bg-success" : "bg-warning"}`}
+                            style={{ width: `${Math.min((yearlyRevenueEstimate / 3000000000) * 100, 100)}%` }}
+                          />
+                        </div>
+                        <div className="text-center small mt-2">
+                          {!isAboveThreshold ? (
+                            <span className="text-success">
+                              <i className="bi bi-check-circle me-1"></i>
+                              {t("finance.taxCalculator.belowThreshold")}
+                            </span>
+                          ) : (
+                            <span className="text-warning">
+                              <i className="bi bi-exclamation-triangle me-1"></i>
+                              {t("finance.taxCalculator.aboveThreshold")}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Chi tiết tính thuế VAT */}
+                  {isAboveThreshold && taxResult.taxableRevenue > 0 && (
+                    <div className="alert alert-info mt-3">
+                      <div className="row">
+                        <div className="col-6">
+                          <div className="small">{t("finance.taxCalculator.outputVat")}:</div>
+                          <div className="fw-bold">
+                            {formatCurrency(taxResult.taxableRevenue)} × {TAX_CONFIG.vatRate}% = {formatCurrency(taxResult.outputVat)}
+                          </div>
+                        </div>
+                        <div className="col-6">
+                          <div className="small">{t("finance.taxCalculator.inputVat")}:</div>
+                          <div className="fw-bold">{formatCurrency(taxResult.inputVat)} {t("common.currency")}</div>
+                        </div>
+                        <div className="col-12 mt-2 pt-2 border-top">
+                          <div className="small">{t("finance.taxCalculator.vatToPay")}:</div>
+                          <div className="fw-bold text-danger">
+                            {formatCurrency(taxResult.outputVat)} - {formatCurrency(taxResult.inputVat)} = {formatCurrency(taxResult.vatToPay)} {t("common.currency")}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <hr className="my-4" />
+
+                  {/* Kết quả tính thuế */}
+                  <div className="row g-3">
+                    <div className="col-12 col-md-4">
+                      <div className="card border-0 shadow-sm h-100">
+                        <div className="card-body">
+                          <div className="d-flex justify-content-between align-items-start mb-2">
+                            <div className="text-muted small">{t("finance.taxCalculator.vatAmount")}</div>
+                            <span className="badge bg-primary text-white">
+                              {TAX_CONFIG.vatRate}%
+                            </span>
+                          </div>
+                          <div className={`fw-bold fs-4 ${isAboveThreshold ? "text-dark" : "text-muted"}`}>
+                            {formatCurrency(taxResult.vatAmount)} {t("common.currency")}
+                          </div>
+                          {isAboveThreshold && (
+                            <div className="small text-muted mt-2">
+                              {formatCurrency(taxResult.outputVat)} - {formatCurrency(taxResult.inputVat)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="col-12 col-md-4">
+                      <div className="card border-0 shadow-sm h-100">
+                        <div className="card-body">
+                          <div className="d-flex justify-content-between align-items-start mb-2">
+                            <div className="text-muted small">{t("finance.taxCalculator.pitAmount")}</div>
+                            <span className="badge bg-info text-white">{TAX_CONFIG.pitRate}%</span>
+                          </div>
+                          <div className={`fw-bold fs-4 ${isAboveThreshold ? "text-dark" : "text-muted"}`}>
+                            {formatCurrency(taxResult.pitAmount)} {t("common.currency")}
+                          </div>
+                          {isAboveThreshold && (
+                            <div className="small text-muted mt-2">
+                              {formatCurrency(taxResult.taxableRevenue)} × {TAX_CONFIG.pitRate}%
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="col-12 col-md-4">
+                      <div className="card border-0 shadow-sm h-100">
+                        <div className="card-body">
+                          <div className="text-muted small">{t("finance.taxCalculator.totalTax")}</div>
+                          <div className="fw-bold fs-4 text-danger">
+                            {formatCurrency(taxResult.totalTax)} {t("common.currency")}
+                          </div>
+                          <div className="text-muted small mt-2">
+                            {t("finance.taxCalculator.effectiveRate")} <strong>{effectiveRate.toFixed(2)}%</strong>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Thông báo miễn thuế */}
+                  {taxRevenue > 0 && !isAboveThreshold && (
+                    <div className="alert alert-success mt-4">
+                      <div className="d-flex">
+                        <i className="bi bi-check-circle-fill me-2"></i>
+                        <div>
+                          <strong>{t("finance.taxCalculator.taxExemption")}:</strong>{" "}
+                          {t("finance.taxCalculator.exemptionDetails", { 
+                            amount: formatCurrency(yearlyRevenueEstimate),
+                            threshold: formatCurrency(TAX_CONFIG.minRevenue)
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="alert alert-warning mt-4 mb-0">
+                    <i className="bi bi-exclamation-triangle me-2"></i>
+                    {t("finance.taxCalculator.disclaimer")}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Panel bên phải */}
+            <div className="col-12 col-xl-4">
+              {/* Hướng dẫn nhanh */}
+              <div className="card shadow-sm border-0 mb-3">
+                <div className="card-header bg-white border-0 fw-semibold">
+                  {t("finance.taxCalculator.guideTitle")}
+                </div>
+                <div className="card-body">
+                  <ol className="mb-0 ps-3">
+                    <li className="mb-2">{t("finance.taxCalculator.guideStep1")}</li>
+                    <li className="mb-2">{t("finance.taxCalculator.guideStep2")}</li>
+                    <li className="mb-2">{t("finance.taxCalculator.guideStep3")}</li>
+                    <li>{t("finance.taxCalculator.guideStep4")}</li>
+                  </ol>
+                </div>
+              </div>
+              
+              {/* Lịch kê khai */}
+              <div className="card shadow-sm border-0">
+                <div className="card-header bg-white border-0 fw-semibold">
+                  {t("finance.taxCalendar.title")}
+                </div>
+                <div className="card-body">
+                  <div className="list-group list-group-flush">
+                    <div className="list-group-item px-0 border-0">
+                      <div className="d-flex justify-content-between">
+                        <strong>{t("finance.taxCalendar.q1")}</strong>
+                        <span className="text-muted">{t("finance.taxCalendar.q1Deadline")}</span>
+                      </div>
+                    </div>
+                    <div className="list-group-item px-0">
+                      <div className="d-flex justify-content-between">
+                        <strong>{t("finance.taxCalendar.q2")}</strong>
+                        <span className="text-muted">{t("finance.taxCalendar.q2Deadline")}</span>
+                      </div>
+                    </div>
+                    <div className="list-group-item px-0">
+                      <div className="d-flex justify-content-between">
+                        <strong>{t("finance.taxCalendar.q3")}</strong>
+                        <span className="text-muted">{t("finance.taxCalendar.q3Deadline")}</span>
+                      </div>
+                    </div>
+                    <div className="list-group-item px-0">
+                      <div className="d-flex justify-content-between">
+                        <strong>{t("finance.taxCalendar.q4")}</strong>
+                        <span className="text-muted">{t("finance.taxCalendar.q4Deadline")}</span>
+                      </div>
+                    </div>
+                    <div className="list-group-item px-0 border-top mt-2 pt-3">
+                      <div className="d-flex justify-content-between">
+                        <strong>{t("finance.taxCalendar.annualSettlement")}</strong>
+                        <span className="text-danger fw-semibold">{t("finance.taxCalendar.annualDeadline")}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* =========================
+            TAB 3: GIAO DỊCH
+        ========================== */}
+        {activeTab === "transactions" && (
+          <>
+            {/* Date Filter */}
+            <div className="card shadow-sm border-0 mb-3">
+              <div className="card-body">
+                <div className="row align-items-center g-3">
+                  <div className="col-12 col-md-5">
+                    <div className="row g-2">
+                      <div className="col">
+                        <label className="form-label small mb-1">
+                          <i className="bi bi-calendar3 me-1"></i>
+                          {t("finance.accounting.fromDate")}
+                        </label>
+                        <div className="input-group input-group-sm">
+                          <input
+                            type="date"
+                            className="form-control"
+                            value={startDate}
+                            onChange={(e) => {
+                              setStartDate(e.target.value);
+                              setCurrentPage(1);
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <div className="col">
+                        <label className="form-label small mb-1">
+                          <i className="bi bi-calendar3 me-1"></i>
+                          {t("finance.accounting.toDate")}
+                        </label>
+                        <div className="input-group input-group-sm">
+                          <input
+                            type="date"
+                            className="form-control"
+                            value={endDate}
+                            onChange={(e) => {
+                              setEndDate(e.target.value);
+                              setCurrentPage(1);
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="col-12 col-md-7 d-flex justify-content-end">
+                    <button
+                      className={`btn btn-${theme} btn-sm text-white`}
+                      onClick={exportCSV}
+                    >
+                      <i className="bi bi-download me-1" /> {t("finance.accounting.exportCSV")}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Search input */}
+                <div className="mt-3">
+                  <div className="input-group input-group-sm">
+                    <span className="input-group-text bg-white">
+                      <i className="bi bi-search text-secondary" />
+                    </span>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder={t("finance.accounting.searchPlaceholder")}
+                      value={query}
+                      onChange={(e) => {
+                        setQuery(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      style={{ borderLeft: 'none' }}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* Transactions table */}
-            <div
-              className="table-responsive rounded-3 shadow-sm"
-              style={{
-                borderRadius: 16,
-                overflow: "hidden",
-                paddingRight: 8,
-                paddingBottom: 8,
-                backgroundColor: "#fff",
-              }}
-            >
-              <div
-                style={{
-                  maxHeight: "60vh",
-                  overflowX: "auto",
-                  overflowY: "auto",
-                  borderRadius: 12,
-                }}
-              >
-                <table className="table table-hover align-middle mb-0">
-                  <thead
-                    className={`table-${theme}`}
-                    style={{ position: "sticky", top: 0, zIndex: 2 }}
-                  >
-                    <tr>
-                      <th>#</th>
-                      <th>{t("finance.date") || "Ngày"}</th>
-                      <th>{t("finance.type") || "Loại"}</th>
-                      <th>{t("finance.code") || "Mã chứng từ"}</th>
-                      <th>{t("finance.partner") || "Đối tác"}</th>
-                      <th className="text-end">
-                        {t("finance.amount") || "Số tiền"}
-                      </th>
-                      <th>{t("finance.note") || "Ghi chú"}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {loading ? (
-                      <tr>
-                        <td colSpan={7} className="text-center py-4">
-                          <div
-                            className="spinner-border text-primary"
-                            role="status"
-                          />
-                        </td>
-                      </tr>
-                    ) : currentRows.length > 0 ? (
-                      currentRows.map((x, idx) => (
-                        <tr key={x.id}>
-                          <td>
-                            {(currentPage - 1) * rowsPerPage + idx + 1}
-                          </td>
-                          <td>{formatters.date.toDisplay(x.date)}</td>
-                          <td>
-                            <span
-                              className={`badge ${
-                                x.type === "SALE"
-                                  ? "bg-success"
-                                  : x.type === "PURCHASE"
-                                  ? "bg-warning text-dark"
-                                  : "bg-secondary"
-                              }`}
-                            >
-                              {x.type}
-                            </span>
-                          </td>
-                          <td>{x.code}</td>
-                          <td>{x.partner}</td>
-                          <td className="text-end fw-semibold">
-                            {formatCurrency(x.amount)}
-                          </td>
-                          <td>{x.note}</td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td
-                          colSpan={7}
-                          className="text-center text-muted py-4"
-                        >
-                          {t("finance.noData") || "Không có dữ liệu"}
-                        </td>
-                      </tr>
+            <div className="row g-3">
+              <div className="col-12">
+                <div className="card shadow-sm border-0">
+                  <div className="card-header bg-white border-0 fw-semibold d-flex justify-content-between align-items-center">
+                    <span>{t("finance.tabs.transactions")}</span>
+                    {filtered.length > 0 && (
+                      <span className="badge bg-light text-dark border">
+                        {filtered.length} {t("finance.accounting.records")}
+                      </span>
                     )}
-                  </tbody>
-                </table>
+                  </div>
+                  
+                  <div className="card-body">
+                    <div
+                      className="table-responsive rounded-3"
+                      style={{
+                        borderRadius: 16,
+                        overflow: "hidden",
+                        paddingRight: 8,
+                        paddingBottom: 8,
+                        backgroundColor: "#fff",
+                      }}
+                    >
+                      <div
+                        style={{
+                          maxHeight: "60vh",
+                          overflowX: "auto",
+                          overflowY: "auto",
+                          borderRadius: 12,
+                        }}
+                      >
+                        <table className="table table-hover align-middle mb-0">
+                          <thead
+                            className="table-light"
+                            style={{ position: "sticky", top: 0, zIndex: 2 }}
+                          >
+                            <tr>
+                              <th>#</th>
+                              <th>{t("finance.accounting.date")}</th>
+                              <th>{t("finance.accounting.type")}</th>
+                              <th>{t("finance.accounting.code")}</th>
+                              <th>{t("finance.accounting.partner")}</th>
+                              <th className="text-end">
+                                {t("finance.accounting.amount")} ({t("common.currency")})
+                              </th>
+                              <th>{t("finance.accounting.note")}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {loading ? (
+                              <tr>
+                                <td colSpan={7} className="text-center py-4">
+                                  <div className="spinner-border text-primary" role="status" />
+                                </td>
+                              </tr>
+                            ) : currentRows.length > 0 ? (
+                              currentRows.map((x, idx) => (
+                                <tr key={x.id}>
+                                  <td>{(currentPage - 1) * rowsPerPage + idx + 1}</td>
+                                  <td>{formatters.date.toDisplay(x.date)}</td>
+                                  <td>
+                                    <span
+                                      className={`badge ${
+                                        x.type === "SALE"
+                                          ? "bg-success"
+                                          : x.type === "PURCHASE"
+                                          ? "bg-warning text-dark"
+                                          : "bg-secondary"
+                                      }`}
+                                    >
+                                      {t(`finance.transactionTypes.${x.type.toLowerCase()}`, x.type)}
+                                    </span>
+                                  </td>
+                                  <td>{x.code}</td>
+                                  <td>{x.partner}</td>
+                                  <td className="text-end fw-semibold">
+                                    {formatCurrency(x.amount)} {t("common.currency")}
+                                  </td>
+                                  <td>{x.note}</td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
+                                <td colSpan={7} className="text-center text-muted py-4">
+                                  {t("finance.accounting.noData")}
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* Pagination */}
+                    <div className="mt-3">
+                      <TablePagination
+                        currentPage={currentPage}
+                        totalItems={filtered.length}
+                        rowsPerPage={rowsPerPage}
+                        rowsPerPageOptions={[15, 30, 50, 100]}
+                        rowsPerPageValue={rowsSelectValue}
+                        onPageChange={setCurrentPage}
+                        onRowsPerPageChange={handleRowsPerPageChange}
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-
-            <TablePagination
-              currentPage={currentPage}
-              totalItems={filtered.length}
-              rowsPerPage={rowsPerPage}
-              rowsPerPageOptions={[15, 30, 50, 100]}
-              rowsPerPageValue={rowsSelectValue}
-              onPageChange={setCurrentPage}
-              onRowsPerPageChange={handleRowsPerPageChange}
-            />
           </>
         )}
       </div>
