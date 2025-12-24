@@ -17,12 +17,46 @@ export default function ProductFilterPanel({ filters, onChange }) {
   const [brands, setBrands] = useState([]);
   const [showModal, setShowModal] = useState(null); // "category" | "brand"
   const [loading, setLoading] = useState(false);
+  const [dateErrors, setDateErrors] = useState({ from: "", to: "" });
 
   // ✅ value phải là "all" để filter hoạt động ổn định, label mới i18n
   const allOption = useMemo(
     () => ({ value: "all", label: t("common.all", "Tất cả") }),
     [t]
   );
+
+  // === VALIDATION FUNCTIONS ===
+  const isValidDate = (dateString) => {
+    // Kiểm tra định dạng dd/mm/yyyy hoặc yyyy-mm-dd
+    const regex = /^(0?[1-9]|[12][0-9]|3[01])\/(0?[1-9]|1[012])\/\d{4}$|^\d{4}-\d{2}-\d{2}$/;
+    if (!regex.test(dateString)) return false;
+    
+    // Kiểm tra ngày hợp lệ
+    const date = new Date(dateString);
+    return date instanceof Date && !isNaN(date.getTime());
+  };
+
+  const validateDates = (fromDate, toDate) => {
+    const errors = { from: "", to: "" };
+    
+    if (fromDate && !isValidDate(fromDate)) {
+      errors.from = t("validation.invalidDateFormat", "Định dạng ngày không hợp lệ");
+    }
+    
+    if (toDate && !isValidDate(toDate)) {
+      errors.to = t("validation.invalidDateFormat", "Định dạng ngày không hợp lệ");
+    }
+    
+    if (fromDate && toDate && isValidDate(fromDate) && isValidDate(toDate)) {
+      const from = new Date(fromDate);
+      const to = new Date(toDate);
+      if (from > to) {
+        errors.to = t("validation.toDateBeforeFrom", "Ngày đến phải sau ngày từ");
+      }
+    }
+    
+    return errors;
+  };
 
   // === GỌI API ===
   const fetchData = async () => {
@@ -66,6 +100,12 @@ export default function ProductFilterPanel({ filters, onChange }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
+  // Validate dates khi filters thay đổi
+  useEffect(() => {
+    const errors = validateDates(filters.createdAtFrom, filters.createdAtTo);
+    setDateErrors(errors);
+  }, [filters.createdAtFrom, filters.createdAtTo]);
+
   // === Styles cho Select ===
   const customSelectStyles = {
     control: (base, state) => ({
@@ -100,6 +140,18 @@ export default function ProductFilterPanel({ filters, onChange }) {
     setShowModal(null);
   };
 
+  // === Xử lý thay đổi ngày ===
+  const handleDateChange = (field, value) => {
+    onChange.change(field, value);
+  };
+
+  // === Xóa lọc ngày ===
+  const handleClearDateFilter = () => {
+    onChange.change("createdAtFrom", "");
+    onChange.change("createdAtTo", "");
+    setDateErrors({ from: "", to: "" });
+  };
+
   // ===== Options Mức tồn =====
   const stockOptions = useMemo(
     () => [
@@ -127,6 +179,10 @@ export default function ProductFilterPanel({ filters, onChange }) {
     () => pickOption(filters?.stockLevel, stockOptions),
     [filters?.stockLevel, stockOptions, allOption]
   );
+
+  // Kiểm tra xem có lỗi validation không
+  const hasDateErrors = dateErrors.from || dateErrors.to;
+  const hasDateFilter = filters.createdAtFrom || filters.createdAtTo;
 
   return (
     <>
@@ -207,15 +263,73 @@ export default function ProductFilterPanel({ filters, onChange }) {
 
             {/* ===== NGÀY TẠO ===== */}
             <div>
-              <label className="form-label fw-semibold mb-2">
-                {t("products.createdAt", "Ngày tạo")}
-              </label>
-              <input
-                type="date"
-                className={`form-control form-control-sm border-${theme} shadow-sm`}
-                value={filters.createdAt || ""}
-                onChange={(e) => onChange.change("createdAt", e.target.value)}
-              />
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <label className="form-label fw-semibold mb-0">
+                  {t("products.createdAtRange", "Ngày tạo")}
+                </label>
+                {hasDateFilter && !hasDateErrors && (
+                  <button
+                    type="button"
+                    className={`btn btn-link btn-sm text-${theme} p-0`}
+                    onClick={handleClearDateFilter}
+                    title={t("common.clearFilter", "Xóa lọc ngày")}
+                    style={{ textDecoration: "none" }}
+                  >
+                    <i className="bi bi-x-circle me-1"></i>
+                    <small>{t("common.clear", "Xóa")}</small>
+                  </button>
+                )}
+              </div>
+              
+              {/* Từ ngày */}
+              <div className="mb-3">
+                <label className="form-label small text-muted mb-1">
+                  {t("products.fromDate", "Từ ngày")}
+                </label>
+                <input
+                  type="date"
+                  className={`form-control form-control-sm ${
+                    dateErrors.from ? "is-invalid" : ""
+                  }`}
+                  value={filters.createdAtFrom || ""}
+                  onChange={(e) => handleDateChange("createdAtFrom", e.target.value)}
+                  max={filters.createdAtTo || undefined}
+                />
+                {dateErrors.from && (
+                  <div className="invalid-feedback small">
+                    {dateErrors.from}
+                  </div>
+                )}
+              </div>
+              
+              {/* Đến ngày */}
+              <div className="mb-3">
+                <label className="form-label small text-muted mb-1">
+                  {t("products.toDate", "Đến ngày")}
+                </label>
+                <input
+                  type="date"
+                  className={`form-control form-control-sm ${
+                    dateErrors.to ? "is-invalid" : ""
+                  }`}
+                  value={filters.createdAtTo || ""}
+                  onChange={(e) => handleDateChange("createdAtTo", e.target.value)}
+                  min={filters.createdAtFrom || undefined}
+                />
+                {dateErrors.to && (
+                  <div className="invalid-feedback small">
+                    {dateErrors.to}
+                  </div>
+                )}
+              </div>
+              
+              {/* Thông báo lỗi tổng */}
+              {hasDateErrors && (
+                <div className="alert alert-danger py-2 small">
+                  <i className="bi bi-exclamation-triangle me-1"></i>
+                  {t("validation.fixErrorsBeforeFilter", "Vui lòng sửa lỗi trước khi lọc")}
+                </div>
+              )}
             </div>
           </div>
         </div>

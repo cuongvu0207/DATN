@@ -13,7 +13,12 @@ export default function InvoiceTable({
   selectedInvoices,
   onSelectOne,
   onSelectAll,
-  loading, 
+  loading,
+
+  // ✅ NEW: expand row
+  expandedId,
+  onToggleRow,          // (inv) => void
+  renderExpandedRow,    // (inv) => ReactNode
 }) {
   const { t } = useTranslation();
   const { theme } = useTheme();
@@ -27,15 +32,23 @@ export default function InvoiceTable({
     currentRows.every((inv) => selectedInvoices.includes(inv.id));
 
   const mapPaymentMethod = (method) => {
-    switch (method) {
+    const m = String(method || "").trim().toUpperCase();
+    switch (m) {
       case "CASH":
         return t("payment.cash", "Tiền mặt");
       case "BANK":
+      case "TRANSFER":
+      case "BANK_TRANSFER":
         return t("payment.bank", "Chuyển khoản");
       case "WALLET":
+      case "E_WALLET":
         return t("payment.wallet", "Ví điện tử");
+      case "CARD":
+        return t("payment.card", "Thẻ");
+      case "QR":
+        return t("payment.qr", "QR");
       default:
-        return t("payment.other", "Khác");
+        return method ? String(method) : t("payment.other", "Khác");
     }
   };
 
@@ -45,18 +58,21 @@ export default function InvoiceTable({
         return t("invoices.completed", "Đã thanh toán");
       case "PENDING":
         return t("invoices.pending", "Chưa thanh toán");
+      case "DRAFT":
+        return t("invoices.draft", "Chờ thanh toán");
       default:
         return status;
     }
   };
 
   const statusBadgeClass = (status) => {
-    if (status === "COMPLETED")
-      return "bg-success-subtle text-success border border-success";
-    if (status === "PENDING")
+    if (status === "COMPLETED") return "bg-success-subtle text-success border border-success";
+    if (status === "PENDING" || status === "DRAFT")
       return "bg-warning-subtle text-warning border border-warning";
     return "bg-secondary-subtle text-dark";
   };
+
+  const colSpanCount = 9;
 
   return (
     <div className="col-lg-10 col-12">
@@ -71,62 +87,75 @@ export default function InvoiceTable({
                     className="form-check-input"
                     checked={allChecked}
                     onChange={(e) => onSelectAll(e.target.checked, currentRows)}
+                    onClick={(e) => e.stopPropagation()}
                   />
                 </th>
-                <th>{t("invoices.invoiceId")}</th>
-                <th>{t("invoices.customer")}</th>
-                <th>{t("invoices.phone")}</th>
-                <th>{t("invoices.total")}</th>
-                <th>{t("invoices.paymentMethod")}</th>
-                <th>{t("invoices.status")}</th>
-                <th>{t("invoices.seller")}</th>
-                <th>{t("invoices.createdAt")}</th>
+                <th>{t("invoices.invoiceId", "Mã HĐ")}</th>
+                <th>{t("invoices.customer", "Khách")}</th>
+                <th>{t("invoices.phone", "SĐT")}</th>
+                <th>{t("invoices.total", "Tổng")}</th>
+                <th>{t("invoices.paymentMethod", "Thanh toán")}</th>
+                <th>{t("invoices.status", "Trạng thái")}</th>
+                <th>{t("invoices.seller", "Nhân viên")}</th>
+                <th>{t("invoices.createdAt", "Ngày")}</th>
               </tr>
             </thead>
 
             <tbody>
-              {/* ============================
-                   LOADING (HIỆN TRONG BẢNG)
-                 ============================ */}
               {loading ? (
                 <tr>
-                  <td colSpan={10} className="text-center py-4">
+                  <td colSpan={colSpanCount} className="text-center py-4">
                     <div className="spinner-border text-primary"></div>
-                    <div className="mt-2 text-muted">{t("common.loading")}</div>
+                    <div className="mt-2 text-muted">{t("common.loading", "Đang tải...")}</div>
                   </td>
                 </tr>
               ) : currentRows.length > 0 ? (
                 currentRows.map((inv) => (
-                  <tr key={inv.id}>
-                    <td>
-                      <input
-                        type="checkbox"
-                        className="form-check-input"
-                        checked={selectedInvoices.includes(inv.id)}
-                        onChange={() => onSelectOne(inv.id)}
-                      />
-                    </td>
+                  <React.Fragment key={inv.id}>
+                    <tr
+                      style={{ cursor: onToggleRow ? "pointer" : "default" }}
+                      onClick={() => onToggleRow?.(inv)}
+                    >
+                      <td onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          className="form-check-input"
+                          checked={selectedInvoices.includes(inv.id)}
+                          onChange={() => onSelectOne(inv.id)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </td>
 
-                    <td>{inv.id}</td>
-                    <td>{inv.customer}</td>
-                    <td>{inv.phone}</td>
-                    <td>{formatCurrency(inv.total)}</td>
-                    <td>{mapPaymentMethod(inv.paymentMethod)}</td>
+                      <td className="fw-semibold text-primary">{inv.id}</td>
+                      <td>{inv.customer}</td>
+                      <td>{inv.phone}</td>
+                      <td>{formatCurrency(inv.total)}</td>
+                      <td>{mapPaymentMethod(inv.paymentMethod)}</td>
 
-                    <td>
-                      <span className={`badge ${statusBadgeClass(inv.status)}`}>
-                        {mapStatus(inv.status)}
-                      </span>
-                    </td>
+                      <td>
+                        <span className={`badge ${statusBadgeClass(inv.status)}`}>
+                          {mapStatus(inv.status)}
+                        </span>
+                      </td>
 
-                    <td>{inv.seller}</td>
-                    <td>{inv.createdAt}</td>
-                  </tr>
+                      <td>{inv.seller}</td>
+                      <td>{inv.createdAt}</td>
+                    </tr>
+
+                    {/* ✅ ROW XỔ CHI TIẾT */}
+                    {expandedId === inv.id && (
+                      <tr className="bg-body-tertiary">
+                        <td colSpan={colSpanCount} className="p-2" onClick={(e) => e.stopPropagation()}>
+                          {typeof renderExpandedRow === "function" ? renderExpandedRow(inv) : null}
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={10} className="text-center text-muted py-4">
-                    {t("invoices.noData")}
+                  <td colSpan={colSpanCount} className="text-center text-muted py-4">
+                    {t("invoices.noData", "Không có dữ liệu")}
                   </td>
                 </tr>
               )}
@@ -141,7 +170,12 @@ export default function InvoiceTable({
         rowsPerPage={rowsPerPage}
         rowsPerPageOptions={[15, 30, 50, 100]}
         rowsPerPageValue={rowsSelectValue}
-        onPageChange={setCurrentPage}
+        onPageChange={(p) => {
+          setCurrentPage(p);
+          // đổi trang thì đóng xổ cho sạch
+          // (nếu muốn giữ mở thì bỏ dòng này)
+          // setExpandedId không có ở đây, nên để page xử lý
+        }}
         onRowsPerPageChange={(value) => {
           const next = value === "all" ? Number.MAX_SAFE_INTEGER : Number(value);
           setRowsPerPage(next);

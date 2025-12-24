@@ -14,12 +14,18 @@ export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [loadingManager, setLoadingManager] = useState(false);
-  const [loadingSales, setLoadingSales] = useState(false);
+
+
+  const [loadingRole, setLoadingRole] = useState(null);
+
   const [errorKey, setErrorKey] = useState("");
 
-  const handleLogin = async (redirectPath, setLoading) => {
-    setLoading(true);
+  const isLoading = loadingRole !== null; // đang xử lý login
+
+  const handleLogin = async (redirectPath, role) => {
+    if (isLoading) return; 
+
+    setLoadingRole(role);
     setErrorKey("");
 
     try {
@@ -34,12 +40,13 @@ export default function LoginPage() {
       const data = await res.json();
       localStorage.setItem("accessToken", data.accessToken);
       localStorage.setItem("refreshToken", data.refreshToken);
+
       navigate(redirectPath);
     } catch (err) {
       console.error("❌ Lỗi đăng nhập:", err);
       setErrorKey("login.error");
     } finally {
-      setLoading(false);
+      setLoadingRole(null);
     }
   };
 
@@ -69,11 +76,13 @@ export default function LoginPage() {
           {/* Thông báo lỗi */}
           {errorKey && <p className="text-danger text-center">{t(errorKey)}</p>}
 
+
           <InputField
             type="text"
             placeholder={t("login.username")}
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            disabled={isLoading}
           />
 
           <div className="mb-3 position-relative">
@@ -84,17 +93,20 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               style={{ paddingRight: "40px" }}
+              disabled={isLoading}
             />
             <span
-              onClick={() => setShowPassword(!showPassword)}
+              onClick={() => !isLoading && setShowPassword(!showPassword)}
               style={{
                 position: "absolute",
                 top: "50%",
                 right: "10px",
                 transform: "translateY(-50%)",
-                cursor: "pointer",
+                cursor: isLoading ? "not-allowed" : "pointer",
                 color: "#6c757d",
+                opacity: isLoading ? 0.6 : 1,
               }}
+              title={isLoading ? t("login.loading") : ""}
             >
               <i className={`bi ${showPassword ? "bi-eye" : "bi-eye-slash"}`}></i>
             </span>
@@ -103,15 +115,23 @@ export default function LoginPage() {
           {/* Remember + Forgot */}
           <div className="d-flex justify-content-between align-items-center mb-3">
             <div className="form-check">
-              <input type="checkbox" className="form-check-input" id="remember" />
+              <input
+                type="checkbox"
+                className="form-check-input"
+                id="remember"
+                disabled={isLoading}
+              />
               <label htmlFor="remember" className="form-check-label">
                 {t("login.remember")}
               </label>
             </div>
+
+
             <a
               href="/forgot-password"
-              className="small text-primary"
-              style={{ cursor: "pointer" }}
+              className={`small text-primary ${isLoading ? "pe-none opacity-75" : ""}`}
+              style={{ cursor: isLoading ? "not-allowed" : "pointer" }}
+              aria-disabled={isLoading}
             >
               {t("login.forgotPassword")}
             </a>
@@ -122,7 +142,8 @@ export default function LoginPage() {
         <div className="card-footer d-flex p-0 border-0">
           <button
             className="btn btn-secondary w-50"
-            disabled={loadingManager}
+
+            disabled={isLoading}
             style={{
               borderTopLeftRadius: "0",
               borderTopRightRadius: "0",
@@ -131,14 +152,15 @@ export default function LoginPage() {
               paddingTop: "16px",
               paddingBottom: "16px",
             }}
-            onClick={() => handleLogin("/", setLoadingManager)}
+            onClick={() => handleLogin("/", "manager")}
           >
-            {loadingManager ? t("login.loading") : t("login.manager")}
+            {loadingRole === "manager" ? t("login.loading") : t("login.manager")}
           </button>
 
           <button
             className="btn btn-success w-50"
-            disabled={loadingSales}
+
+            disabled={isLoading}
             style={{
               borderTopLeftRadius: "0",
               borderTopRightRadius: "0",
@@ -149,9 +171,9 @@ export default function LoginPage() {
               backgroundColor: "#20c997",
               borderColor: "#20c997",
             }}
-            onClick={() => handleLogin("/sales", setLoadingSales)}
+            onClick={() => handleLogin("/sales", "sales")}
           >
-            {loadingSales ? t("login.loading") : t("login.sales")}
+            {loadingRole === "sales" ? t("login.loading") : t("login.sales")}
           </button>
         </div>
       </div>

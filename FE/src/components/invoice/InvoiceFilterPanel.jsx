@@ -9,12 +9,40 @@ export default function InvoiceFilterPanel({ filters, onChange, sellerList }) {
 
   const ALL_OPTION = { value: "all", label: t("common.all") };
 
+  const statusOptions = [
+    ALL_OPTION,
+    { value: "PENDING", label: t("invoices.pending", "Chờ thanh toán") }, // gộp PENDING + DRAFT
+    { value: "COMPLETED", label: t("invoices.completed", "Hoàn thành") },
+  ];
+
+  const getStatusLabel = (status) => {
+    const s = String(status || "").trim().toUpperCase();
+    if (s === "PENDING" || s === "DRAFT") return t("invoices.pending", "Chờ thanh toán");
+    if (s === "COMPLETED") return t("invoices.completed", "Hoàn thành");
+    return t("common.all");
+  };
+
+  const getPaymentLabel = (method) => {
+    const m = String(method || "").trim().toUpperCase();
+    switch (m) {
+      case "CASH":
+        return t("invoices.cash", "Tiền mặt");
+      case "BANK":
+      case "TRANSFER":
+      case "BANK_TRANSFER":
+        return t("invoices.bank", "Chuyển khoản");
+      case "WALLET":
+      case "E_WALLET":
+        return t("invoices.wallet", "Ví điện tử");
+      default:
+        return t("invoices.other", "Khác");
+    }
+  };
+
   return (
     <aside className="col-lg-2 d-none d-lg-block">
       <div className="card shadow-sm border-0 h-100">
         <div className="card-body">
-
-          {/* ===== Trạng thái ===== */}
           <div className="mb-4">
             <label className="form-label fw-medium mb-2">
               {t("invoices.status")}
@@ -23,31 +51,17 @@ export default function InvoiceFilterPanel({ filters, onChange, sellerList }) {
             <Select
               value={
                 filters.status
-                  ? {
-                      value: filters.status,
-                      label:
-                        filters.status === "COMPLETED"
-                          ? t("invoices.completed")
-                          : filters.status === "PENDING"
-                          ? t("invoices.pending")
-                          : t("invoices.cancelled"),
-                    }
+                  ? { value: filters.status, label: getStatusLabel(filters.status) }
                   : ALL_OPTION
               }
               onChange={(opt) =>
                 onChange("status", opt && opt.value !== "all" ? opt.value : "")
               }
-              options={[
-                ALL_OPTION,
-                { value: "COMPLETED", label: t("invoices.completed") },
-                { value: "PENDING", label: t("invoices.pending") },
-                { value: "CANCELLED", label: t("invoices.cancelled") },
-              ]}
+              options={statusOptions}
               isSearchable
             />
           </div>
 
-          {/* ===== Phương thức thanh toán ===== */}
           <div className="mb-4">
             <label className="form-label fw-medium mb-2">
               {t("invoices.paymentMethod")}
@@ -58,14 +72,7 @@ export default function InvoiceFilterPanel({ filters, onChange, sellerList }) {
                 filters.paymentMethod
                   ? {
                       value: filters.paymentMethod,
-                      label:
-                        filters.paymentMethod === "CASH"
-                          ? t("invoices.cash")
-                          : filters.paymentMethod === "BANK"
-                          ? t("invoices.bank")
-                          : filters.paymentMethod === "WALLET"
-                          ? t("invoices.wallet")
-                          : t("invoices.other"),
+                      label: getPaymentLabel(filters.paymentMethod),
                     }
                   : ALL_OPTION
               }
@@ -77,15 +84,14 @@ export default function InvoiceFilterPanel({ filters, onChange, sellerList }) {
               }
               options={[
                 ALL_OPTION,
-                { value: "CASH", label: t("invoices.cash") },
-                { value: "BANK", label: t("invoices.bank") },
-                { value: "WALLET", label: t("invoices.wallet") },
+                { value: "CASH", label: t("invoices.cash", "Tiền mặt") },
+                { value: "BANK", label: t("invoices.bank", "Chuyển khoản") },
+                { value: "WALLET", label: t("invoices.wallet", "Ví điện tử") },
               ]}
               isSearchable
             />
           </div>
 
-          {/* ===== Nhân viên bán ===== */}
           <div className="mb-4">
             <label className="form-label fw-medium mb-2">
               {t("invoices.seller")}
@@ -100,16 +106,12 @@ export default function InvoiceFilterPanel({ filters, onChange, sellerList }) {
               onChange={(opt) =>
                 onChange("seller", opt && opt.value !== "all" ? opt.value : "")
               }
-              options={[
-                ALL_OPTION,
-                ...sellerList, // ❗ CHỈ sellerList, không chứa "all"
-              ]}
+              options={[ALL_OPTION, ...sellerList]}
               placeholder={t("invoices.selectSeller")}
               isSearchable
             />
           </div>
 
-          {/* ===== Ngày tạo ===== */}
           <div className="mb-4">
             <label className="form-label fw-medium mb-2">
               {t("invoices.createdAt")}

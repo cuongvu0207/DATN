@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState, useCallback } from "react";
+﻿import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import {
   BarChart,
   Bar,
@@ -168,6 +168,7 @@ const HomePage = () => {
   const { theme } = useTheme();
   const { t } = useTranslation();
   const token = localStorage.getItem("accessToken");
+  const lowStockSectionRef = useRef(null); // Ref để scroll tới phần cảnh báo hàng hết
 
   // Lấy màu sắc theo theme
   const themeColor = getThemeColors(theme);
@@ -222,6 +223,16 @@ const HomePage = () => {
     }),
     [token]
   );
+
+  // Hàm scroll tới phần cảnh báo hàng hết
+  const scrollToLowStockSection = () => {
+    if (lowStockSectionRef.current) {
+      lowStockSectionRef.current.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }
+  };
 
   // Helper functions
   const getFromDateByPeriod = useCallback(() => {
@@ -584,6 +595,21 @@ const HomePage = () => {
             </div>
           </div>
           <div className="d-flex align-items-center gap-3">
+            {/* Biểu tượng cảnh báo hàng sắp hết */}
+            {lowStockProducts.length > 0 && (
+              <button 
+                className="btn btn-sm btn-danger d-flex align-items-center gap-2 position-relative"
+                onClick={scrollToLowStockSection}
+                title={t("dashboard.scrollToLowStock", "Xem cảnh báo hàng sắp hết")}
+              >
+                <i className="bi bi-exclamation-triangle-fill"></i>
+                <span>{lowStockProducts.length}</span>
+                <span className="visually-hidden">
+                  {t("dashboard.needToImport", { count: lowStockProducts.length })}
+                </span>
+              </button>
+            )}
+            
             <div className="d-flex align-items-center gap-2">
               <span className="text-muted small">
                 {t("dashboard.timePeriod")}:
@@ -1030,8 +1056,8 @@ const HomePage = () => {
           </div>
         </div>
 
-        {/* LOW STOCK ALERTS */}
-        <div className="row g-3">
+        {/* LOW STOCK ALERTS - THÊM REF TẠI ĐÂY */}
+        <div className="row g-3" ref={lowStockSectionRef}>
           <div className="col-12">
             <div className="card border-0 shadow-sm">
               <div className="card-header bg-white border-0">

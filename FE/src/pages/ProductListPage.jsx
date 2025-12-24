@@ -10,7 +10,6 @@ import ProductTable from "../components/product/ProductTable";
 import AddProductCard from "../components/common/AddProductCard";
 import ProductBulkUploadModal from "../components/product/ProductBulkUploadModal";
 
-
 export default function ProductListPage() {
   const { t } = useTranslation();
 
@@ -23,11 +22,14 @@ export default function ProductListPage() {
   const [rowsPerPage, setRowsPerPage] = useState(15);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedProducts, setSelectedProducts] = useState([]);
+  
+  // Updated filters with date range
   const [filters, setFilters] = useState({
     category: "all",
     brand: "all",
-    supplier: "all",
     stockLevel: "all", // ✅ all | above | below
+    createdAtFrom: "", // New: start date
+    createdAtTo: "", // New: end date
   });
 
   const [editingProduct, setEditingProduct] = useState(null);
@@ -39,7 +41,6 @@ export default function ProductListPage() {
 
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
-  const [suppliers, setSuppliers] = useState([]);
 
   const token = localStorage.getItem("accessToken");
 
@@ -66,34 +67,30 @@ export default function ProductListPage() {
         name: p?.productName || t("products.unnamed"),
         category: p?.categoryName || t("products.uncategorized"),
         brand: p?.brandName || "",
-        supplier:
-          p?.supplierName ||
-          p?.supplier?.supplierName ||
-          p?.supplier ||
-          "",
         unit: p?.unit || "",
         price: p?.sellingPrice || 0,
         cost: p?.costOfCapital || 0,
         stock: p?.quantityInStock || 0,
         minimumStock: p?.minimumStock || 0,
-
         statusBoolean: p?.isActive ?? true,
-
-        status: p?.isActive
-          ? t("products.active")
-          : t("products.inactive"),
-
-        createdAt: p?.lastUpdated
+        status: p?.isActive ? t("products.active") : t("products.inactive"),
+        createdAt: p?.lastUpdated ? new Date(p.lastUpdated) : new Date(),
+        createdAtFormatted: p?.lastUpdated 
           ? new Date(p.lastUpdated).toLocaleDateString("vi-VN")
           : "",
         image: p?.image || "",
+        categoryId: p?.categoryId || "",
+        brandId: p?.brandId || "",
       }));
 
       setProducts(formatted);
 
-      setCategories([...new Set(formatted.map((p) => p.category).filter(Boolean))]);
-      setBrands([...new Set(formatted.map((p) => p.brand).filter(Boolean))]);
-      setSuppliers([...new Set(formatted.map((p) => p.supplier).filter(Boolean))]);
+      // Extract unique categories and brands for filter
+      const uniqueCategories = [...new Set(formatted.map((p) => p.category).filter(Boolean))];
+      const uniqueBrands = [...new Set(formatted.map((p) => p.brand).filter(Boolean))];
+      
+      setCategories(uniqueCategories);
+      setBrands(uniqueBrands);
     } catch (err) {
       console.error("❌ Fetch error:", err);
       setError(t("products.fetchError"));
@@ -105,6 +102,35 @@ export default function ProductListPage() {
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  /* ==============================
+      🔹 HANDLE FILTER CHANGES
+     ============================== */
+  const handleFilterChange = (field, value) => {
+    setFilters((prev) => ({ ...prev, [field]: value }));
+    setCurrentPage(1); // Reset to first page when filter changes
+  };
+
+  /* ==============================
+      🔹 RELOAD AFTER ADDING CATEGORY/BRAND
+     ============================== */
+  const handleReloadAfterAdd = async (type, data) => {
+    // Refetch products to get updated categories/brands
+    await fetchProducts();
+    
+    // Also update the filter if the new item matches current filter
+    if (type === "category" && data?.categoryName) {
+      setFilters(prev => ({
+        ...prev,
+        category: data.categoryName
+      }));
+    } else if (type === "brand" && data?.brandName) {
+      setFilters(prev => ({
+        ...prev,
+        brand: data.brandName
+      }));
+    }
+  };
 
   /* ==============================
       🔹 BATCH IMPORT
@@ -160,7 +186,6 @@ export default function ProductListPage() {
     }
   };
 
-
   const handleSheetImport = (sheetUrl) => {
     if (!sheetUrl) return;
     setBulkProcessing(true);
@@ -189,7 +214,6 @@ export default function ProductListPage() {
       formData.append("costOfCapital", newProduct.cost || 0);
       formData.append("quantityInStock", newProduct.stock);
       formData.append("minimumStock", newProduct.minimumStock || 0);
-      // formData.append("isActive", true);
       formData.append("categoryId", newProduct.categoryId || 1);
       formData.append("brandId", newProduct.brandId || 1);
 
@@ -221,7 +245,6 @@ export default function ProductListPage() {
       const formData = new FormData();
 
       // Các field text phải append vào FormData
-
       formData.append("productName", updated.name);
       formData.append("barcode", updated.barcode);
       formData.append("unit", updated.unit || "");
@@ -229,7 +252,6 @@ export default function ProductListPage() {
       formData.append("costOfCapital", updated.cost || 0);
       formData.append("quantityInStock", updated.stock || 0);
       formData.append("minimumStock", updated.minimumStock || 0);
-      // formData.append("isActive", updated.statusBoolean);
       formData.append("categoryId", updated.categoryId || "");
       formData.append("brandId", updated.brandId || "");
 
@@ -251,9 +273,6 @@ export default function ProductListPage() {
         }
       );
 
-
-
-
       alert(t("products.updateSuccess"));
       setEditingProduct(null);
       fetchProducts();
@@ -262,9 +281,6 @@ export default function ProductListPage() {
       alert(t("products.updateError"));
     }
   };
-
-
-
 
   /* ==============================
       🔹 KÍCH HOẠT / VÔ HIỆU HOÁ
@@ -316,16 +332,9 @@ export default function ProductListPage() {
     }
   };
 
-
-
   /* ==============================
       🔹 LỌC + TÌM KIẾM
      ============================== */
-  const handleFilterChange = (field, value) => {
-    setFilters((prev) => ({ ...prev, [field]: value }));
-    setCurrentPage(1);
-  };
-
   const filtered = products.filter((p) => {
     const queryLower = (query || "").toLowerCase();
     const matchesQuery =
@@ -339,9 +348,6 @@ export default function ProductListPage() {
     const matchesBrand =
       !filters.brand || filters.brand === "all" || p.brand === filters.brand;
 
-    const matchesSupplier =
-      !filters.supplier || filters.supplier === "all" || p.supplier === filters.supplier;
-
     const stock = Number(p.stock || 0);
     const minStock = Number(p.minimumStock || 0);
 
@@ -350,14 +356,45 @@ export default function ProductListPage() {
         ? true
         : filters.stockLevel === "above"
           ? stock > minStock
-          : stock <= minStock; // below
+          : stock <= minStock;
+
+    // Date range filtering
+    const matchesDateRange = () => {
+      if (!filters.createdAtFrom && !filters.createdAtTo) return true;
+      
+      const productDate = new Date(p.createdAt);
+      if (!productDate || isNaN(productDate.getTime())) return true;
+      
+      let fromDate = null;
+      let toDate = null;
+      
+      if (filters.createdAtFrom) {
+        fromDate = new Date(filters.createdAtFrom);
+        fromDate.setHours(0, 0, 0, 0);
+      }
+      
+      if (filters.createdAtTo) {
+        toDate = new Date(filters.createdAtTo);
+        toDate.setHours(23, 59, 59, 999);
+      }
+      
+      if (fromDate && toDate) {
+        return productDate >= fromDate && productDate <= toDate;
+      } else if (fromDate) {
+        return productDate >= fromDate;
+      } else if (toDate) {
+        return productDate <= toDate;
+      }
+      
+      return true;
+    };
 
     return (
       matchesQuery &&
       matchesCategory &&
       matchesBrand &&
-      matchesSupplier &&
-      matchesStockLevel
+      matchesStockLevel &&
+      matchesDateRange()
     );
   });
 
@@ -439,14 +476,9 @@ export default function ProductListPage() {
           <ProductFilterPanel
             filters={filters}
             onChange={{
-              addCategory: (cat) => setCategories((prev) => [...prev, cat]),
-              addBrand: (brand) => setBrands((prev) => [...prev, brand]),
-              addSupplier: (sup) => setSuppliers((prev) => [...prev, sup]),
               change: handleFilterChange,
+              reload: handleReloadAfterAdd, // Callback khi thêm mới category/brand
             }}
-            categories={categories}
-            brands={brands}
-            suppliers={suppliers}
           />
 
           <ProductTable

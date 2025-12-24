@@ -29,7 +29,15 @@
     "genderUnknown": "Chưa xác định",
     "walkIn": "Khách lẻ",
     "anonymous": "Khách #{0}",
-    "defaultName": "Khách hàng"
+    "defaultName": "Khách hàng",
+    "columns": {
+      "name": "Họ và tên",
+      "email": "Email",
+      "phone": "Số điện thoại",
+      "gender": "Giới tính",
+      "address": "Địa chỉ",
+      "actions": "Hành động"
+    }
   },
   "login": {
     "title": "VPOS",
@@ -66,7 +74,9 @@
     "orders": "đơn hàng",
     "billion": "tỷ",
     "dateFormat": "YYYY-MM-DD",
-    "refresh": "Làm mới"
+    "refresh": "Làm mới",
+    "locale": "vi-VN",
+    "product": "Sản phẩm"
   },
   "staff": {
     "title": "Danh sách nhân viên",
@@ -142,7 +152,8 @@
       "sheetTitle": "Tải lên từ Google Sheet",
       "sheetPlaceholder": "Nhập link Google Sheet...",
       "addProducts": "Thêm sản phẩm",
-      "noData": "Không có dữ liệu để hiển thị"
+      "noData": "Không có dữ liệu để hiển thị",
+      "sheetQueued": "Đã nhận Google Sheet!"
     },
     "noData": "Không có dữ liệu để hiển thị",
     "addCategory": "Thêm danh mục",
@@ -229,7 +240,15 @@
     "activate": "Kích hoạt",
     "deactivate": "Vô hiệu hoá",
     "chooseImage": "Tải ảnh sản phẩm",
-    "defaultName": "Sản phẩm"
+    "defaultName": "Sản phẩm",
+    "unnamed": "Sản phẩm không tên",
+    "fetchError": "Lỗi khi tải sản phẩm",
+    "activated": "Đã kích hoạt!",
+    "deactivated": "Đã vô hiệu hóa!",
+    "updateError": "Không thể cập nhật sản phẩm!",
+    "barcodeTitle": "Mã vạch sản phẩm",
+    "selectToExport": "Vui lòng chọn sản phẩm để xuất",
+    "selectToPrint": "Vui lòng chọn sản phẩm để in mã vạch"
   },
   "actions": {
     "apply": "Áp dụng",
@@ -284,7 +303,7 @@
     "date": "Ngày",
     "customer": "Khách hàng",
     "walkInCustomer": "Khách lẻ",
-    "paymentMethod": "Phương thức thanh toán",
+    "paymentMethod": "Phương thức",
     "cash": "Tiền mặt",
     "bank": "Chuyển khoản",
     "wallet": "Ví điện tử",
@@ -307,12 +326,44 @@
     "enterCustomer": "Nhập khách hàng..."
   },
   "supplier": {
+    "title": "Quản lý nhà cung cấp",
+    "searchPlaceholder": "Tìm kiếm nhà cung cấp...",
+    "addButton": "Thêm nhà cung cấp",
+    "addTitle": "Thêm nhà cung cấp mới",
+    "addSuccess": " Thêm nhà cung cấp thành công!",
+    "editTitle": "Chỉnh sửa nhà cung cấp",
+    "editSuccess": " Cập nhật nhà cung cấp thành công!",
+    "deleteSuccess": " Đã xóa nhà cung cấp!",
+    "deleteFail": " Xóa thất bại!",
+    "fetchError": " Không thể tải danh sách nhà cung cấp!",
+    "confirmDelete": "Bạn có chắc muốn xóa nhà cung cấp này?",
+    "noData": "Không có nhà cung cấp nào",
+    "deleteTooltip": "Xóa nhà cung cấp",
+    "columns": {
+      "name": "Tên nhà cung cấp",
+      "phone": "Số điện thoại",
+      "email": "Email",
+      "address": "Địa chỉ",
+      "note": "Ghi chú",
+      "actions": "Hành động"
+    },
+    "form": {
+      "name": "Tên nhà cung cấp",
+      "phone": "Số điện thoại",
+      "email": "Email",
+      "address": "Địa chỉ",
+      "note": "Ghi chú",
+      "nameRequired": "Vui lòng nhập tên nhà cung cấp",
+      "phoneInvalid": "Số điện thoại không hợp lệ",
+      "emailInvalid": "Email không hợp lệ",
+      "save": "Lưu nhà cung cấp",
+      "cancel": "Hủy"
+    },
     "supplierName": "Tên nhà cung cấp",
     "phone": "Số điện thoại",
     "email": "Email",
     "address": "Địa chỉ",
     "note": "Ghi chú",
-    "addSuccess": "Thêm nhà cung cấp thành công!",
     "addFail": "Không thể thêm nhà cung cấp!",
     "placeholder": {
       "name": "Nhập tên nhà cung cấp...",
@@ -387,6 +438,9 @@
     "defaultUnit": "Cái",
     "notePlaceholder": "Nhập ghi chú...",
     "confirmDelete": "Bạn có chắc muốn xoá sản phẩm này?",
+    "date_from": "Từ ngày",
+    "date_to": "Đến ngày",
+    "creator": "Người nhập",
     "errors": {
       "loadProducts": "Không thể tải danh sách sản phẩm.",
       "loadSuppliers": "Không thể tải danh sách nhà cung cấp.",
@@ -460,13 +514,56 @@
     "rows": "hàng",
     "all": "Tất cả"
   },
+  "invoice": {
+    "title": "Hoá đơn",
+    "walkInCustomer": "Khách vãng lai",
+    "customer": "Khách",
+    "fetchError": "Lỗi tải hóa đơn",
+    "detailError": "Lỗi tải chi tiết hóa đơn",
+    "soldInvoices": "Hóa đơn đã bán",
+    "searchPlaceholder": "Tìm mã / khách hàng...",
+    "paymentMethod": "Hình thức thanh toán",
+    "saleDate": "Ngày bán",
+    "columns": {
+      "id": "Mã HĐ",
+      "customer": "Khách hàng",
+      "saleDate": "Ngày bán",
+      "total": "Tổng tiền",
+      "payment": "Thanh toán",
+      "seller": "Nhân viên",
+      "actions": "Thao tác"
+    },
+    "detail": {
+      "title": "Chi tiết hóa đơn",
+      "invoiceId": "Mã hóa đơn",
+      "customer": "Khách hàng",
+      "saleDate": "Ngày bán",
+      "seller": "Nhân viên",
+      "paymentMethod": "Thanh toán",
+      "soldProducts": "Sản phẩm đã bán",
+      "productName": "Tên sản phẩm",
+      "quantity": "SL",
+      "unitPrice": "Đơn giá",
+      "subtotal": "Thành tiền",
+      "noProducts": "Không có sản phẩm",
+      "total": "Tổng cộng",
+      "discount": "Giảm giá",
+      "tax": "Thuế",
+      "finalAmount": "Thành tiền"
+    },
+    "actions": {
+      "print": "In lại",
+      "sendEmail": "Gửi email"
+    }
+  },
   "invoices": {
+    "noData" :"Không có hoá đơn nào",
     "title": "Hoá đơn",
     "invoiceId": "Mã hoá đơn",
     "customer": "Khách hàng",
     "phone": "Số điện thoại",
     "total": "Tổng tiền",
-    "paymentMethod": "Phương thức thanh toán",
+    "paymentMethod": "Phương thức",
     "status": "Trạng thái",
     "createdAt": "Ngày tạo",
     "seller": "Người bán",
@@ -478,7 +575,8 @@
     "other": "Khác",
     "completed": "Đã thanh toán",
     "pending": "Chờ thanh toán",
-    "cancelled": "Đã huỷ"
+    "cancelled": "Đã huỷ",
+    "export" : "Xuất file"
   },
   "dashboard": {
     "title": "Tổng quan",
@@ -560,6 +658,9 @@
     "lowStockStatusCritical": "Sắp hết"
   },
   "payment": {
+    "cash": "Tiền mặt",
+    "transfer": "Chuyển khoản",
+    "wallet": "Ví điện tử",
     "amount": "Tổng số tiền",
     "changeMoney": "Tiền thừa",
     "enterReceived": "Tiền khách trả",
