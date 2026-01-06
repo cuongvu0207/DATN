@@ -5,7 +5,6 @@ import MainLayout from "../layouts/MainLayout";
 import { useTheme } from "../context/ThemeContext";
 import axios from "axios";
 
-/* 🔹 Import component form thêm nhà cung cấp đã có */
 import SupplierAddCard from "../components/import/SupplierAddCard";
 
 export default function SupplierPage() {
@@ -16,9 +15,12 @@ export default function SupplierPage() {
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+
   const [showModal, setShowModal] = useState(false);
+
+  // edit
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingSupplier, setEditingSupplier] = useState(null);
 
   /* ===== Lấy danh sách nhà cung cấp ===== */
   const fetchSuppliers = async () => {
@@ -30,7 +32,7 @@ export default function SupplierPage() {
       setSuppliers(res.data || []);
     } catch (err) {
       console.error(err);
-      setError(t("supplier.loadFail") || "❌ Không thể tải danh sách nhà cung cấp!");
+      // ✅ KHÔNG alert ở page nữa (để card xử lý alert; page chỉ log)
     } finally {
       setLoading(false);
     }
@@ -38,57 +40,77 @@ export default function SupplierPage() {
 
   useEffect(() => {
     fetchSuppliers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* ===== Xóa nhà cung cấp ===== */
-  const handleDelete = async (id) => {
-    if (!window.confirm(t("supplier.confirmDelete") || "Bạn có chắc muốn xóa nhà cung cấp này?"))
-      return;
-    try {
-      await axios.delete(`${API_BASE_URL}/inventory/supplier/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setMessage(t("supplier.deleteSuccess") || "🗑️ Đã xóa nhà cung cấp!");
-      fetchSuppliers();
-    } catch (err) {
-      console.error(err);
-      setError(t("supplier.deleteFail") || "❌ Xóa thất bại!");
-    }
+  /* ===== Mở modal Add ===== */
+  const openAddModal = () => {
+    setIsEditMode(false);
+    setEditingSupplier(null);
+    setShowModal(true);
+  };
+
+  /* ===== Mở modal Edit ===== */
+  const openEditModal = (supplier) => {
+    setIsEditMode(true);
+    setEditingSupplier(supplier);
+    setShowModal(true);
+  };
+
+  const closeModal = () => setShowModal(false);
+
+  /* ===== Update local list sau khi card PUT thành công =====
+     Lưu ý: SupplierAddCard đã PUT + alert rồi, page chỉ cập nhật state */
+  const applyUpdatedSupplierToList = (updatedSupplier) => {
+    const id = updatedSupplier?.supplierId ?? editingSupplier?.supplierId;
+    if (!id) return;
+
+    setSuppliers((prev) =>
+      (prev || []).map((s) =>
+        s?.supplierId === id ? { ...s, ...updatedSupplier } : s
+      )
+    );
+
+    setShowModal(false);
+    setIsEditMode(false);
+    setEditingSupplier(null);
+  };
+
+  /* ===== Add local list sau khi card POST thành công ===== */
+  const appendNewSupplierToList = (newSupplier) => {
+    setSuppliers((prev) => [...(prev || []), newSupplier]);
+    setShowModal(false);
   };
 
   /* ===== Bộ lọc tìm kiếm ===== */
-  const filteredSuppliers = suppliers.filter(
-    (s) =>
-      s.supplierName.toLowerCase().includes(search.toLowerCase()) ||
-      s.phone.toLowerCase().includes(search.toLowerCase()) ||
-      s.email.toLowerCase().includes(search.toLowerCase())
-  );
+  const q = (search || "").toLowerCase();
+  const filteredSuppliers = (suppliers || []).filter((s) => {
+    const name = String(s?.supplierName || "").toLowerCase();
+    const phone = String(s?.phone || "").toLowerCase();
+    const email = String(s?.email || "").toLowerCase();
+    return !q || name.includes(q) || phone.includes(q) || email.includes(q);
+  });
 
-  /* ===== Render ===== */
   return (
     <MainLayout>
       <div className="container-fluid py-3 px-4">
         {/* HEADER */}
         <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-          <div className="d-flex align-items-center gap-3 flex-wrap">
-            <h4 className={`fw-bold text-${theme} mb-0`}>
+          <div className="d-flex align-items-center gap-3 flex-wrap flex-grow-1">
+            <h4 className={`fw-bold  mb-0 text-nowrap`}>
               {t("supplier.title") || "Quản lý nhà cung cấp"}
             </h4>
 
-            {/* Ô tìm kiếm có biểu tượng */}
-            <div className="position-relative" style={{ width: 380, maxWidth: "100%" }}>
+            {/* Search */}
+            <div className="position-relative flex-grow-1" style={{ minWidth: 260 }}>
               <i
-                className="bi bi-search position-absolute"
-                style={{
-                  left: 12,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  opacity: 0.6,
-                }}
-              ></i>
+                className={`bi bi-search position-absolute top-50 start-0 translate-middle-y ps-3 text-${theme}`}
+                style={{ opacity: 0.7 }}
+              />
               <input
                 type="text"
                 className="form-control ps-5"
+                style={{ height: 40 }}
                 placeholder={t("supplier.searchPlaceholder") || "Tìm kiếm nhà cung cấp..."}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -96,24 +118,26 @@ export default function SupplierPage() {
             </div>
           </div>
 
-          {/* Nút thêm NCC */}
-          <button className={`btn btn-${theme}`} onClick={() => setShowModal(true)}>
+          {/* Add */}
+          <button
+            className={`btn btn-${theme} fw-semibold d-flex align-items-center rounded-3 px-3`}
+            onClick={openAddModal}
+          >
             <i className="bi bi-plus-circle me-1"></i>
             {t("supplier.addButton") || "Thêm nhà cung cấp"}
           </button>
         </div>
 
-        {/* Thông báo */}
-        {message && <div className="alert alert-success">{message}</div>}
-        {error && <div className="alert alert-danger">{error}</div>}
-
-        {/* BẢNG DANH SÁCH NHÀ CUNG CẤP */}
-        <div className="bg-white rounded-3 shadow-sm p-3">
-          {loading ? (
-            <p className="text-center my-3">{t("common.loading") || "Đang tải..."}</p>
-          ) : (
+        {/* TABLE */}
+        {loading ? (
+          <p className="text-center my-3">{t("common.loading") || "Đang tải..."}</p>
+        ) : (
+          <div className="table-responsive rounded-3 shadow-sm">
             <table className="table table-hover align-middle mb-0">
-              <thead className="table-light" style={{ position: "sticky", top: 0, zIndex: 2 }}>
+              <thead
+                className={`table-${theme}`}
+                style={{ position: "sticky", top: 0, zIndex: 2 }}
+              >
                 <tr>
                   <th>#</th>
                   <th>{t("supplier.name") || "Tên nhà cung cấp"}</th>
@@ -121,25 +145,27 @@ export default function SupplierPage() {
                   <th>{t("supplier.email") || "Email"}</th>
                   <th>{t("supplier.address") || "Địa chỉ"}</th>
                   <th>{t("supplier.note") || "Ghi chú"}</th>
-                  <th>{t("supplier.actions") || "Hành động"}</th>
+                  <th>{t("supplier.actions", "Hành động")}</th>
                 </tr>
               </thead>
+
               <tbody>
                 {filteredSuppliers.length > 0 ? (
                   filteredSuppliers.map((s, i) => (
-                    <tr key={s.supplierId}>
+                    <tr key={s?.supplierId ?? i}>
                       <td>{i + 1}</td>
-                      <td>{s.supplierName}</td>
-                      <td>{s.phone}</td>
-                      <td>{s.email}</td>
-                      <td>{s.address}</td>
-                      <td>{s.note}</td>
+                      <td>{s?.supplierName || "—"}</td>
+                      <td>{s?.phone || "—"}</td>
+                      <td>{s?.email || "—"}</td>
+                      <td>{s?.address || "—"}</td>
+                      <td>{s?.note || "—"}</td>
                       <td>
                         <button
-                          className="btn btn-outline-danger btn-sm"
-                          onClick={() => handleDelete(s.supplierId)}
+                          className={`btn btn-outline-${theme} btn-sm`}
+                          onClick={() => openEditModal(s)}
+                          title={t("common.edit") || "Chỉnh sửa"}
                         >
-                          <i className="bi bi-trash"></i>
+                          <i className="bi bi-pencil-square"></i>
                         </button>
                       </td>
                     </tr>
@@ -153,37 +179,46 @@ export default function SupplierPage() {
                 )}
               </tbody>
             </table>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* ===== MODAL (xổ giữa màn hình) để thêm nhà cung cấp ===== */}
+      {/* MODAL */}
       {showModal && (
         <div
           className="modal fade show d-block"
           tabIndex="-1"
           style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) closeModal();
+          }}
         >
           <div className="modal-dialog modal-lg modal-dialog-centered">
             <div className="modal-content shadow border-0">
               <div className={`modal-header bg-${theme} text-white`}>
                 <h5 className="modal-title">
-                  <i className="bi bi-building-add me-2"></i>
-                  {t("supplier.addTitle") || "Thêm nhà cung cấp mới"}
+                  <i
+                    className={`bi ${
+                      isEditMode ? "bi-pencil-square" : "bi-building-add"
+                    } me-2`}
+                  />
+                  {isEditMode
+                    ? t("supplier.editTitle") || "Chỉnh sửa nhà cung cấp"
+                    : t("supplier.addTitle") || "Thêm nhà cung cấp mới"}
                 </h5>
-                <button
-                  type="button"
-                  className="btn-close btn-close-white"
-                  onClick={() => setShowModal(false)}
-                ></button>
+                <button className="btn-close btn-close-white" onClick={closeModal} />
               </div>
+
               <div className="modal-body">
-                {/* Gọi lại component SupplierAddCard đã có */}
                 <SupplierAddCard
-                  onSave={(newSupplier) => {
-                    setSuppliers((prev) => [...prev, newSupplier]);
-                    setShowModal(false);
-                    setMessage(t("supplier.addSuccess") || "✅ Thêm nhà cung cấp thành công!");
+                  initialData={isEditMode ? editingSupplier : null}
+                  onSave={(payload) => {
+                    // ✅ KHÔNG alert ở đây nữa (card đã alert)
+                    if (isEditMode) {
+                      applyUpdatedSupplierToList(payload);
+                    } else {
+                      appendNewSupplierToList(payload);
+                    }
                   }}
                 />
               </div>
@@ -194,5 +229,3 @@ export default function SupplierPage() {
     </MainLayout>
   );
 }
-
-
