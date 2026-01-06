@@ -8,12 +8,12 @@ export default function Navbar() {
   const { t } = useTranslation();
   const location = useLocation();
 
-  // Inject biến màu theme động vào root
+
   useEffect(() => {
     document.documentElement.style.setProperty("--bs-current-theme", `var(--bs-${theme})`);
   }, [theme]);
 
-  // Hover dropdown
+
   useEffect(() => {
     const dropdowns = document.querySelectorAll(".nav-item.dropdown");
     dropdowns.forEach((dropdown) => {
@@ -51,7 +51,6 @@ export default function Navbar() {
 
   return (
     <>
-      {/* ✅ Ghi đè màu click theo theme */}
       <style>
         {`
           .dropdown-item:active,
@@ -113,11 +112,11 @@ export default function Navbar() {
                     </li>
                     <li>
                       <Link
-                        className={dropdownItemClass("/products/prices")}
-                        style={dropdownItemStyle("/products/prices")}
-                        to="/products/prices"
+                        className={dropdownItemClass("/forecast")}
+                        style={dropdownItemStyle("/forecast")}
+                        to="/forecast"
                       >
-                        {t("menu.priceSetup")}
+                        {t("menu.forecast")}
                       </Link>
                     </li>
                     <li>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Header from "../components/layout/Header";
 import Navbar from "../components/layout/Navbar";
+import Footer from "../components/layout/Footer";  
 
 export default function MainLayout({ children, theme, setTheme }) {
   const [width, setWidth] = useState(window.innerWidth);
@@ -13,13 +14,18 @@ export default function MainLayout({ children, theme, setTheme }) {
 
   const maxContentWidth = 1500;
 
-  // Chiều cao cố định của Header + Navbar
   const HEADER_HEIGHT = 64;
   const NAVBAR_HEIGHT = 56;
   const TOP_OFFSET = HEADER_HEIGHT + NAVBAR_HEIGHT;
 
   return (
-    <>
+    <div
+      style={{
+        minHeight: "100vh",                //  giúp footer luôn nằm cuối
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
       {/* ===== HEADER FIXED ===== */}
       <div
         style={{
@@ -39,6 +45,7 @@ export default function MainLayout({ children, theme, setTheme }) {
         className="w-100 d-flex justify-content-center"
         style={{
           marginTop: TOP_OFFSET,
+          flex: 1,                         // ⭐ phần quan trọng để đẩy footer xuống
           padding: width >= 1400 ? "0 24px" : width >= 1000 ? "0 12px" : "0 6px",
           transition: "all .25s ease",
         }}
@@ -52,6 +59,9 @@ export default function MainLayout({ children, theme, setTheme }) {
           {children}
         </div>
       </div>
-    </>
+
+      {/* ===== FOOTER ===== */}
+      <Footer />                           
+    </div>
   );
 }

@@ -19,17 +19,18 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import CustomerPage from "./pages/CustomerPage";
 import PaymentNotification from "./pages/PaymentNotification";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import DemandForecastPage from "./pages/DemandForecastPage";
 export default function App() {
   return (
     <ThemeProvider>
       <Router>
         <Routes>
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          {/* ✅ Trang Login — cho phép truy cập tự do */}
+          {/* Trang Login — cho phép truy cập tự do */}
           <Route path="/login" element={<LoginPage />} />
           
 
-          {/* ✅ Tất cả các route khác đều yêu cầu có token */}
+          {/* Tất cả các route khác đều yêu cầu có token */}
           <Route
             path="/*"
             element={
@@ -48,7 +49,7 @@ export default function App() {
                   <Route path="/products/supplier" element={<SupplierPage />} />
                   <Route path="/customers" element={<CustomerPage />} />
                   <Route path="/payment-notification" element={<PaymentNotification />} />
-
+                  <Route path="/forecast" element={<DemandForecastPage />} />
                 </Routes>
               </ProtectedRoute>
             }

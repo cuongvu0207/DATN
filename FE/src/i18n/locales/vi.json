@@ -104,6 +104,7 @@
     "sales": "Bán hàng",
     "productList": "Danh sách hàng hoá",
     "priceSetup": "Thiết lập giá",
+    "forecast" : "Dự báo nhu cầu hàng hoá",
     "supplier": "Nhà cung cấp",
     "importGoods": "Nhập hàng",
     "invoice": "Hoá đơn",
@@ -327,6 +328,7 @@
   },
   "supplier": {
     "title": "Quản lý nhà cung cấp",
+    "name" : "Tên nhà cung cấp",
     "searchPlaceholder": "Tìm kiếm nhà cung cấp...",
     "addButton": "Thêm nhà cung cấp",
     "addTitle": "Thêm nhà cung cấp mới",
@@ -818,5 +820,9 @@
       "other": "Khác"
     },
     "fetchError": "Không tải được dữ liệu tài chính"
+  },
+  "forecast" :{
+    "searchPlaceholder" : "Tìm theo mã, tên sản phẩm "
   }
+
 }

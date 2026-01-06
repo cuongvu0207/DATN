@@ -164,7 +164,9 @@ export default function ProductListPage() {
             "Content-Type": "multipart/form-data",
           },
         }
+        
       );
+      console.log(data);
 
       setBulkStatus({
         type: "success",
@@ -172,7 +174,7 @@ export default function ProductListPage() {
         details: data.importDetails,
       });
 
-      // 🔥 reload lại danh sách sản phẩm sau khi import
+      // reload lại danh sách sản phẩm sau khi import
       fetchProducts();
     } catch (err) {
       console.error("❌ Lỗi import:", err);
