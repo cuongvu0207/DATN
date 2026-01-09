@@ -269,28 +269,77 @@ const HomePage = () => {
       return !isNaN(invoiceDate.getTime()) && invoiceDate >= fromDate && invoiceDate <= now;
     });
 
-    // Process daily data
-    const dailyMap = new Map();
+    // Xử lý dữ liệu theo ngày hoặc giờ tùy thuộc vào period
+    let timeData = [];
     
-    filteredInvoices.forEach((invoice) => {
-      const date = new Date(invoice.createdAt);
-      const dateKey = date.toISOString().split('T')[0];
-      const displayDate = `${date.getDate()}/${date.getMonth() + 1}`;
+    if (period === "day") {
+      // Xử lý theo giờ cho chế độ "ngày"
+      const hourlyMap = new Map();
       
-      const existing = dailyMap.get(dateKey) || {
-        date: dateKey,
-        displayDate,
-        revenue: 0,
-        invoiceCount: 0
-      };
+      // Khởi tạo tất cả các giờ từ 0-23
+      for (let hour = 0; hour < 24; hour++) {
+        const hourKey = hour.toString().padStart(2, '0') + ':00';
+        hourlyMap.set(hourKey, {
+          time: hourKey,
+          displayTime: hourKey,
+          revenue: 0,
+          invoiceCount: 0
+        });
+      }
       
-      existing.revenue += Number(invoice.totalPrice || 0);
-      existing.invoiceCount += 1;
-      dailyMap.set(dateKey, existing);
-    });
+      // Điền dữ liệu vào các giờ
+      filteredInvoices.forEach((invoice) => {
+        const date = new Date(invoice.createdAt);
+        const hour = date.getHours();
+        const hourKey = hour.toString().padStart(2, '0') + ':00';
+        
+        const existing = hourlyMap.get(hourKey);
+        existing.revenue += Number(invoice.totalPrice || 0);
+        existing.invoiceCount += 1;
+      });
+      
+      timeData = Array.from(hourlyMap.values())
+        .sort((a, b) => {
+          const hourA = parseInt(a.time.split(':')[0]);
+          const hourB = parseInt(b.time.split(':')[0]);
+          return hourA - hourB;
+        });
+      
+    } else {
+      // Xử lý theo ngày cho các chế độ khác
+      const dailyMap = new Map();
+      
+      filteredInvoices.forEach((invoice) => {
+        const date = new Date(invoice.createdAt);
+        const dateKey = date.toISOString().split('T')[0];
+        
+        // Định dạng hiển thị khác nhau cho từng period
+        let displayDate;
+        if (period === "week") {
+          displayDate = `${date.getDate()}/${date.getMonth() + 1}`;
+        } else if (period === "month") {
+          displayDate = `${date.getDate()}/${date.getMonth() + 1}`;
+        } else if (period === "year") {
+          displayDate = `${date.getMonth() + 1}/${date.getFullYear()}`;
+        } else {
+          displayDate = `${date.getDate()}/${date.getMonth() + 1}`;
+        }
+        
+        const existing = dailyMap.get(dateKey) || {
+          date: dateKey,
+          displayDate,
+          revenue: 0,
+          invoiceCount: 0
+        };
+        
+        existing.revenue += Number(invoice.totalPrice || 0);
+        existing.invoiceCount += 1;
+        dailyMap.set(dateKey, existing);
+      });
 
-    const dailyInvoices = Array.from(dailyMap.values())
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      timeData = Array.from(dailyMap.values())
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    }
 
     // Process payment methods - SỬA: Thêm translation
     const paymentMap = new Map();
@@ -359,12 +408,12 @@ const HomePage = () => {
       .slice(0, 8);
 
     return {
-      dailyInvoices,
+      dailyInvoices: timeData, // Đổi tên để phù hợp hơn: timeSeriesData
       paymentMethods,
       categoryDistribution: categoryData,
       filteredInvoices
     };
-  }, [getFromDateByPeriod, t]);
+  }, [getFromDateByPeriod, t, period]); // Thêm period vào dependency
 
   // Fetch dashboard data
   const fetchDashboard = useCallback(async () => {
@@ -581,6 +630,24 @@ const HomePage = () => {
     return chartType === type ? `btn-${theme}` : `btn-outline-${theme}`;
   };
 
+  // Hàm để xác định dataKey cho biểu đồ dựa trên period
+  const getChartDataKey = () => {
+    return period === "day" ? "time" : "displayDate";
+  };
+
+  // Hàm để xác định label cho XAxis dựa trên period
+  const getXAxisLabel = () => {
+    if (period === "day") {
+      return t("dashboard.charts.hour", "Giờ");
+    } else if (period === "week") {
+      return t("dashboard.charts.day", "Ngày");
+    } else if (period === "month") {
+      return t("dashboard.charts.day", "Ngày");
+    } else {
+      return t("dashboard.charts.month", "Tháng");
+    }
+  };
+
   return (
     <MainLayout>
       <div className="container-fluid py-3">
@@ -654,7 +721,9 @@ const HomePage = () => {
                 <div className="d-flex justify-content-between align-items-center">
                   <h5 className="fw-bold mb-0">
                     <i className="bi bi-graph-up me-2"></i>
-                    {t("dashboard.charts.revenueTrend")}
+                    {period === "day" 
+                      ? t("dashboard.charts.revenueTrendByHour", "Xu hướng doanh thu theo giờ")
+                      : t("dashboard.charts.revenueTrend", "Xu hướng doanh thu")}
                   </h5>
                   <div className="d-flex align-items-center gap-3">
                     <div className="d-flex align-items-center gap-1">
@@ -703,7 +772,16 @@ const HomePage = () => {
                     {chartType === 'bar' ? (
                       <BarChart data={invoiceStats.dailyInvoices}>
                         <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.light} />
-                        <XAxis dataKey="displayDate" fontSize={12} />
+                        <XAxis 
+                          dataKey={getChartDataKey()} 
+                          fontSize={12} 
+                          label={{ 
+                            value: getXAxisLabel(), 
+                            position: 'insideBottom', 
+                            offset: -5,
+                            fontSize: 12
+                          }}
+                        />
                         <YAxis 
                           tickFormatter={(value) => formatCurrency(value).replace('₫', '')}
                           fontSize={12}
@@ -712,6 +790,12 @@ const HomePage = () => {
                         <Tooltip 
                           content={<CustomTooltip />}
                           formatter={(value) => [formatCurrency(value), t("dashboard.charts.revenue")]}
+                          labelFormatter={(label) => {
+                            if (period === "day") {
+                              return `${t("dashboard.charts.hour", "Giờ")}: ${label}`;
+                            }
+                            return label;
+                          }}
                         />
                         <Bar 
                           name={`${t("dashboard.charts.revenue")} (₫)`}
@@ -725,7 +809,16 @@ const HomePage = () => {
                     ) : (
                       <LineChart data={invoiceStats.dailyInvoices}>
                         <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.light} />
-                        <XAxis dataKey="displayDate" fontSize={12} />
+                        <XAxis 
+                          dataKey={getChartDataKey()} 
+                          fontSize={12} 
+                          label={{ 
+                            value: getXAxisLabel(), 
+                            position: 'insideBottom', 
+                            offset: -5,
+                            fontSize: 12
+                          }}
+                        />
                         <YAxis 
                           tickFormatter={(value) => formatCurrency(value).replace('₫', '')}
                           fontSize={12}
@@ -734,6 +827,12 @@ const HomePage = () => {
                         <Tooltip 
                           content={<CustomTooltip />}
                           formatter={(value) => [formatCurrency(value), t("dashboard.charts.revenue")]}
+                          labelFormatter={(label) => {
+                            if (period === "day") {
+                              return `${t("dashboard.charts.hour", "Giờ")}: ${label}`;
+                            }
+                            return label;
+                          }}
                         />
                         <Line 
                           name={`${t("dashboard.charts.revenue")} (₫)`}

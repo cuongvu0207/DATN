@@ -3,6 +3,87 @@
     "english": "English",
     "vietnamese": "Vietnamese"
   },
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "clear": "Clear",
+    "search": "Search...",
+    "noData": "No data to display",
+    "all": "All",
+    "yes": "Yes",
+    "no": "No",
+    "active": "Active",
+    "inactive": "Inactive",
+    "show": "Show",
+    "rows": "rows",
+    "saving": "Saving",
+    "orders": "orders",
+    "unit": "unit"
+  },
+  "dashboard": {
+    "title": "Dashboard Overview",
+    "subtitle": "Business performance summary and analytics",
+    "timePeriod": "Time Period",
+    "today": "Today",
+    "last7Days": "Last 7 Days",
+    "last30Days": "Last 30 Days",
+    "thisYear": "This Year",
+    "scrollToLowStock": "View low stock alerts",
+    "needToImport": "{{count}} products need to be imported",
+    "summary": {
+      "revenue": "Total Revenue",
+      "revenueDesc": "Total sales revenue",
+      "cost": "Total Cost",
+      "costDesc": "Total cost of goods sold",
+      "profit": "Total Profit",
+      "profitDesc": "Gross profit margin",
+      "totalOrders": "Total Orders",
+      "totalOrdersDesc": "Number of completed orders",
+      "averageOrderValue": "Average Order Value",
+      "averageOrderValueDesc": "Average revenue per order"
+    },
+    "charts": {
+      "revenueTrend": "Revenue Trend",
+      "revenueTrendByHour": "Revenue Trend by Hour",
+      "chartType": "Chart Type",
+      "barChart": "Bar Chart",
+      "lineChart": "Line Chart",
+      "revenue": "Revenue",
+      "hour": "Hour",
+      "day": "Day",
+      "month": "Month",
+      "total": "Total",
+      "paymentMethods": "Payment Methods Distribution",
+      "categoryRevenue": "Category Revenue Distribution",
+      "topCategories": "Top {{count}} Categories"
+    },
+    "topProducts": "Top Selling Products",
+    "topCustomers": "Top Customers by Spending",
+    "lowStockAlert": "Low Stock Alerts",
+    "allProductsInStock": "All products are sufficiently stocked",
+    "table": {
+      "productName": "Product Name",
+      "quantity": "Quantity",
+      "revenue": "Revenue",
+      "customerName": "Customer Name",
+      "orders": "Orders",
+      "totalSpent": "Total Spent",
+      "category": "Category",
+      "barcode": "Barcode",
+      "currentStock": "Current Stock",
+      "minStock": "Minimum Stock",
+      "difference": "Difference",
+      "status": "Status"
+    },
+    "status": {
+      "outOfStock": "Out of Stock",
+      "lowStock": "Low Stock"
+    },
+    "fetchError": "Failed to load dashboard data"
+  },
   "customer": {
     "title": "Customers",
     "searchPlaceholder": "Search customers...",
@@ -26,7 +107,10 @@
     "genderUnknown": "Unknown",
     "address": "Address",
     "actions": "Actions",
-    "noData": "No customers"
+    "noData": "No customers",
+    "walkIn": "Walk-in Customer",
+    "anonymous": "Customer #{{id}}",
+    "defaultName": "Customer"
   },
   "login": {
     "title": "VPOS",
@@ -35,27 +119,9 @@
     "remember": "Remember me",
     "forgotPassword": "Forgot password?",
     "manager": "Manager",
-    "sales": "Sell",
+    "sales": "Sales",
     "loading": "Loading...",
     "error": "Invalid username or password!"
-  },
-  "common": {
-    "delete": "Delete",
-    "edit": "Edit",
-    "cancel": "Cancel",
-    "save": "Save",
-    "clear": "Clear",
-    "all": "All",
-    "loading": "Loading...",
-    "active": "Active",
-    "inactive": "Inactive",
-    "yes": "Yes",
-    "no": "No",
-    "search": "Search...",
-    "noData": "No data to display",
-    "show": "Show",
-    "rows": "rows",
-    "saving": "Saving"
   },
   "menu": {
     "overview": "Overview",
@@ -74,7 +140,8 @@
     "groups": {
       "products": "Products",
       "import": "Import"
-    }
+    },
+    "forecast" : "forecast"
   },
   "home": {
     "salesResultToday": "Today's Sales Results",
@@ -84,26 +151,6 @@
     "compareLastMonth": "Compared to Last Month",
     "netRevenue": "Net Revenue",
     "chartTitle": "Revenue by Hour"
-  },
-  "dashboard": {
-    "title": "Overview",
-    "revenue": "Revenue",
-    "cost": "Cost",
-    "profit": "Profit",
-    "revenueTrend": "Revenue Trend",
-    "topProducts": "Top Selling Products",
-    "topCustomers": "Loyal Customers",
-    "activity": "Activity Log",
-    "orders": "Orders",
-    "customers": "Customers",
-    "products": "Products",
-    "periodLabel": "By",
-    "period": {
-      "day": "Day",
-      "week": "Week",
-      "month": "Month",
-      "year": "Year"
-    }
   },
   "filters": {
     "all": "All",
@@ -143,12 +190,12 @@
     "sellingPrice": "Selling Price",
     "costOfCapital": "Cost of Capital",
     "quantityInStock": "In Stock",
-    "minimumStock": "MinimumStock",
+    "minimumStock": "Minimum Stock",
     "expectedOutOfStock": "Expected Out of Stock",
     "editProduct": "Edit Product",
     "unit": "Unit",
     "printBarcode": "Print Barcode",
-    "category": "Category ",
+    "category": "Category",
     "searchCategory": "Search by category",
     "searchBrand": "Search by brand",
     "addNewProduct": "Add New Product",
@@ -189,14 +236,15 @@
       "unit": "Enter unit...",
       "description": "Enter product description..."
     },
-    "addSuccess": " Product added successfully!",
+    "addSuccess": "Product added successfully!",
     "addFail": "Failed to add product!",
     "editSuccess": "Product updated successfully!",
     "editFail": "Failed to update product!",
     "deleteSuccess": "Product deleted successfully!",
     "deleteFail": "Failed to delete product!",
     "deleteConfirm": "Are you sure you want to delete this product?",
-    "uncategorized": "Uncategorized"
+    "uncategorized": "Uncategorized",
+    "defaultName": "Product"
   },
   "actions": {
     "apply": "Apply",
@@ -308,7 +356,8 @@
     "placeholder": {
       "name": "Enter category name...",
       "description": "Enter category description..."
-    }
+    },
+    "other": "Other"
   },
   "brand": {
     "brandName": "Brand Name",
@@ -569,5 +618,12 @@
     },
     "fetchError": "Unable to load financial transaction data.",
     "noData": "No data"
+  },
+  "paymentMethod": {
+    "cash": "Cash",
+    "bank": "Bank Transfer",
+    "card": "Payment Card",
+    "eWallet": "E-Wallet",
+    "unknown": "Unknown"
   }
 }

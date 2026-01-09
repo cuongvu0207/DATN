@@ -321,7 +321,7 @@
     "seller": "Người lập hoá đơn",
     "buyer": "Khách hàng",
     "signAndName": "Ký và ghi rõ họ tên",
-    "noItems": "Chưa có sản phẩm để in!",
+    "noItems": "Thêm sản phẩm!",
     "print": "In hoá đơn",
     "payNow": "Thanh toán",
     "enterCustomer": "Nhập khách hàng..."
@@ -443,6 +443,9 @@
     "date_from": "Từ ngày",
     "date_to": "Đến ngày",
     "creator": "Người nhập",
+    "fileFormat": "Mẫu",
+    "downloadTemplate":"Tải file mẫu",
+    "done" : "Nhập",
     "errors": {
       "loadProducts": "Không thể tải danh sách sản phẩm.",
       "loadSuppliers": "Không thể tải danh sách nhà cung cấp.",

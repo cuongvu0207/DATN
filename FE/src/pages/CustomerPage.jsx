@@ -276,7 +276,7 @@ export default function CustomerPage() {
         {/* HEADER giống style trang nhân viên */}
         <div className="d-flex flex-wrap align-items-center justify-content-between mb-3 gap-2">
           {/* Tiêu đề */}
-          <h4 className={`fw-bold text-${theme} mb-0 text-nowrap`}>
+          <h4 className={`fw-bold  mb-0 text-nowrap`}>
             {t("customer.title") || "Quản lý khách hàng"}
           </h4>
 

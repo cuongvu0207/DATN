@@ -3,14 +3,18 @@ import ThemeSwitcher from "../navigation/ThemeSwitcher";
 import LanguageSwitcher from "../navigation/LanguageSwitcher";
 import { useTheme } from "../../context/ThemeContext";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 export default function Header() {
   const { theme } = useTheme();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation(); // Thêm để kiểm tra vị trí hiện tại
   const [open, setOpen] = useState(false);
   const accountRef = useRef(null);
+
+  // Kiểm tra xem có đang ở trang sale không
+  const isOnSalePage = location.pathname === "/" || location.pathname === "/sale" || location.pathname.includes("/sale");
 
   const handleLogout = async () => {
     try {
@@ -40,9 +44,14 @@ export default function Header() {
     window.location.reload();
   };
 
-
   const handleAccount = () => {
     navigate("/account");
+    setOpen(false);
+  };
+
+  // Hàm xử lý nút Quản lý - điều hướng đến trang tổng quan
+  const handleManagement = () => {
+    navigate("/"); // Điều chỉnh thành đường dẫn trang tổng quan của bạn
     setOpen(false);
   };
 
@@ -104,6 +113,21 @@ export default function Header() {
             </button>
 
             <ul className={`dropdown-menu dropdown-menu-end ${open ? "show" : ""}`}>
+              {/* Nút Quản lý - chỉ hiển thị khi ở trang sale */}
+              {isOnSalePage && (
+                <li>
+                  <button 
+                    className="dropdown-item" 
+                    onClick={handleManagement}
+                  >
+                    <i className="bi bi-speedometer2 me-2"></i> {t("navigation.management", "Quản lý")}
+                  </button>
+                </li>
+              )}
+              
+              {/* Thêm đường phân cách nếu có nút Quản lý */}
+              {isOnSalePage && <li><hr className="dropdown-divider" /></li>}
+              
               <li>
                 <button className="dropdown-item" onClick={handleAccount}>
                   <i className="bi bi-person me-2"></i> {t("account.profile")}
